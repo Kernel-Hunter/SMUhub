@@ -1,14 +1,15 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
-import { LogOut, Menu, Settings, X } from 'lucide-react'
+import { LogOut, Menu, Search, Settings, X } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import { Avatar } from './ui'
+import Palette from './Palette'
 import { cn } from '@/lib/utils'
 
 const NAV = [
   { to: '/resources', label: 'Library' },
   { to: '/qa', label: 'Q&A' },
-  { to: '/voice', label: 'Campus Voice' },
+  { to: '/voice', label: 'Voice' },
   { to: '/events', label: 'Events' },
   { to: '/rentals', label: 'Rentals' },
   { to: '/leaderboard', label: 'Leaderboard' },
@@ -16,53 +17,62 @@ const NAV = [
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <Link to="/" aria-label="SMUhub home" className={cn('flex items-center gap-2', className)}>
-      <span className="grid size-7 place-items-center rounded-lg bg-accent text-[13px] font-bold text-[var(--accent-ink)]">S</span>
-      <span className="text-[17px] font-semibold tracking-tight">SMUhub</span>
+    <Link to="/" aria-label="SMUhub home" className={cn('flex items-center gap-2.5', className)}>
+      <svg viewBox="0 0 28 28" className="size-6" aria-hidden><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop stopColor="var(--accent)" /><stop offset="1" stopColor="#ff4d6d" /></linearGradient></defs><rect width="28" height="28" rx="8" fill="url(#lg)" /><path d="M8 19.5c.6 1.3 2.1 2 3.9 2 2.2 0 3.6-1 3.6-2.6 0-3.6-7.3-1.6-7.3-6 0-2 1.7-3.4 4.1-3.4 1.9 0 3.3.7 4 1.9" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" /></svg>
+      <span className="text-[15px] font-semibold tracking-[-0.02em]">SMUhub</span>
     </Link>
   )
 }
 
 export default function Shell({ children }: { children: ReactNode }) {
   const { me, logout } = useAuth()
-  const [open, setOpen] = useState(false)
+  const [menu, setMenu] = useState(false); const [search, setSearch] = useState(false)
   const { pathname } = useLocation()
-  useEffect(() => setOpen(false), [pathname])
-  useEffect(() => { document.body.style.overflow = open ? 'hidden' : '' }, [open])
+  useEffect(() => setMenu(false), [pathname])
+  useEffect(() => { document.body.style.overflow = menu ? 'hidden' : '' }, [menu])
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearch((v) => !v) } }
+    window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k)
+  }, [])
   if (!me) return null
   return (
     <div className="min-h-dvh">
+      <div className="hero-glow pointer-events-none fixed inset-x-0 top-0 -z-10 h-[42rem]" aria-hidden /><div className="grid-bg pointer-events-none fixed inset-x-0 top-0 -z-10 h-[34rem] opacity-60" aria-hidden />
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-ink focus:px-3 focus:py-2 focus:text-paper">Skip to content</a>
-      <header className="sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur-lg">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-8 px-4 sm:px-6">
+      <header className="glass sticky top-0 z-40 border-b border-line">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-7 px-4 sm:px-6">
           <Logo />
-          <nav className="hidden flex-1 items-center gap-0.5 lg:flex" aria-label="Main">
+          <nav className="hidden flex-1 items-center gap-1 lg:flex" aria-label="Main">
             {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} className={({ isActive }) => cn('rounded-md px-3 py-1.5 text-sm font-medium transition', isActive ? 'bg-line text-ink' : 'text-muted hover:text-ink')}>{n.label}</NavLink>
+              <NavLink key={n.to} to={n.to} className={({ isActive }) => cn('rounded-full px-3 py-1.5 text-[13px] transition', isActive ? 'bg-line-strong font-medium text-ink' : 'text-muted hover:text-ink')}>{n.label}</NavLink>
             ))}
           </nav>
-          <div className="ml-auto hidden items-center gap-1.5 lg:flex">
-            <Link to="/leaderboard" className="num rounded-md bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">{me.xp.toLocaleString()} XP</Link>
-            <Link to="/settings" aria-label="Settings" className="grid size-8 place-items-center rounded-md text-muted hover:bg-line hover:text-ink"><Settings size={16} /></Link>
-            <button aria-label="Sign out" onClick={() => logout()} className="grid size-8 place-items-center rounded-md text-muted hover:bg-line hover:text-ink"><LogOut size={16} /></button>
-            <Link to={`/u/${me.id}`} aria-label="Your profile" className="ml-1"><Avatar user={me} size={30} /></Link>
+          <div className="ml-auto hidden items-center gap-2 lg:flex">
+            <button onClick={() => setSearch(true)} className="flex h-8 w-56 items-center gap-2 rounded-full border border-line-strong bg-[var(--hi)] px-3 text-[13px] text-faint transition hover:border-faint"><Search size={14} />Search<span className="kbd ml-auto">⌘K</span></button>
+            <Link to="/leaderboard" className="num rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent">{me.xp.toLocaleString()} XP</Link>
+            <Link to="/settings" aria-label="Settings" className="grid size-8 place-items-center rounded-full text-muted hover:bg-line hover:text-ink"><Settings size={15} /></Link>
+            <button aria-label="Sign out" onClick={() => logout()} className="grid size-8 place-items-center rounded-full text-muted hover:bg-line hover:text-ink"><LogOut size={15} /></button>
+            <Link to={`/u/${me.id}`} aria-label="Your profile"><Avatar user={me} size={28} /></Link>
           </div>
-          <button className="ml-auto grid size-9 place-items-center rounded-md hover:bg-line lg:hidden" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}><Menu size={20} /></button>
+          <div className="ml-auto flex items-center gap-1 lg:hidden">
+            <button className="grid size-9 place-items-center rounded-full hover:bg-line" aria-label="Search" onClick={() => setSearch(true)}><Search size={18} /></button>
+            <button className="grid size-9 place-items-center rounded-full hover:bg-line" aria-label="Open menu" aria-expanded={menu} onClick={() => setMenu(true)}><Menu size={19} /></button>
+          </div>
         </div>
       </header>
-      {open && (
+      {menu && (
         <div className="fixed inset-0 z-50 flex flex-col bg-paper lg:hidden" role="dialog" aria-modal aria-label="Menu">
-          <div className="flex h-14 items-center justify-between border-b border-line px-4"><Logo /><button className="grid size-9 place-items-center rounded-md hover:bg-line" aria-label="Close menu" onClick={() => setOpen(false)}><X size={20} /></button></div>
-          <nav className="flex flex-1 flex-col gap-1 overflow-auto p-3">
+          <div className="flex h-14 items-center justify-between border-b border-line px-4"><Logo /><button className="grid size-9 place-items-center rounded-full hover:bg-line" aria-label="Close menu" onClick={() => setMenu(false)}><X size={19} /></button></div>
+          <nav className="stagger flex flex-1 flex-col overflow-auto p-4">
             {[{ to: '/', label: 'Home' }, ...NAV, { to: `/u/${me.id}`, label: 'Profile' }, { to: '/settings', label: 'Settings' }].map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cn('rounded-lg px-3 py-3 text-lg font-medium', isActive ? 'bg-line' : 'text-muted')}>{n.label}</NavLink>
+              <NavLink key={n.to} to={n.to} end={n.to === '/'} className={({ isActive }) => cn('display border-b border-line py-4 text-3xl', isActive ? 'text-accent' : 'text-ink')}>{n.label}</NavLink>
             ))}
-            <button className="rounded-lg px-3 py-3 text-left text-lg font-medium text-muted" onClick={() => logout()}>Sign out</button>
+            <button className="display py-4 text-left text-3xl text-muted" onClick={() => logout()}>Sign out</button>
           </nav>
-          <p className="num border-t border-line p-4 text-sm text-muted">{me.xp.toLocaleString()} XP{me.rank ? ` · Rank #${me.rank}` : ''}</p>
         </div>
       )}
-      <main id="main" key={pathname} className="mx-auto w-full max-w-5xl px-4 pb-24 pt-8 sm:px-6 sm:pt-10">{children}</main>
+      <Palette open={search} onClose={() => setSearch(false)} />
+      <main id="main" key={pathname} className="mx-auto w-full max-w-6xl px-4 pb-28 pt-10 sm:px-6 sm:pt-14">{children}</main>
     </div>
   )
 }

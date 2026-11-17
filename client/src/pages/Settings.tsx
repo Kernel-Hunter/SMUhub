@@ -14,7 +14,7 @@ function applyTheme(t: 'light' | 'dark' | 'system') {
 export default function Settings() {
   const { me } = useAuth(); const qc = useQueryClient(); const toast = useToast()
   const [f, setF] = useState({ name: me?.name ?? '', major: me?.major ?? '', year: me?.year ?? 1, bio: me?.bio ?? '' })
-  const [theme, setTheme] = useState<string>(() => { try { return localStorage.getItem('smuhub.theme') ?? 'system' } catch { return 'system' } })
+  const [theme, setTheme] = useState<string>(() => { try { return localStorage.getItem('smuhub.theme') ?? 'dark' } catch { return 'system' } })
   const xp = useQuery({ queryKey: ['xp'], queryFn: api.me.xp, refetchInterval: 5000 })
   const save = useMutation({ mutationFn: () => api.me.update(f), onSuccess: (m) => { qc.setQueryData(['me'], m); toast('Profile saved.') }, onError: (e) => toast(errMsg(e), 'err') })
   const submit = (e: FormEvent) => { e.preventDefault(); save.mutate() }

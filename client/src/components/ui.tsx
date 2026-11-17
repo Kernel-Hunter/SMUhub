@@ -28,7 +28,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 // ---------- primitives ----------
-const TINTS = [['#e5ecfb', '#2557c9'], ['#fbe9d9', '#a9501a'], ['#e2f3ed', '#0b7a5f'], ['#f8efd5', '#946200'], ['#fbe4e8', '#b4233f'], ['#ece6fa', '#5a3fb0']]
+const TINTS = [['rgb(108 182 255 / .16)', '#6cb6ff'], ['rgb(255 122 61 / .16)', '#ff9a66'], ['rgb(74 222 154 / .16)', '#4ade9a'], ['rgb(242 193 78 / .16)', '#f2c14e'], ['rgb(255 123 143 / .16)', '#ff7b8f'], ['rgb(167 139 250 / .16)', '#b8a2ff']]
 export function Avatar({ user, size = 36 }: { user: PublicUser | null; size?: number }) {
   const [bg, fg] = TINTS[[...(user?.id ?? 'x')].reduce((s, c) => s + c.charCodeAt(0), 0) % TINTS.length]
   const initials = user ? user.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase() : '?'
@@ -49,7 +49,7 @@ export function PageHeader({ eyebrow, title, sub, action }: { eyebrow?: string; 
     <header className="rise mb-8 flex flex-wrap items-end justify-between gap-4">
       <div className="max-w-2xl">
         {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
-        <h1 className="display text-[1.9rem] sm:text-[2.25rem]">{title}</h1>
+        <h1 className="display gradient-text text-[2rem] sm:text-[2.5rem]">{title}</h1>
         {sub && <p className="mt-2 text-[15px] leading-relaxed text-muted">{sub}</p>}
       </div>
       {action}
@@ -70,7 +70,7 @@ export function Empty({ title, hint, action }: { title: string; hint?: string; a
 export function Skeleton({ rows = 4, className }: { rows?: number; className?: string }) {
   return (
     <div className="grid gap-3" aria-busy aria-label="Loading">
-      {Array.from({ length: rows }).map((_, i) => <div key={i} className={cn('h-20 animate-pulse rounded-xl bg-line/60', className)} style={{ animationDelay: `${i * 80}ms` }} />)}
+      {Array.from({ length: rows }).map((_, i) => <div key={i} className={cn('h-20 animate-pulse rounded-xl bg-line', className)} style={{ animationDelay: `${i * 80}ms` }} />)}
     </div>
   )
 }
@@ -84,7 +84,7 @@ export function ErrorBox({ error }: { error: unknown }) {
 export function VoteButton({ votes, voted, disabled, onVote, label = 'Upvote' }: { votes: number; voted: boolean; disabled?: boolean; onVote: () => void; label?: string }) {
   return (
     <button type="button" aria-label={label} aria-pressed={voted} disabled={voted || disabled} onClick={onVote}
-      className={cn('flex w-11 shrink-0 flex-col items-center rounded-lg border py-1.5 transition active:scale-95 disabled:cursor-default', voted ? 'border-accent bg-accent-soft text-accent' : 'border-line-strong bg-surface hover:border-ink disabled:opacity-60 disabled:hover:border-line-strong')}>
+      className={cn('flex w-11 shrink-0 flex-col items-center rounded-lg border py-1.5 transition active:scale-95 disabled:cursor-default', voted ? 'border-accent/50 bg-accent-soft text-accent' : 'border-line-strong bg-surface hover:border-faint disabled:opacity-60 disabled:hover:border-line-strong')}>
       <svg viewBox="0 0 16 16" className="size-3.5" fill="currentColor" aria-hidden><path d="M8 3l5 7H3z" /></svg>
       <span className="num text-xs font-semibold">{votes}</span>
     </button>
@@ -103,10 +103,10 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 
 export function Segmented<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div role="tablist" className="inline-flex rounded-lg border border-line bg-paper p-0.5">
+    <div role="tablist" className="inline-flex rounded-full border border-line bg-surface p-0.5">
       {options.map((o) => (
         <button key={o.value} role="tab" aria-selected={value === o.value} onClick={() => onChange(o.value)}
-          className={cn('h-8 rounded-md px-3.5 text-sm font-medium transition', value === o.value ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink')}>
+          className={cn('h-8 rounded-full px-3.5 text-[13px] font-medium transition', value === o.value ? 'bg-line-strong text-ink' : 'text-muted hover:text-ink')}>
           {o.label}
         </button>
       ))}

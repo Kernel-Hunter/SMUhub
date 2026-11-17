@@ -7,6 +7,15 @@ import App from './App'
 import { ToastProvider } from '@/components/ui'
 import { AuthProvider } from '@/auth/AuthContext'
 
+// Cursor spotlight for .card-hover surfaces.
+document.addEventListener('pointermove', (e) => {
+  const el = (e.target as HTMLElement | null)?.closest?.('.card-hover') as HTMLElement | null
+  if (!el) return
+  const r = el.getBoundingClientRect()
+  el.style.setProperty('--mx', `${e.clientX - r.left}px`)
+  el.style.setProperty('--my', `${e.clientY - r.top}px`)
+})
+
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 15_000, retry: false, refetchOnWindowFocus: false } } })
 
 createRoot(document.getElementById('root')!).render(
