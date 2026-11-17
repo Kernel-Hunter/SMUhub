@@ -15,7 +15,7 @@ export default function Resources() {
   const list = useQuery({ queryKey: ['resources', { q, course, kind, semester, sort }], queryFn: () => api.resources.list({ q, course, kind, semester, sort }) })
   return (
     <div>
-      <PageHeader title="Library" sub="Notes, past exams, summaries and slides shared by students. Rate what helped you so the best material rises."
+      <PageHeader title="Library" sub="Notes, past exams and slides shared by SMU students. Rate a file after you download it."
         action={<Link to="/resources/new" className="btn btn-accent"><Upload size={16} />Upload</Link>} />
       <div className="card mb-6 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-[2fr_1.2fr_1fr_.8fr_1fr]">
         <label className="relative sm:col-span-2 lg:col-span-1"><Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" /><input className="field !pl-10" placeholder="Search title, topic or course" value={q} onChange={(e) => set('q', e.target.value)} aria-label="Search resources" /></label>
@@ -26,7 +26,7 @@ export default function Resources() {
       </div>
       {list.isLoading ? <Skeleton rows={5} /> : list.error ? <ErrorBox error={list.error} /> : !list.data?.length ? (
         <Empty title="Nothing here yet" hint="No resources match these filters. Be the first to share one for this course." action={<Link to="/resources/new" className="btn btn-primary">Upload a resource</Link>} />
-      ) : <div className="grid gap-4 ">{list.data.map((r) => <ResourceCard key={r.id} r={r} />)}</div>}
+      ) : <div className="rows">{list.data.map((r) => <ResourceCard key={r.id} r={r} />)}</div>}
     </div>
   )
 }

@@ -17,7 +17,7 @@ export default function Threads({ kind }: { kind: ThreadKind }) {
   return (
     <div>
       <PageHeader title={qa ? 'Questions & answers' : 'Campus Voice'}
-        sub={qa ? 'Ask by course, answer what you know, and mark the answer that worked.' : 'Honest feedback on courses, facilities and administration. Post anonymously if you need to. Keep it specific and fair.'}
+        sub={qa ? 'Ask by course. When an answer works for you, mark it as accepted.' : 'Feedback on courses, facilities and administration. You can post without your name.'}
         action={<Link to={qa ? '/qa/new' : '/voice/new'} className="btn btn-accent"><Plus size={16} />{qa ? 'Ask a question' : 'New post'}</Link>} />
       <div className="card mb-6 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="relative"><Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" /><input className="field !pl-10" placeholder="Search" value={q} onChange={(e) => set('q', e.target.value)} aria-label="Search" /></label>
@@ -26,7 +26,7 @@ export default function Threads({ kind }: { kind: ThreadKind }) {
         <select className="field" value={sort} onChange={(e) => set('sort', e.target.value)} aria-label="Sort"><option value="new">Newest</option><option value="top">Top voted</option></select>
         {qa && <label className="flex h-[2.8rem] items-center gap-2 rounded-xl px-2 text-sm"><input type="checkbox" checked={unsolved} onChange={(e) => set('open', e.target.checked ? '1' : '')} className="size-4 accent-[var(--accent)]" />Unanswered only</label>}
       </div>
-      {list.isLoading ? <Skeleton rows={4} /> : list.error ? <ErrorBox error={list.error} /> : !list.data?.length ? <Empty title="Quiet in here" hint="Nothing matches yet." /> : <div className="grid gap-3">{list.data.map((t) => <ThreadCard key={t.id} t={t} />)}</div>}
+      {list.isLoading ? <Skeleton rows={4} /> : list.error ? <ErrorBox error={list.error} /> : !list.data?.length ? <Empty title="Quiet in here" hint="Nothing matches yet." /> : <div className="rows">{list.data.map((t) => <ThreadCard key={t.id} t={t} />)}</div>}
     </div>
   )
 }

@@ -1,31 +1,32 @@
 import { Link } from 'react-router-dom'
-import { BadgeCheck, CheckCircle2, Download, FileImage, FileSpreadsheet, FileText, MessageSquare, Presentation, ThumbsUp } from 'lucide-react'
+import { BadgeCheck, ChevronRight, Download, MessageSquare, ThumbsUp } from 'lucide-react'
 import type { Resource, Thread } from '@/api/types'
-import { Avatar, Chip } from './ui'
-import { KIND_LABEL, VOICE_LABEL, VOICE_TONE, formatSize, timeAgo } from '@/lib/utils'
+import { Avatar } from './ui'
+import { KIND_LABEL, VOICE_LABEL, VOICE_TONE, timeAgo, cn } from '@/lib/utils'
 
-const FILE: Record<string, [typeof FileText, string]> = {
-  pdf: [FileText, 'bg-rose-soft text-rose'], docx: [FileText, 'bg-sky-soft text-sky'], pptx: [Presentation, 'bg-gold-soft text-gold'],
-  xlsx: [FileSpreadsheet, 'bg-moss-soft text-moss'], png: [FileImage, 'bg-paper text-muted'], jpg: [FileImage, 'bg-paper text-muted'],
+const EXT_TONE: Record<string, string> = { pdf: 'bg-rose-soft text-rose', docx: 'bg-sky-soft text-sky', pptx: 'bg-gold-soft text-gold', xlsx: 'bg-moss-soft text-moss', png: 'bg-hover text-muted', jpg: 'bg-hover text-muted' }
+
+export function FileBadge({ ext, size = 'md' }: { ext: string; size?: 'md' | 'lg' }) {
+  return (
+    <span className={cn('relative grid shrink-0 place-items-center rounded-[6px] font-mono font-semibold uppercase', EXT_TONE[ext] ?? EXT_TONE.png, size === 'lg' ? 'h-14 w-11 text-[11px]' : 'h-10 w-8 text-[9.5px]')}>
+      <span className="absolute right-0 top-0 size-2.5 rounded-bl-[4px] bg-paper/70" aria-hidden />{ext}
+    </span>
+  )
 }
 
 export function ResourceCard({ r }: { r: Resource }) {
-  const [Icon, tone] = FILE[r.ext] ?? FILE.pdf
   return (
-    <Link to={`/resources/${r.id}`} className="card card-hover group flex items-start gap-4 p-4">
-      <span className={`grid size-11 shrink-0 place-items-center rounded-lg ${tone}`}><Icon size={20} strokeWidth={1.75} /></span>
+    <Link to={`/resources/${r.id}`} className="group flex items-center gap-3.5 bg-surface px-4 py-3 transition-colors hover:bg-hover">
+      <FileBadge ext={r.ext} />
       <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-2 text-xs text-muted">
-          <span className="num font-semibold text-ink">{r.courseCode}</span><span>·</span><span>{KIND_LABEL[r.kind]}</span><span>·</span><span>{r.semester} {r.academicYear}</span>
-          {r.verified && <span className="ml-auto flex items-center gap-1 font-medium text-accent"><BadgeCheck size={14} />Verified</span>}
-        </span>
-        <span className="mt-1 block text-[15px] font-semibold leading-snug group-hover:text-accent">{r.title}</span>
-        <span className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-          <span className="flex items-center gap-1.5"><Avatar user={r.uploader} size={18} />{r.uploader.name}</span>
-          <span className="flex items-center gap-1"><ThumbsUp size={12} />{r.helpful}</span><span className="flex items-center gap-1"><Download size={12} />{r.downloads}</span>
-          <span>{r.ext.toUpperCase()} · {formatSize(r.fileSize)}</span><span>{timeAgo(r.createdAt)}</span>
-        </span>
+        <span className="flex items-center gap-1.5"><span className="truncate text-[13.5px] font-medium">{r.title}</span>{r.verified && <BadgeCheck size={14} className="shrink-0 text-accent" aria-label="Verified" />}</span>
+        <span className="mt-0.5 block truncate text-[12.5px] text-muted"><span className="font-medium text-ink/80">{r.courseCode}</span> · {KIND_LABEL[r.kind]} · {r.uploader.name} · {timeAgo(r.createdAt)}</span>
       </span>
+      <span className="num hidden items-center gap-4 text-[12.5px] text-muted sm:flex">
+        <span className="flex w-10 items-center gap-1" title="Found helpful"><ThumbsUp size={13} />{r.helpful}</span>
+        <span className="flex w-12 items-center gap-1" title="Downloads"><Download size={13} />{r.downloads}</span>
+      </span>
+      <ChevronRight size={15} className="text-faint opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
     </Link>
   )
 }
@@ -33,19 +34,18 @@ export function ResourceCard({ r }: { r: Resource }) {
 export function ThreadCard({ t }: { t: Thread }) {
   const base = t.kind === 'question' ? '/qa' : '/voice'
   return (
-    <Link to={`${base}/${t.id}`} className="card card-hover group flex gap-4 p-4">
-      <span className="flex w-11 shrink-0 flex-col items-center self-start rounded-lg bg-paper py-1.5"><svg viewBox="0 0 16 16" className="size-3.5 text-faint" fill="currentColor" aria-hidden><path d="M8 3l5 7H3z" /></svg><span className="num text-xs font-semibold">{t.votes}</span></span>
+    <Link to={`${base}/${t.id}`} className="group flex gap-4 bg-surface px-4 py-3.5 transition-colors hover:bg-hover">
+      <span className="flex w-9 shrink-0 flex-col items-center pt-0.5 text-muted"><svg viewBox="0 0 12 12" className="size-2.5" fill="currentColor" aria-hidden><path d="M6 2l4.5 6h-9z" /></svg><span className="num text-[13px] font-semibold text-ink">{t.votes}</span></span>
       <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-center gap-1.5">
-          {t.courseCode && <Chip className="num">{t.courseCode}</Chip>}
-          {t.category && <Chip tone={VOICE_TONE[t.category]}>{VOICE_LABEL[t.category]}</Chip>}
-          {t.solved && <Chip tone="bg-moss-soft text-moss"><CheckCircle2 size={12} />Solved</Chip>}
-        </span>
-        <span className="mt-1.5 block text-[15px] font-semibold leading-snug group-hover:text-accent">{t.title}</span>
-        <span className="mt-1 line-clamp-2 text-sm text-muted">{t.body}</span>
-        <span className="mt-2.5 flex items-center gap-2 text-xs text-muted">
-          <Avatar user={t.author} size={18} />{t.author ? t.author.name : 'Anonymous student'}<span>·</span>
-          <span className="flex items-center gap-1"><MessageSquare size={12} />{t.replyCount}</span><span>·</span><span>{timeAgo(t.createdAt)}</span>
+        <span className="block text-[13.5px] font-medium leading-snug">{t.title}</span>
+        <span className="mt-0.5 line-clamp-1 text-[12.5px] text-muted">{t.body}</span>
+        <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
+          {t.courseCode && <span className="chip num">{t.courseCode}</span>}
+          {t.category && <span className={cn('chip', VOICE_TONE[t.category])}>{VOICE_LABEL[t.category]}</span>}
+          {t.solved && <span className="chip bg-moss-soft text-moss">Solved</span>}
+          <span className="flex items-center gap-1.5"><Avatar user={t.author} size={16} />{t.author ? t.author.name : 'Anonymous'}</span>
+          <span className="text-faint">·</span><span className="flex items-center gap-1"><MessageSquare size={12} />{t.replyCount}</span>
+          <span className="text-faint">·</span><span>{timeAgo(t.createdAt)}</span>
         </span>
       </span>
     </Link>

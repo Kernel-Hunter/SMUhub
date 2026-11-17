@@ -18,7 +18,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="pointer-events-none fixed inset-x-0 bottom-5 z-[80] flex flex-col items-center gap-2 px-4" aria-live="polite">
         {items.map((t) => (
-          <div key={t.id} className={cn('rise pointer-events-auto rounded-xl border border-line-strong px-4 py-2.5 text-sm font-medium shadow-lg', t.tone === 'xp' ? 'bg-accent text-[var(--accent-ink)] border-transparent' : t.tone === 'err' ? 'bg-rose-soft text-rose' : 'bg-surface text-ink')}>
+          <div key={t.id} className={cn('rise pointer-events-auto rounded-[10px] px-4 py-2.5 text-[13px] font-medium shadow-[var(--lift)]', t.tone === 'xp' ? 'bg-ink text-paper' : t.tone === 'err' ? 'bg-rose-soft text-rose' : 'bg-surface text-ink')}>
             {t.tone === 'xp' && <span className="mr-2">↑</span>}{t.text}
           </div>
         ))}
@@ -46,11 +46,11 @@ export function Chip({ children, tone, className }: { children: ReactNode; tone?
 
 export function PageHeader({ eyebrow, title, sub, action }: { eyebrow?: string; title: ReactNode; sub?: string; action?: ReactNode }) {
   return (
-    <header className="rise mb-8 flex flex-wrap items-end justify-between gap-4">
+    <header className="rise mb-7 flex flex-wrap items-end justify-between gap-4">
       <div className="max-w-2xl">
         {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
-        <h1 className="display text-[1.75rem] sm:text-[2rem]">{title}</h1>
-        {sub && <p className="mt-2 text-[15px] leading-relaxed text-muted">{sub}</p>}
+        <h1 className="display text-[1.6rem]">{title}</h1>
+        {sub && <p className="mt-1 max-w-xl text-[13.5px] text-muted">{sub}</p>}
       </div>
       {action}
     </header>
@@ -59,7 +59,7 @@ export function PageHeader({ eyebrow, title, sub, action }: { eyebrow?: string; 
 
 export function Empty({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center rounded-xl border border-dashed border-line-strong px-6 py-14 text-center">
+    <div className="flex flex-col items-center rounded-xl bg-side px-6 py-14 text-center">
       <p className="text-base font-semibold">{title}</p>
       {hint && <p className="mt-1 max-w-sm text-sm text-muted">{hint}</p>}
       {action && <div className="mt-5">{action}</div>}
@@ -70,7 +70,7 @@ export function Empty({ title, hint, action }: { title: string; hint?: string; a
 export function Skeleton({ rows = 4, className }: { rows?: number; className?: string }) {
   return (
     <div className="grid gap-3" aria-busy aria-label="Loading">
-      {Array.from({ length: rows }).map((_, i) => <div key={i} className={cn('h-20 animate-pulse rounded-xl bg-line', className)} style={{ animationDelay: `${i * 80}ms` }} />)}
+      {Array.from({ length: rows }).map((_, i) => <div key={i} className={cn('h-16 animate-pulse rounded-xl bg-hover', className)} style={{ animationDelay: `${i * 80}ms` }} />)}
     </div>
   )
 }
@@ -84,7 +84,7 @@ export function ErrorBox({ error }: { error: unknown }) {
 export function VoteButton({ votes, voted, disabled, onVote, label = 'Upvote' }: { votes: number; voted: boolean; disabled?: boolean; onVote: () => void; label?: string }) {
   return (
     <button type="button" aria-label={label} aria-pressed={voted} disabled={voted || disabled} onClick={onVote}
-      className={cn('flex w-11 shrink-0 flex-col items-center rounded-lg border py-1.5 transition active:scale-95 disabled:cursor-default', voted ? 'border-accent/50 bg-accent-soft text-accent' : 'border-line-strong bg-surface hover:border-faint disabled:opacity-60 disabled:hover:border-line-strong')}>
+      className={cn('flex w-11 shrink-0 flex-col items-center rounded-lg border py-1.5 transition active:scale-95 disabled:cursor-default', voted ? 'border-transparent bg-accent-soft text-accent' : 'border-line-strong bg-surface hover:bg-hover disabled:opacity-60 disabled:hover:border-line-strong')}>
       <svg viewBox="0 0 16 16" className="size-3.5" fill="currentColor" aria-hidden><path d="M8 3l5 7H3z" /></svg>
       <span className="num text-xs font-semibold">{votes}</span>
     </button>
@@ -103,10 +103,10 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 
 export function Segmented<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div role="tablist" className="inline-flex rounded-full border border-line bg-surface p-0.5">
+    <div role="tablist" className="inline-flex rounded-[9px] bg-hover p-0.5">
       {options.map((o) => (
         <button key={o.value} role="tab" aria-selected={value === o.value} onClick={() => onChange(o.value)}
-          className={cn('h-8 rounded-full px-3.5 text-[13px] font-medium transition', value === o.value ? 'bg-line-strong text-ink' : 'text-muted hover:text-ink')}>
+          className={cn('h-7 rounded-[7px] px-3 text-[12.5px] font-medium transition', value === o.value ? 'bg-surface text-ink shadow-[var(--ring)]' : 'text-muted hover:text-ink')}>
           {o.label}
         </button>
       ))}

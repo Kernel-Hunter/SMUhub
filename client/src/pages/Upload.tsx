@@ -45,7 +45,7 @@ export default function Upload() {
           </>)}
           <input ref={input} type="file" hidden accept={RULES.allowedExt.map((e) => '.' + e).join(',')} onChange={(e) => pick(e.target.files?.[0])} />
         </div>
-        <Field label="Title"><input className="field" maxLength={120} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="e.g. Data Structures — Full Course Summary" required /></Field>
+        <Field label="Title"><input className="field" maxLength={120} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="e.g. Data Structures full course summary" required /></Field>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Course"><select className="field" value={f.courseCode} onChange={(e) => setF({ ...f, courseCode: e.target.value })} required><option value="">Select…</option>{courses.data?.map((c) => <option key={c.code} value={c.code}>{c.code} · {c.name}</option>)}</select></Field>
           <Field label="Type"><select className="field" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as ResourceKind })}>{Object.entries(KIND_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>

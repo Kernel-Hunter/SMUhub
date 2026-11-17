@@ -45,20 +45,20 @@ export const USERS = [
 
 // id, title, course, kind, sem, ay, ext, sizeKB, uploader, daysAgo, downloads, helpful, desc
 export const RESOURCES: [string, string, string, ResourceKind, 'S1' | 'S2', string, string, number, string, number, number, number, string][] = [
-  ['r1', 'Data Structures — Full Course Summary', 'CS201', 'summary', 'S1', '2025/26', 'pdf', 1840, 'u1', 3, 214, 31, 'Arrays to graphs in 34 pages, with complexity tables and the exact proofs the midterm asks for.'],
-  ['r2', 'Databases Final 2025 — Solved', 'CS224', 'exam', 'S1', '2025/26', 'pdf', 920, 'u2', 6, 188, 24, 'Last year\'s final with a full worked solution. SQL joins, normalization and a B-tree question.'],
-  ['r3', 'Calculus I — Limits & Derivatives Cheat Sheet', 'MATH101', 'summary', 'S1', '2025/26', 'pdf', 410, 'u6', 9, 156, 19, 'Two pages. Every rule you need, laminated-worthy.'],
-  ['r4', 'Financial Accounting — Chapters 1–6 Notes', 'ACC110', 'notes', 'S1', '2025/26', 'docx', 2210, 'u3', 12, 97, 14, 'Handwritten-style typed notes with journal entry examples.'],
-  ['r5', 'Linear Algebra Midterm 2024 + Solutions', 'MATH205', 'exam', 'S2', '2024/25', 'pdf', 1330, 'u6', 15, 143, 22, 'Eigenvalues, diagonalization, and the infamous rank-nullity trap.'],
-  ['r6', 'Digital Logic — Karnaugh Maps Tutorial', 'EE220', 'tutorial', 'S1', '2025/26', 'pptx', 5120, 'u4', 18, 71, 11, 'Step by step K-maps with 12 practice problems and answers.'],
-  ['r7', 'CS324 — React & REST API Lecture Slides', 'CS324', 'slides', 'S1', '2025/26', 'pptx', 8400, 'u5', 2, 120, 17, 'All lecture decks merged and cleaned up, with the project checklist.'],
-  ['r8', 'Algorithms — Dynamic Programming Patterns', 'CS301', 'tutorial', 'S2', '2024/25', 'pdf', 760, 'u1', 21, 109, 16, 'Ten patterns that cover 90% of DP questions, each with a template.'],
-  ['r9', 'Probability — Bayes & Distributions Notes', 'MATH210', 'notes', 'S2', '2024/25', 'pdf', 1520, 'u11', 24, 66, 9, 'Clean notes plus a formula sheet for the final.'],
-  ['r10', 'Microeconomics Past Exam Pack (2022–2025)', 'ECO101', 'exam', 'S1', '2025/26', 'pdf', 3040, 'u9', 5, 83, 8, 'Four years of finals in one file.'],
-  ['r11', 'Intro to Law — Case Summaries', 'LAW105', 'summary', 'S1', '2025/26', 'docx', 640, 'u7', 8, 54, 7, 'Every case from the syllabus in two paragraphs each.'],
-  ['r12', 'Mechanics — Lab Report Template', 'PHY110', 'tutorial', 'S2', '2024/25', 'docx', 280, 'u12', 30, 61, 6, 'The template the lab TA actually likes.'],
-  ['r13', 'Intro to Programming — C Exercises with Answers', 'CS101', 'notes', 'S1', '2025/26', 'pdf', 980, 'u10', 4, 48, 5, 'Pointers, loops and arrays. Solutions are commented line by line.'],
-  ['r14', 'Marketing Principles — Case Study Playbook', 'MKT201', 'summary', 'S2', '2024/25', 'pdf', 1210, 'u3', 33, 39, 4, 'How to structure the case-study answer to get full marks.'],
+  ['r1', 'Data Structures full course summary', 'CS201', 'summary', 'S1', '2025/26', 'pdf', 1840, 'u1', 3, 214, 31, 'Arrays to graphs in 34 pages, with complexity tables and the exact proofs the midterm asks for.'],
+  ['r2', 'Databases final 2025, solved', 'CS224', 'exam', 'S1', '2025/26', 'pdf', 920, 'u2', 6, 188, 24, 'Last year\'s final with a full worked solution. SQL joins, normalization and a B-tree question.'],
+  ['r3', 'Calc I cheat sheet: limits and derivatives', 'MATH101', 'summary', 'S1', '2025/26', 'pdf', 410, 'u6', 9, 156, 19, 'Two pages. Every rule you need, laminated-worthy.'],
+  ['r4', 'Financial Accounting notes, chapters 1 to 6', 'ACC110', 'notes', 'S1', '2025/26', 'docx', 2210, 'u3', 12, 97, 14, 'Handwritten-style typed notes with journal entry examples.'],
+  ['r5', 'Linear Algebra midterm 2024 with solutions', 'MATH205', 'exam', 'S2', '2024/25', 'pdf', 1330, 'u6', 15, 143, 22, 'Eigenvalues, diagonalization, and the infamous rank-nullity trap.'],
+  ['r6', 'Karnaugh maps tutorial with 12 practice problems', 'EE220', 'tutorial', 'S1', '2025/26', 'pptx', 5120, 'u4', 18, 71, 11, 'Step by step K-maps with 12 practice problems and answers.'],
+  ['r7', 'CS324 lecture slides: React and REST APIs', 'CS324', 'slides', 'S1', '2025/26', 'pptx', 8400, 'u5', 2, 120, 17, 'All lecture decks merged and cleaned up, with the project checklist.'],
+  ['r8', 'Dynamic programming patterns for the final', 'CS301', 'tutorial', 'S2', '2024/25', 'pdf', 760, 'u1', 21, 109, 16, 'Ten patterns that cover 90% of DP questions, each with a template.'],
+  ['r9', 'Probability notes: Bayes and distributions', 'MATH210', 'notes', 'S2', '2024/25', 'pdf', 1520, 'u11', 24, 66, 9, 'Clean notes plus a formula sheet for the final.'],
+  ['r10', 'Microeconomics past finals, 2022 to 2025', 'ECO101', 'exam', 'S1', '2025/26', 'pdf', 3040, 'u9', 5, 83, 8, 'Four years of finals in one file.'],
+  ['r11', 'Intro to Law case summaries', 'LAW105', 'summary', 'S1', '2025/26', 'docx', 640, 'u7', 8, 54, 7, 'Every case from the syllabus in two paragraphs each.'],
+  ['r12', 'Mechanics lab report template', 'PHY110', 'tutorial', 'S2', '2024/25', 'docx', 280, 'u12', 30, 61, 6, 'The template the lab TA actually likes.'],
+  ['r13', 'C exercises with commented answers', 'CS101', 'notes', 'S1', '2025/26', 'pdf', 980, 'u10', 4, 48, 5, 'Pointers, loops and arrays. Solutions are commented line by line.'],
+  ['r14', 'Marketing case study playbook', 'MKT201', 'summary', 'S2', '2024/25', 'pdf', 1210, 'u3', 33, 39, 4, 'How to structure the case-study answer to get full marks.'],
 ]
 
 // id, kind, title, body, course, category, author, anonymous, daysAgo, votes, solved

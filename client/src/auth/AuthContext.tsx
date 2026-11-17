@@ -18,7 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!me) { last.current = null; return }
     if (last.current !== null && me.xp > last.current) {
-      toast(`+${me.xp - last.current} XP · your contribution helped a classmate`, 'xp')
+      toast(`+${me.xp - last.current} XP. A classmate found your post useful.`, 'xp')
       qc.invalidateQueries({ queryKey: ['leaderboard'] })
     }
     last.current = me.xp

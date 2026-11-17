@@ -20,7 +20,7 @@ export default function Events() {
   const submit = (e: FormEvent) => { e.preventDefault(); setErr(''); create.mutate() }
   return (
     <div>
-      <PageHeader title="Events & deadlines" sub="Exams, assignments and club nights in one calendar." action={<button className="btn btn-accent" onClick={() => setOpen(!open)}><Plus size={16} />Add</button>} />
+      <PageHeader title="Events & deadlines" sub="Exams, deadlines and club events." action={<button className="btn btn-accent" onClick={() => setOpen(!open)}><Plus size={16} />Add</button>} />
       {open && (
         <form onSubmit={submit} className="card rise mb-8 grid gap-4 p-5 sm:grid-cols-2">
           <div className="sm:col-span-2"><Field label="Title"><input className="field" required maxLength={100} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field></div>

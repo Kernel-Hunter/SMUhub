@@ -29,7 +29,7 @@ type DB = {
   rentals: RentalRow[]; requests: ReqRow[]; votes: string[]; downloads: string[]; going: string[]; ledger: Ledger[]
 }
 
-const KEY = 'smuhub.mock.v1'
+const KEY = 'smuhub.mock.v2'
 const SESSION = 'smuhub.mock.session'
 const ME = 'me'
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
@@ -40,7 +40,7 @@ function seed(): DB {
   const db: DB = { v: 1, users: [], resources: [], threads: [], replies: [], events: [], rentals: [], requests: [], votes: [], downloads: [], going: [], ledger: [] }
   S.USERS.forEach(([id, name, major, year, bio], i) => db.users.push({ id, name, major, year, bio, joinedAt: S.daysAgo(200 + i * 9), role: 'student', courses: [] }))
   S.RESOURCES.forEach(([id, title, courseCode, kind, semester, academicYear, ext, kb, up, d, downloads, helpful, description]) =>
-    db.resources.push({ id, title, description, courseCode, kind, semester, academicYear, ext, fileName: `${title.split(' — ')[0].replace(/[^\w]+/g, '_')}.${ext}`, fileSize: kb * 1024, uploaderId: up, createdAt: S.daysAgo(d), downloads, helpful, verified: helpful >= RULES.verifyThreshold, hash: `seed-${id}` }))
+    db.resources.push({ id, title, description, courseCode, kind, semester, academicYear, ext, fileName: `${title.replace(/[^\w]+/g, '_').slice(0, 48)}.${ext}`, fileSize: kb * 1024, uploaderId: up, createdAt: S.daysAgo(d), downloads, helpful, verified: helpful >= RULES.verifyThreshold, hash: `seed-${id}` }))
   S.THREADS.forEach(([id, kind, title, body, c, cat, a, anonymous, d, votes, solved]) =>
     db.threads.push({ id, kind, title, body, courseCode: c || undefined, category: cat || undefined, authorId: a, anonymous, createdAt: S.daysAgo(d, 2), votes, solved }))
   S.REPLIES.forEach(([id, threadId, a, anonymous, body, d, votes, accepted]) =>
@@ -71,7 +71,7 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)) } catch
 const WEEK = 7 * 86400000
 
 // ---------- helpers ----------
-const sessionId = () => { try { return localStorage.getItem(SESSION) } catch { return null } }
+const sessionId = () => { try { const id = localStorage.getItem(SESSION); return id && db.users.some((u) => u.id === id) ? id : null } catch { return null } }
 const requireMe = () => { if (!sessionId()) fail('unauthenticated', 'Please sign in again.'); return ME }
 const userRow = (id: string) => db.users.find((u) => u.id === id)!
 const handleOf = (u: UserRow) => u.name.toLowerCase().replace(/[^a-z]+/g, '.').replace(/^\.|\.$/g, '')
@@ -258,7 +258,7 @@ export const api = {
       const todayCount = db.resources.filter((r) => r.uploaderId === me && Date.now() - r.createdAt < 86400000).length
       if (todayCount >= RULES.uploadsPerDay) fail('rate_limited', `Daily upload limit reached (${RULES.uploadsPerDay}). Come back tomorrow.`)
       const hash = await sha256(file)
-      if (db.resources.some((r) => r.hash === hash)) fail('duplicate', 'This exact file is already on SMUhub. Duplicates earn nothing.')
+      if (db.resources.some((r) => r.hash === hash)) fail('duplicate', 'Someone already uploaded this exact file. Duplicates don\'t earn XP.')
       const row: ResRow = {
         id: 'r' + uid(), title, description: cleanBlock(input.description, 600), courseCode: input.courseCode, kind: input.kind, semester: input.semester,
         academicYear: input.academicYear, fileName: file.name.replace(/[^\w.\- ]+/g, '_').slice(0, 100), fileSize: file.size, ext, uploaderId: me,
