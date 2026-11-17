@@ -20,7 +20,7 @@ const TITLES: Record<string, string> = { '': 'Home', resources: 'Library', qa: '
 export function Logo({ className }: { className?: string }) {
   return (
     <Link to="/" aria-label="SMUhub home" className={cn('flex items-center gap-2.5', className)}>
-      <span className="grid size-7 place-items-center rounded-[7px] bg-ink text-paper shadow-[inset_0_1px_0_rgb(255_255_255/.15)]">
+      <span className="hero-bg grid size-7 place-items-center rounded-[8px] text-white shadow-[0_4px_12px_-4px_#3b5bff,inset_0_1px_0_rgb(255_255_255/.25)]">
         <svg viewBox="0 0 16 16" className="size-[15px]" aria-hidden><path d="M3 5.2 8 3l5 2.2L8 7.4z" fill="currentColor" /><path d="M5 6.6v2.6c0 .9 1.4 1.8 3 1.8s3-.9 3-1.8V6.6" fill="none" stroke="currentColor" strokeWidth="1.3" /><path d="M13 5.4v3.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>
       </span>
       <span className="text-[14.5px] font-semibold tracking-[-0.02em]">SMUhub</span>
@@ -30,7 +30,7 @@ export function Logo({ className }: { className?: string }) {
 
 function Item({ to, label, icon: Icon, end }: { to: string; label: string; icon: typeof Search; end?: boolean }) {
   return (
-    <NavLink to={to} end={end} className={({ isActive }) => cn('flex h-8 items-center gap-2.5 rounded-[7px] px-2.5 text-[13.5px] font-medium transition-colors', isActive ? 'bg-surface text-ink shadow-[var(--ring)]' : 'text-muted hover:bg-hover hover:text-ink')}>
+    <NavLink to={to} end={end} className={({ isActive }) => cn('flex h-8 items-center gap-2.5 rounded-[7px] px-2.5 text-[13.5px] font-medium transition-colors', isActive ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-hover hover:text-ink')}>
       {({ isActive }) => <><Icon size={16} strokeWidth={1.75} className={isActive ? 'text-accent' : ''} />{label}</>}
     </NavLink>
   )
@@ -43,12 +43,12 @@ function Sidebar({ onNav }: { onNav?: () => void }) {
   const pct = Math.max(4, ((me.xp - lo) / (hi - lo)) * 100)
   return (
     <div className="flex h-full flex-col px-3 py-3.5" onClick={onNav}>
-      <div className="flex items-center justify-between px-1.5"><Logo /><span className="rounded-[5px] px-1.5 py-0.5 text-[11px] font-medium text-faint shadow-[var(--ring)]">Beta</span></div>
+      <div className="flex items-center justify-between px-1.5"><Logo /><span className="rounded-full bg-accent-soft px-2 py-0.5 text-[10.5px] font-semibold text-accent">Beta</span></div>
       <nav className="mt-6 grid gap-0.5" aria-label="Main">{MAIN.map((n) => <Item key={n.to} {...n} />)}</nav>
       <p className="mt-7 px-2.5 pb-1.5 text-[12px] font-medium text-faint">You</p>
       <nav className="grid gap-0.5" aria-label="Account"><Item to={`/u/${me.id}`} label="Profile" icon={UserRound} /><Item to="/settings" label="Settings" icon={Settings} /></nav>
       <div className="mt-auto grid gap-2">
-        <Link to="/leaderboard" className="group rounded-[10px] bg-surface p-3 shadow-[var(--ring)] transition hover:shadow-[var(--lift)]">
+        <Link to="/leaderboard" className="group rounded-[12px] bg-hover p-3 transition hover:bg-accent-soft">
           <div className="flex items-baseline justify-between"><span className="text-[12.5px] font-semibold">Level {level}</span><span className="num text-[11.5px] text-muted">{me.xp} / {hi} XP</span></div>
           <div className="mt-2 flex gap-[3px]">{Array.from({ length: 10 }).map((_, i) => <span key={i} className={cn('h-1 flex-1 rounded-full', i < Math.round(pct / 10) ? 'bg-accent' : 'bg-line-strong')} />)}</div>
           <p className="mt-2 text-[12px] text-muted">{me.rank ? `#${me.rank} on campus this term` : 'Share something to get ranked'}</p>

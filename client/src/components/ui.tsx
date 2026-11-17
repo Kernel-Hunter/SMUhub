@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import type { PublicUser } from '@/api/types'
 
@@ -112,4 +112,17 @@ export function Segmented<T extends string>({ value, onChange, options }: { valu
       ))}
     </div>
   )
+}
+
+/** Animated number that eases up to its value. */
+export function CountUp({ value, className }: { value: number; className?: string }) {
+  const [n, setN] = useState(0); const from = useRef(0)
+  useEffect(() => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { setN(value); return }
+    const start = performance.now(), a = from.current, d = 900
+    let raf = 0
+    const tick = (t: number) => { const p = Math.min(1, (t - start) / d), e = 1 - Math.pow(1 - p, 3); setN(Math.round(a + (value - a) * e)); if (p < 1) raf = requestAnimationFrame(tick); else from.current = value }
+    raf = requestAnimationFrame(tick); return () => cancelAnimationFrame(raf)
+  }, [value])
+  return <span className={cn('num', className)}>{n.toLocaleString()}</span>
 }

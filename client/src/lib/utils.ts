@@ -36,3 +36,15 @@ export function saveBlob(blob: Blob, name: string) {
   document.body.appendChild(a); a.click(); a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
+
+/** One colour per department, used for course covers and chips. */
+export const DEPT: Record<string, { from: string; to: string; soft: string; ink: string }> = {
+  'Computer Science': { from: '#3b5bff', to: '#7b93ff', soft: 'var(--accent-soft)', ink: 'var(--accent)' },
+  Mathematics: { from: '#7b5cf5', to: '#b49cff', soft: 'var(--violet-soft)', ink: 'var(--violet)' },
+  Physics: { from: '#0b8f9e', to: '#4cc9d6', soft: 'var(--sky-soft)', ink: 'var(--sky)' },
+  Engineering: { from: '#f2711c', to: '#ffae6b', soft: 'var(--orange-soft)', ink: 'var(--orange)' },
+  Languages: { from: '#d63d6b', to: '#ff8fae', soft: 'var(--rose-soft)', ink: 'var(--rose)' },
+  Business: { from: '#13795b', to: '#4cc99a', soft: 'var(--moss-soft)', ink: 'var(--moss)' },
+  Law: { from: '#b7791f', to: '#f0c05a', soft: 'var(--gold-soft)', ink: 'var(--gold)' },
+}
+export const deptOf = (d: string) => DEPT[d] ?? DEPT['Computer Science']
