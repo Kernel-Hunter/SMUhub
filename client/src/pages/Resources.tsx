@@ -26,7 +26,7 @@ export default function Resources() {
       </div>
       {list.isLoading ? <Skeleton rows={5} /> : list.error ? <ErrorBox error={list.error} /> : !list.data?.length ? (
         <Empty title="Nothing here yet" hint="No resources match these filters. Be the first to share one for this course." action={<Link to="/resources/new" className="btn btn-primary">Upload a resource</Link>} />
-      ) : <div className="grid gap-4 sm:grid-cols-2">{list.data.map((r) => <ResourceCard key={r.id} r={r} />)}</div>}
+      ) : <div className="grid gap-4 ">{list.data.map((r) => <ResourceCard key={r.id} r={r} />)}</div>}
     </div>
   )
 }

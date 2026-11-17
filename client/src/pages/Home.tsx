@@ -8,9 +8,9 @@ import { daysUntil, formatTime } from '@/lib/utils'
 
 function Head({ n, title, to }: { n: string; title: string; to: string }) {
   return (
-    <div className="mb-5 flex items-baseline justify-between border-b-[1.5px] border-ink pb-2">
-      <h2 className="flex items-baseline gap-3"><span className="num text-xs text-muted">{n}</span><span className="display text-3xl">{title}</span></h2>
-      <Link to={to} className="font-mono text-[11px] font-semibold uppercase tracking-widest hover:underline">All →</Link>
+    <div className="mb-5 flex items-baseline justify-between">
+      <h2 className="display text-3xl" data-n={n}>{title}</h2>
+      <Link to={to} className="text-sm font-semibold text-cobalt hover:underline">See all →</Link>
     </div>
   )
 }
@@ -29,10 +29,10 @@ export default function Home() {
   return (
     <div className="grid gap-16">
       <header className="rise">
-        <p className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · Front page</p>
-        <h1 className="display mt-4 text-[clamp(3rem,8vw,6.5rem)]">{greet}, <span className="hl">{me.name.split(' ')[0]}</span>.<br /><em className="text-muted">What do you need?</em></h1>
+        <p className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+        <h1 className="display mt-4 text-[clamp(3rem,8vw,6.5rem)]">{greet}, <em>{me.name.split(' ')[0]}</em>.<br /><span className="text-muted">What do you need?</span></h1>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link to="/resources/new" className="btn btn-accent">Share a resource ↑</Link>
+          <Link to="/resources/new" className="btn btn-accent">Share a resource</Link>
           <Link to="/qa/new" className="btn btn-ghost">Ask a question</Link>
           <Link to="/voice/new" className="btn btn-ghost">Speak up</Link>
         </div>
@@ -49,13 +49,13 @@ export default function Home() {
           )}
         </section>
 
-        <aside className="grid content-start gap-12 lg:border-l-[1.5px] lg:border-ink lg:pl-8">
+        <aside className="grid content-start gap-12 ">
           <section>
             <Head n="02" title="Top this week" to="/leaderboard" />
-            <ol className="grid">
+            <ol className="card grid p-2">
               {board.data?.slice(0, 5).map((r) => (
-                <li key={r.user.id} className="flex items-center gap-3 border-b border-line py-2.5">
-                  <span className="display num w-8 text-3xl">{r.rank}</span><Avatar user={r.user} size={28} />
+                <li key={r.user.id} className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-paper">
+                  <span className="display w-6 text-2xl text-cobalt">{r.rank}</span><Avatar user={r.user} size={28} />
                   <Link to={`/u/${r.user.id}`} className="min-w-0 flex-1 truncate text-sm font-semibold hover:underline">{r.user.name}{r.isMe && ' (you)'}</Link>
                   <span className="num text-sm text-muted">{r.xp}</span>
                 </li>
@@ -64,10 +64,10 @@ export default function Home() {
           </section>
           <section>
             <Head n="03" title="Coming up" to="/events" />
-            <ul className="grid gap-4">
+            <ul className="card grid gap-4 p-5">
               {events.data?.slice(0, 4).map((e) => (
                 <li key={e.id} className="flex gap-3">
-                  <span className="grid w-12 shrink-0 place-items-center border-[1.5px] border-ink py-1"><span className="eyebrow !text-[.58rem]">{new Date(e.startsAt).toLocaleDateString(undefined, { month: 'short' })}</span><span className="display num text-2xl leading-none">{new Date(e.startsAt).getDate()}</span></span>
+                  <span className="grid w-12 shrink-0 place-items-center arch bg-cobalt-soft pb-1.5 pt-3 text-cobalt"><span className="text-[10px] font-bold uppercase tracking-wider">{new Date(e.startsAt).toLocaleDateString(undefined, { month: 'short' })}</span><span className="display text-2xl leading-none">{new Date(e.startsAt).getDate()}</span></span>
                   <span className="min-w-0"><span className="block text-sm font-semibold leading-snug">{e.title}</span><span className="num text-[11px] uppercase text-muted">{daysUntil(e.startsAt)} · {formatTime(e.startsAt)}</span></span>
                 </li>
               ))}
@@ -77,8 +77,8 @@ export default function Home() {
       </div>
 
       <div className="grid gap-x-12 gap-y-16 lg:grid-cols-2">
-        <section><Head n="04" title="Unanswered" to="/qa" />{qa.isLoading ? <Skeleton rows={2} /> : <div className="grid">{qa.data?.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
-        <section><Head n="05" title="Campus Voice" to="/voice" />{voice.isLoading ? <Skeleton rows={2} /> : <div className="grid">{voice.data?.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
+        <section><Head n="04" title="Unanswered" to="/qa" />{qa.isLoading ? <Skeleton rows={2} /> : <div className="grid gap-3">{qa.data?.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
+        <section><Head n="05" title="Campus Voice" to="/voice" />{voice.isLoading ? <Skeleton rows={2} /> : <div className="grid gap-3">{voice.data?.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
       </div>
     </div>
   )
