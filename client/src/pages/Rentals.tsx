@@ -48,7 +48,7 @@ export default function Rentals() {
   const items = (list.data ?? []).filter((i) => cat === 'all' || i.category === cat)
   return (
     <div>
-      <PageHeader eyebrow="Student rentals" title="Borrow it. Do not buy it." sub="Calculators, lab gear, books and tech lent by students. SMUhub only connects you: agree on payment and handover directly. Contact details appear only after the owner accepts."
+      <PageHeader title="Rentals" sub="Borrow calculators, lab gear, books and tech from other students. Contact details appear only after the owner accepts."
         action={<button className="btn btn-accent" onClick={() => setOpen(!open)}><Plus size={16} />List an item</button>} />
       <p className="mb-6 flex items-start gap-2 rounded-xl border border-dashed border-line p-3 text-xs text-muted"><ShieldAlert size={14} className="mt-0.5 shrink-0" />No money moves through SMUhub. Meet on campus, check the item together and keep the deposit agreement simple.</p>
       {!!incoming.data?.length && (

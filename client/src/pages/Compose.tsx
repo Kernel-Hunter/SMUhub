@@ -18,7 +18,7 @@ export default function Compose({ kind }: { kind: ThreadKind }) {
   const submit = (e: FormEvent) => { e.preventDefault(); setErr(''); m.mutate() }
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader eyebrow={qa ? 'Ask' : 'Campus Voice'} title={qa ? 'Ask your classmates.' : 'Speak up.'} sub={qa ? 'The more specific the question, the faster the answer.' : 'Criticism is welcome when it is specific and fair. Personal attacks are removed.'} />
+      <PageHeader title={qa ? 'Ask a question' : 'New post'} sub={qa ? 'The more specific the question, the faster the answer.' : 'Criticism is welcome when it is specific and fair. Personal attacks are removed.'} />
       <form onSubmit={submit} className="grid gap-5">
         {qa ? <Field label="Course"><select className="field" required value={f.courseCode} onChange={(e) => setF({ ...f, courseCode: e.target.value })}><option value="">Select…</option>{courses.data?.map((c) => <option key={c.code} value={c.code}>{c.code} · {c.name}</option>)}</select></Field>
           : <Field label="Topic"><select className="field" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value as VoiceCategory })}>{Object.entries(VOICE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>}

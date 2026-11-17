@@ -1,18 +1,15 @@
 import { useState, type FormEvent } from 'react'
+import { BookOpen, Megaphone, Trophy } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import { Logo } from '@/components/Shell'
 import { Spinner } from '@/components/ui'
 import { errMsg } from '@/lib/utils'
 
-function Arches() {
-  return (
-    <div className="relative mt-12 flex h-[22rem] items-end justify-start gap-4 sm:h-[26rem]" aria-hidden>
-      <div className="zellige arch flex h-[78%] w-[30%] flex-col justify-end bg-cobalt-soft p-4 text-cobalt"><p className="num text-xs font-bold">CS224</p><p className="display mt-1 text-xl leading-tight">Databases final, solved</p><p className="num mt-2 text-xs">▲ 24 · ↓ 188</p></div>
-      <div className="arch flex h-full w-[34%] flex-col justify-end bg-accent p-4 text-white"><p className="text-xs font-bold uppercase tracking-widest opacity-80">Campus Voice</p><p className="display mt-1 text-2xl leading-tight">The library shuts at 6pm in exam week.</p><p className="num mt-2 text-xs font-bold">▲ 58 · anonymous</p></div>
-      <div className="arch flex h-[62%] w-[30%] flex-col justify-end bg-moss-soft p-4 text-moss"><p className="text-xs font-bold uppercase tracking-widest opacity-80">Q&amp;A · solved ✓</p><p className="display mt-1 text-lg leading-tight">Why does useEffect run twice?</p></div>
-    </div>
-  )
-}
+const POINTS = [
+  [BookOpen, 'Course resources', 'Notes, past exams and summaries from students who just took the course.'],
+  [Megaphone, 'Campus Voice', 'Honest feedback on courses and campus life. Post anonymously when you need to.'],
+  [Trophy, 'Earn your rank', 'Points come from classmates who find your uploads and answers useful.'],
+] as const
 
 export default function Login() {
   const { login } = useAuth()
@@ -23,33 +20,33 @@ export default function Login() {
     try { await login(u, p) } catch (x) { setErr(errMsg(x)); setBusy(false) }
   }
   return (
-    <div className="min-h-dvh">
-      <div className="mx-auto grid min-h-dvh max-w-6xl gap-x-16 px-5 py-8 sm:px-8 lg:grid-cols-[1.15fr_1fr]">
-        <section className="flex flex-col">
-          <Logo />
-          <h1 className="display mt-12 text-[clamp(3rem,7.6vw,6.4rem)]">What the syllabus <em>never</em> told you.</h1>
-          <p className="mt-6 max-w-md text-lg leading-snug text-muted">Notes, past exams and straight answers from the students who just took the course. For SMU students only.</p>
-          <Arches />
-        </section>
-        <section className="flex items-center py-10 lg:py-0">
-          <form onSubmit={submit} className="card rise w-full p-7 sm:p-10">
-            <p className="eyebrow !text-cobalt">Members entrance</p>
-            <h2 className="display mt-2 text-4xl">Sign in with Moodle</h2>
-            <p className="mt-3 text-sm text-muted">Use the same username and password as your Moodle account.</p>
-            <div className="mt-7 grid gap-4">
-              <label><span className="label">Username</span><input className="field" autoComplete="username" autoFocus value={u} onChange={(e) => setU(e.target.value)} placeholder="firstname.lastname" required /></label>
-              <label><span className="label">Password</span><input className="field" type="password" autoComplete="current-password" value={p} onChange={(e) => setP(e.target.value)} required /></label>
-              {err && <p role="alert" className="rounded-xl bg-rose-soft px-3 py-2 text-sm font-medium text-rose">{err}</p>}
-              <button className="btn btn-accent h-12" disabled={busy || !u || !p}>{busy ? <Spinner /> : 'Enter the hub'}</button>
-            </div>
-            <ul className="mt-7 grid gap-2 border-t border-line pt-5 text-xs leading-relaxed text-muted">
-              <li><strong className="text-ink">Verified.</strong> Only people with a Moodle account get in.</li>
-              <li><strong className="text-ink">Private.</strong> Your password goes straight to Moodle and is never stored.</li>
-              <li className="num">Demo build: any username and a 4+ character password works.</li>
-            </ul>
-          </form>
-        </section>
-      </div>
+    <div className="grid min-h-dvh lg:grid-cols-2">
+      <section className="flex flex-col justify-between px-6 py-8 sm:px-14">
+        <Logo />
+        <form onSubmit={submit} className="rise mx-auto w-full max-w-sm py-12">
+          <h1 className="display text-3xl">Sign in to SMUhub</h1>
+          <p className="mt-2 text-sm text-muted">Use your Moodle username and password.</p>
+          <div className="mt-8 grid gap-4">
+            <label><span className="label">Moodle username</span><input className="field" autoComplete="username" autoFocus value={u} onChange={(e) => setU(e.target.value)} placeholder="firstname.lastname" required /></label>
+            <label><span className="label">Password</span><input className="field" type="password" autoComplete="current-password" value={p} onChange={(e) => setP(e.target.value)} required /></label>
+            {err && <p role="alert" className="rounded-lg bg-rose-soft px-3 py-2 text-sm text-rose">{err}</p>}
+            <button className="btn btn-accent mt-1 h-11" disabled={busy || !u || !p}>{busy ? <Spinner /> : 'Continue'}</button>
+          </div>
+          <p className="mt-6 text-xs leading-relaxed text-muted">Only SMU students can sign in. Your password goes directly to Moodle and is never stored by SMUhub.</p>
+          <p className="num mt-3 rounded-lg bg-paper px-3 py-2 text-xs text-faint">Demo build: any username and a 4+ character password.</p>
+        </form>
+        <p className="text-xs text-faint">© SMUhub · Made by students</p>
+      </section>
+      <section className="hidden flex-col justify-center border-l border-line bg-surface px-16 lg:flex">
+        <div className="max-w-md">
+          <h2 className="display text-4xl">Everything your courses never gave you in one place.</h2>
+          <ul className="mt-10 grid gap-7">
+            {POINTS.map(([Icon, t, d]) => (
+              <li key={t} className="flex gap-4"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent"><Icon size={19} strokeWidth={1.75} /></span><span><span className="block font-semibold">{t}</span><span className="text-sm text-muted">{d}</span></span></li>
+            ))}
+          </ul>
+        </div>
+      </section>
     </div>
   )
 }

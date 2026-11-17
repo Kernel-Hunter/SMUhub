@@ -30,7 +30,7 @@ export default function Upload() {
   const submit = (e: FormEvent) => { e.preventDefault(); setErr(''); if (!file) return setErr('Choose a file first.'); if (!f.courseCode) return setErr('Pick a course.'); m.mutate() }
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader eyebrow="Share" title="Upload a resource." sub="Good uploads earn XP once classmates download and rate them. Duplicates and low-effort files earn nothing." />
+      <PageHeader title="Upload a resource" sub="Good uploads earn XP once classmates download and rate them. Duplicates and low-effort files earn nothing." />
       <form onSubmit={submit} className="grid gap-5">
         <div onDragOver={(e) => { e.preventDefault(); setDrag(true) }} onDragLeave={() => setDrag(false)} onDrop={drop}
           className={cn('card flex flex-col items-center border-2 border-dashed px-6 py-12 text-center transition', drag && 'border-accent bg-accent-soft')}>

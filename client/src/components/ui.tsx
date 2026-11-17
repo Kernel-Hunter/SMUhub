@@ -18,8 +18,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="pointer-events-none fixed inset-x-0 bottom-5 z-[80] flex flex-col items-center gap-2 px-4" aria-live="polite">
         {items.map((t) => (
-          <div key={t.id} className={cn('rise pointer-events-auto rounded-full px-5 py-3 text-sm font-semibold shadow-xl', t.tone === 'xp' ? 'bg-accent text-white' : t.tone === 'err' ? 'bg-rose-soft text-rose' : 'bg-ink text-paper')}>
-            {t.tone === 'xp' && <span className="num mr-2">▲</span>}{t.text}
+          <div key={t.id} className={cn('rise pointer-events-auto rounded-xl border border-line-strong px-4 py-2.5 text-sm font-medium shadow-lg', t.tone === 'xp' ? 'bg-accent text-[var(--accent-ink)] border-transparent' : t.tone === 'err' ? 'bg-rose-soft text-rose' : 'bg-surface text-ink')}>
+            {t.tone === 'xp' && <span className="mr-2">↑</span>}{t.text}
           </div>
         ))}
       </div>
@@ -28,50 +28,49 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 // ---------- primitives ----------
-const TINTS = [['#dbe3f8', '#1f46c4'], ['#f6d9c9', '#a8381a'], ['#d5e8da', '#2f6b4a'], ['#f4e2b8', '#8f5d00'], ['#f4d3dc', '#a3224a'], ['#e3dbf5', '#5a3fb0']]
+const TINTS = [['#e5ecfb', '#2557c9'], ['#fbe9d9', '#a9501a'], ['#e2f3ed', '#0b7a5f'], ['#f8efd5', '#946200'], ['#fbe4e8', '#b4233f'], ['#ece6fa', '#5a3fb0']]
 export function Avatar({ user, size = 36 }: { user: PublicUser | null; size?: number }) {
   const [bg, fg] = TINTS[[...(user?.id ?? 'x')].reduce((s, c) => s + c.charCodeAt(0), 0) % TINTS.length]
   const initials = user ? user.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase() : '?'
   return (
     <span aria-hidden className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold"
-      style={{ width: size, height: size, background: user ? bg : 'var(--paper)', color: user ? fg : 'var(--faint)', fontSize: Math.max(9, size * 0.36), boxShadow: user ? 'none' : 'inset 0 0 0 1.5px var(--line)' }}>
+      style={{ width: size, height: size, background: user ? bg : 'var(--paper)', color: user ? fg : 'var(--faint)', fontSize: Math.max(9, size * 0.38), boxShadow: user ? 'none' : 'inset 0 0 0 1px var(--line-strong)' }}>
       {initials}
     </span>
   )
 }
 
 export function Chip({ children, tone, className }: { children: ReactNode; tone?: string; className?: string }) {
-  return <span className={cn('chip', tone, className)}>{children}</span>
+  return <span className={cn('chip', tone && `${tone} !border-transparent`, className)}>{children}</span>
 }
 
-export function PageHeader({ eyebrow, title, sub, action }: { eyebrow: string; title: ReactNode; sub?: string; action?: ReactNode }) {
+export function PageHeader({ eyebrow, title, sub, action }: { eyebrow?: string; title: ReactNode; sub?: string; action?: ReactNode }) {
   return (
-    <header className="rise zellige relative mb-10 overflow-hidden rounded-[30px] bg-cobalt-soft px-6 py-9 sm:px-10 sm:py-12">
-      <div className="pointer-events-none absolute -right-10 -top-16 hidden h-72 w-52 arch bg-paper/70 sm:block" aria-hidden />
-      <p className="eyebrow relative mb-3 !text-cobalt">{eyebrow}</p>
-      <div className="relative flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
-        <h1 className="display max-w-2xl text-[clamp(2.4rem,5.5vw,4.2rem)]">{title}</h1>
-        {action}
+    <header className="rise mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div className="max-w-2xl">
+        {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
+        <h1 className="display text-[1.9rem] sm:text-[2.25rem]">{title}</h1>
+        {sub && <p className="mt-2 text-[15px] leading-relaxed text-muted">{sub}</p>}
       </div>
-      {sub && <p className="relative mt-4 max-w-xl text-[15px] leading-relaxed text-muted">{sub}</p>}
+      {action}
     </header>
   )
 }
 
 export function Empty({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (
-    <div className="zellige flex flex-col items-center rounded-3xl bg-surface px-6 py-16 text-center">
-      <p className="display text-3xl">{title}</p>
-      {hint && <p className="mt-2 max-w-sm text-sm text-muted">{hint}</p>}
-      {action && <div className="mt-6">{action}</div>}
+    <div className="flex flex-col items-center rounded-xl border border-dashed border-line-strong px-6 py-14 text-center">
+      <p className="text-base font-semibold">{title}</p>
+      {hint && <p className="mt-1 max-w-sm text-sm text-muted">{hint}</p>}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   )
 }
 
 export function Skeleton({ rows = 4, className }: { rows?: number; className?: string }) {
   return (
-    <div className="grid gap-4" aria-busy aria-label="Loading">
-      {Array.from({ length: rows }).map((_, i) => <div key={i} className={cn('h-28 animate-pulse rounded-3xl bg-surface', className)} style={{ animationDelay: `${i * 90}ms` }} />)}
+    <div className="grid gap-3" aria-busy aria-label="Loading">
+      {Array.from({ length: rows }).map((_, i) => <div key={i} className={cn('h-20 animate-pulse rounded-xl bg-line/60', className)} style={{ animationDelay: `${i * 80}ms` }} />)}
     </div>
   )
 }
@@ -79,15 +78,15 @@ export function Skeleton({ rows = 4, className }: { rows?: number; className?: s
 export function Spinner() { return <span className="inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> }
 
 export function ErrorBox({ error }: { error: unknown }) {
-  return <div role="alert" className="rounded-2xl bg-rose-soft p-4 text-sm font-medium text-rose">{error instanceof Error ? error.message : 'Could not load this. Try again.'}</div>
+  return <div role="alert" className="rounded-xl border border-rose/30 bg-rose-soft p-4 text-sm font-medium text-rose">{error instanceof Error ? error.message : 'Could not load this. Try again.'}</div>
 }
 
 export function VoteButton({ votes, voted, disabled, onVote, label = 'Upvote' }: { votes: number; voted: boolean; disabled?: boolean; onVote: () => void; label?: string }) {
   return (
     <button type="button" aria-label={label} aria-pressed={voted} disabled={voted || disabled} onClick={onVote}
-      className={cn('flex w-12 shrink-0 flex-col items-center rounded-full py-2.5 transition active:scale-95 disabled:cursor-default', voted ? 'bg-accent text-white' : 'bg-paper text-ink hover:bg-cobalt hover:text-white disabled:opacity-60 disabled:hover:bg-paper disabled:hover:text-ink')}>
-      <span className="text-[10px] leading-none">▲</span>
-      <span className="num mt-1 text-sm font-bold leading-none">{votes}</span>
+      className={cn('flex w-11 shrink-0 flex-col items-center rounded-lg border py-1.5 transition active:scale-95 disabled:cursor-default', voted ? 'border-accent bg-accent-soft text-accent' : 'border-line-strong bg-surface hover:border-ink disabled:opacity-60 disabled:hover:border-line-strong')}>
+      <svg viewBox="0 0 16 16" className="size-3.5" fill="currentColor" aria-hidden><path d="M8 3l5 7H3z" /></svg>
+      <span className="num text-xs font-semibold">{votes}</span>
     </button>
   )
 }
@@ -104,10 +103,10 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 
 export function Segmented<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div role="tablist" className="inline-flex rounded-full bg-surface p-1 shadow-[inset_0_0_0_1px_var(--line)]">
+    <div role="tablist" className="inline-flex rounded-lg border border-line bg-paper p-0.5">
       {options.map((o) => (
         <button key={o.value} role="tab" aria-selected={value === o.value} onClick={() => onChange(o.value)}
-          className={cn('h-9 rounded-full px-4 text-sm font-semibold transition', value === o.value ? 'bg-ink text-paper' : 'text-muted hover:text-ink')}>
+          className={cn('h-8 rounded-md px-3.5 text-sm font-medium transition', value === o.value ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink')}>
           {o.label}
         </button>
       ))}

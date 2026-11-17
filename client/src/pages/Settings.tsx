@@ -20,7 +20,7 @@ export default function Settings() {
   const submit = (e: FormEvent) => { e.preventDefault(); save.mutate() }
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader eyebrow="Account" title="Settings." />
+      <PageHeader title="Settings" />
       <section className="card mb-6 p-5"><h2 className="display mb-3 text-xl">Appearance</h2>
         <div className="grid grid-cols-3 gap-3">{([['light', Sun], ['dark', Moon], ['system', Monitor]] as const).map(([k, Icon]) => (
           <button key={k} onClick={() => { setTheme(k); applyTheme(k) }} className={cn('flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-medium capitalize transition', theme === k ? 'border-ink bg-paper' : 'border-line text-muted hover:text-ink')}><Icon size={18} />{k}</button>))}</div></section>

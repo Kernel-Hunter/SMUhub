@@ -15,7 +15,7 @@ export default function Resources() {
   const list = useQuery({ queryKey: ['resources', { q, course, kind, semester, sort }], queryFn: () => api.resources.list({ q, course, kind, semester, sort }) })
   return (
     <div>
-      <PageHeader eyebrow="Library" title={<>Everything students <em>actually</em> use.</>} sub="Notes, past exams, summaries and slides uploaded by classmates. Rate what helped you so the best material rises."
+      <PageHeader title="Library" sub="Notes, past exams, summaries and slides shared by students. Rate what helped you so the best material rises."
         action={<Link to="/resources/new" className="btn btn-accent"><Upload size={16} />Upload</Link>} />
       <div className="card mb-6 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-[2fr_1.2fr_1fr_.8fr_1fr]">
         <label className="relative sm:col-span-2 lg:col-span-1"><Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" /><input className="field !pl-10" placeholder="Search title, topic or course" value={q} onChange={(e) => set('q', e.target.value)} aria-label="Search resources" /></label>

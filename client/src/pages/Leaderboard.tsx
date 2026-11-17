@@ -14,7 +14,7 @@ export default function Leaderboard() {
   const rules = [[`+${P.helpful}`, 'A classmate who downloaded your file rates it helpful'], [`+${P.verified}`, `Your file is verified by ${RULES.verifyThreshold} different students`], [`+${P.accepted}`, 'Your answer is accepted by the asker'], [`+${P.answerUp}`, 'An answer of yours is upvoted'], [`+${P.questionUp}`, 'A question or post of yours is upvoted']]
   return (
     <div>
-      <PageHeader eyebrow="Leaderboard" title={<>Rank is <em>earned</em> by helping.</>} sub="Points come only from classmates who found your work useful. You cannot buy, claim or farm them." action={<Segmented value={period} onChange={setPeriod} options={[{ value: 'week', label: 'This week' }, { value: 'all', label: 'All time' }]} />} />
+      <PageHeader title="Leaderboard" sub="Points come only from classmates who found your work useful." action={<Segmented value={period} onChange={setPeriod} options={[{ value: 'week', label: 'This week' }, { value: 'all', label: 'All time' }]} />} />
       <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <div>
           {isLoading ? <Skeleton rows={6} /> : error ? <ErrorBox error={error} /> : (

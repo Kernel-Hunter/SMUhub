@@ -16,8 +16,8 @@ export default function Threads({ kind }: { kind: ThreadKind }) {
   const qa = kind === 'question'
   return (
     <div>
-      <PageHeader eyebrow={qa ? 'Peer support' : 'Campus Voice'} title={qa ? <>Stuck? Someone <em>just</em> solved it.</> : <>Say what the <em>official</em> channels will not.</>}
-        sub={qa ? 'Ask by course, answer what you know, and mark the answer that worked.' : 'Honest feedback on courses, facilities and administration. Post anonymously when you need to. Be fair, be specific.'}
+      <PageHeader title={qa ? 'Questions & answers' : 'Campus Voice'}
+        sub={qa ? 'Ask by course, answer what you know, and mark the answer that worked.' : 'Honest feedback on courses, facilities and administration. Post anonymously if you need to. Keep it specific and fair.'}
         action={<Link to={qa ? '/qa/new' : '/voice/new'} className="btn btn-accent"><Plus size={16} />{qa ? 'Ask a question' : 'New post'}</Link>} />
       <div className="card mb-6 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="relative"><Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" /><input className="field !pl-10" placeholder="Search" value={q} onChange={(e) => set('q', e.target.value)} aria-label="Search" /></label>
