@@ -1,0 +1,108 @@
+import type { VoiceCategory, RentalCategory, ResourceKind } from './types'
+
+const DAY = 86400000
+const H = 3600000
+export const now = () => Date.now()
+export const daysAgo = (n: number, h = 0) => Date.now() - n * DAY - h * H
+export const inDays = (n: number, hour = 10) => {
+  const d = new Date(Date.now() + n * DAY)
+  d.setHours(hour, 0, 0, 0)
+  return d.getTime()
+}
+
+export const COURSES = [
+  ['CS101', 'Introduction to Programming', 'Computer Science'],
+  ['CS201', 'Data Structures', 'Computer Science'],
+  ['CS224', 'Database Systems', 'Computer Science'],
+  ['CS301', 'Algorithms & Complexity', 'Computer Science'],
+  ['CS324', 'Web Application Development', 'Computer Science'],
+  ['MATH101', 'Calculus I', 'Mathematics'],
+  ['MATH205', 'Linear Algebra', 'Mathematics'],
+  ['MATH210', 'Probability & Statistics', 'Mathematics'],
+  ['PHY110', 'Mechanics', 'Physics'],
+  ['EE220', 'Digital Logic Design', 'Engineering'],
+  ['ENG101', 'Academic Writing', 'Languages'],
+  ['ECO101', 'Microeconomics', 'Business'],
+  ['ACC110', 'Financial Accounting', 'Business'],
+  ['MKT201', 'Marketing Principles', 'Business'],
+  ['LAW105', 'Introduction to Law', 'Law'],
+] as const
+
+export const USERS = [
+  ['u1', 'Amira Ben Salah', 'Computer Science', 3, 'Algorithms nerd. I share what I wish I had in year one.'],
+  ['u2', 'Youssef Trabelsi', 'Computer Science', 2, 'Databases, coffee, repeat.'],
+  ['u3', 'Ines Gharbi', 'Business', 2, 'Accounting summaries done properly.'],
+  ['u4', 'Mehdi Jlassi', 'Engineering', 4, 'Digital logic survivor.'],
+  ['u5', 'Rania Chebbi', 'Computer Science', 4, 'Final year. Ask me about internships.'],
+  ['u6', 'Oussama Khelifi', 'Mathematics', 3, 'Linear algebra is beautiful, fight me.'],
+  ['u7', 'Salma Mejri', 'Law', 2, 'Case summaries and good notes.'],
+  ['u8', 'Hamza Bouaziz', 'Engineering', 3, 'I own too many calculators.'],
+  ['u9', 'Yasmine Kefi', 'Business', 1, 'Fresh in. Learning the ropes.'],
+  ['u10', 'Aymen Dridi', 'Computer Science', 1, 'Building stuff, breaking stuff.'],
+  ['u11', 'Lina Hammami', 'Mathematics', 2, 'Probability tutor on weekends.'],
+  ['u12', 'Skander Rebai', 'Physics', 3, 'Mechanics, lab reports, memes.'],
+] as const
+
+// id, title, course, kind, sem, ay, ext, sizeKB, uploader, daysAgo, downloads, helpful, desc
+export const RESOURCES: [string, string, string, ResourceKind, 'S1' | 'S2', string, string, number, string, number, number, number, string][] = [
+  ['r1', 'Data Structures — Full Course Summary', 'CS201', 'summary', 'S1', '2025/26', 'pdf', 1840, 'u1', 3, 214, 31, 'Arrays to graphs in 34 pages, with complexity tables and the exact proofs the midterm asks for.'],
+  ['r2', 'Databases Final 2025 — Solved', 'CS224', 'exam', 'S1', '2025/26', 'pdf', 920, 'u2', 6, 188, 24, 'Last year\'s final with a full worked solution. SQL joins, normalization and a B-tree question.'],
+  ['r3', 'Calculus I — Limits & Derivatives Cheat Sheet', 'MATH101', 'summary', 'S1', '2025/26', 'pdf', 410, 'u6', 9, 156, 19, 'Two pages. Every rule you need, laminated-worthy.'],
+  ['r4', 'Financial Accounting — Chapters 1–6 Notes', 'ACC110', 'notes', 'S1', '2025/26', 'docx', 2210, 'u3', 12, 97, 14, 'Handwritten-style typed notes with journal entry examples.'],
+  ['r5', 'Linear Algebra Midterm 2024 + Solutions', 'MATH205', 'exam', 'S2', '2024/25', 'pdf', 1330, 'u6', 15, 143, 22, 'Eigenvalues, diagonalization, and the infamous rank-nullity trap.'],
+  ['r6', 'Digital Logic — Karnaugh Maps Tutorial', 'EE220', 'tutorial', 'S1', '2025/26', 'pptx', 5120, 'u4', 18, 71, 11, 'Step by step K-maps with 12 practice problems and answers.'],
+  ['r7', 'CS324 — React & REST API Lecture Slides', 'CS324', 'slides', 'S1', '2025/26', 'pptx', 8400, 'u5', 2, 120, 17, 'All lecture decks merged and cleaned up, with the project checklist.'],
+  ['r8', 'Algorithms — Dynamic Programming Patterns', 'CS301', 'tutorial', 'S2', '2024/25', 'pdf', 760, 'u1', 21, 109, 16, 'Ten patterns that cover 90% of DP questions, each with a template.'],
+  ['r9', 'Probability — Bayes & Distributions Notes', 'MATH210', 'notes', 'S2', '2024/25', 'pdf', 1520, 'u11', 24, 66, 9, 'Clean notes plus a formula sheet for the final.'],
+  ['r10', 'Microeconomics Past Exam Pack (2022–2025)', 'ECO101', 'exam', 'S1', '2025/26', 'pdf', 3040, 'u9', 5, 83, 8, 'Four years of finals in one file.'],
+  ['r11', 'Intro to Law — Case Summaries', 'LAW105', 'summary', 'S1', '2025/26', 'docx', 640, 'u7', 8, 54, 7, 'Every case from the syllabus in two paragraphs each.'],
+  ['r12', 'Mechanics — Lab Report Template', 'PHY110', 'tutorial', 'S2', '2024/25', 'docx', 280, 'u12', 30, 61, 6, 'The template the lab TA actually likes.'],
+  ['r13', 'Intro to Programming — C Exercises with Answers', 'CS101', 'notes', 'S1', '2025/26', 'pdf', 980, 'u10', 4, 48, 5, 'Pointers, loops and arrays. Solutions are commented line by line.'],
+  ['r14', 'Marketing Principles — Case Study Playbook', 'MKT201', 'summary', 'S2', '2024/25', 'pdf', 1210, 'u3', 33, 39, 4, 'How to structure the case-study answer to get full marks.'],
+]
+
+// id, kind, title, body, course, category, author, anonymous, daysAgo, votes, solved
+export const THREADS: [string, 'question' | 'voice', string, string, string | '', VoiceCategory | '', string, boolean, number, number, boolean][] = [
+  ['t1', 'question', 'Difference between a clustered and a non-clustered index?', 'The slides define both but I cannot picture when the DB would choose one over the other. A concrete example would help a lot.', 'CS224', '', 'u10', false, 1, 12, true],
+  ['t2', 'question', 'How do I prove a greedy algorithm is optimal?', 'I always get stuck on the exchange argument. Is there a template to follow?', 'CS301', '', 'u9', false, 2, 9, false],
+  ['t3', 'question', 'Does the Calculus I final allow a calculator?', 'The syllabus is silent about it. Did anyone ask the instructor last semester?', 'MATH101', '', 'u9', false, 0, 6, true],
+  ['t4', 'question', 'useEffect runs twice in development, is that a bug?', 'My fetch fires two times in the CS324 project. Do I need to worry before deployment?', 'CS324', '', 'u10', false, 1, 7, true],
+  ['t5', 'question', 'Journal entry for prepaid insurance?', 'I keep mixing up the debit and credit side when the policy covers 12 months.', 'ACC110', '', 'u3', false, 3, 4, false],
+  ['t6', 'voice', 'The library closes at 6pm during exam weeks. This makes no sense.', 'Exam season is exactly when we need study space the most. Other universities extend hours. Can student council push for 10pm?', '', 'facilities', 'u5', false, 1, 58, false],
+  ['t7', 'voice', 'Grades for the midterm are still not published after 5 weeks', 'Several courses, same story. We cannot adjust how we study without feedback. Please set a maximum turnaround for grading.', '', 'academics', 'u2', true, 2, 71, false],
+  ['t8', 'voice', 'Shoutout to the IT team for fixing the Wi-Fi in Block C', 'It actually works now. Credit where it is due.', '', 'praise', 'u4', false, 4, 33, false],
+  ['t9', 'voice', 'Idea: a shared exam-week quiet room booking board', 'Simple sign-up sheet per hour, run by students. We have the spaces, we just lack coordination.', '', 'idea', 'u1', false, 3, 41, false],
+  ['t10', 'voice', 'The cafeteria prices went up again', 'A sandwich is now more than the daily bus fare. Is there any student discount we do not know about?', '', 'campus-life', 'u8', true, 5, 49, false],
+  ['t11', 'voice', 'Registration portal crashes at 8am every enrollment day', 'We all log in at the same time because the slots are limited. Staggering by year would fix this.', '', 'admin', 'u7', false, 7, 62, false],
+]
+
+// id, threadId, author, anonymous, body, daysAgo, votes, accepted
+export const REPLIES: [string, string, string, boolean, string, number, number, boolean][] = [
+  ['p1', 't1', 'u2', false, 'A clustered index is the table itself sorted by the key, so there can be only one. A non-clustered index is a separate sorted structure with pointers back to the rows. Range scans on the clustered key are fastest. Use non-clustered for lookups by other columns.', 1, 14, true],
+  ['p2', 't1', 'u5', false, 'Rule of thumb: the primary key is usually the clustered index. Add non-clustered ones for columns you filter or join on often.', 1, 5, false],
+  ['p3', 't2', 'u1', false, 'Template: assume an optimal solution differs from the greedy one at the first step, swap the greedy choice in, and show the result is no worse. Repeat by induction.', 1, 8, false],
+  ['p4', 't3', 'u6', false, 'Basic scientific calculators were allowed last year. Graphing ones were not.', 0, 6, true],
+  ['p5', 't4', 'u5', false, 'React StrictMode double-invokes effects in development only. Add a cleanup function and you are fine. Production runs it once.', 1, 11, true],
+  ['p6', 't6', 'u9', true, 'Same here. I walked to the library twice last week to find it closed.', 1, 12, false],
+  ['p7', 't7', 'u11', false, 'Asked the registrar about this. They said it depends on the instructor, which is exactly the problem.', 1, 17, false],
+]
+
+// id, title, kind, daysFromNow, hour, location, course, author, going, desc
+export const EVENTS: [string, string, 'event' | 'deadline' | 'club', number, number, string, string, string, number, string][] = [
+  ['e1', 'CS324 project proposal deadline', 'deadline', 2, 23, 'Moodle', 'CS324', 'u5', 41, 'Submit the PDF proposal on Moodle before midnight.'],
+  ['e2', 'Hackathon kickoff: 24 hours of building', 'event', 5, 17, 'Block C · Innovation Lab', '', 'u1', 87, 'Teams of 3 to 4. Free pizza. Prizes for the top three projects.'],
+  ['e3', 'Calculus I midterm', 'deadline', 7, 9, 'Amphi A', 'MATH101', 'u6', 120, 'Chapters 1 to 4. Bring your student card.'],
+  ['e4', 'Photography club open session', 'club', 4, 16, 'Student Center', '', 'u12', 23, 'Beginners welcome. Bring any camera, even your phone.'],
+  ['e5', 'Career fair: Tunisian tech and finance firms', 'event', 12, 10, 'Main Hall', '', 'u5', 164, 'Bring printed CVs. 30 companies confirmed.'],
+  ['e6', 'Financial Accounting quiz 2', 'deadline', 9, 14, 'Room B204', 'ACC110', 'u3', 52, 'Covers adjusting entries and the trial balance.'],
+]
+
+// id, title, cat, price, deposit, cond, owner, available, desc, contact
+export const RENTALS: [string, string, RentalCategory, number, number, 'new' | 'good' | 'worn', string, boolean, string, string][] = [
+  ['x1', 'Casio fx-991EX Classwiz', 'calculator', 2, 20, 'good', 'u8', true, 'Exam-approved scientific calculator. Fresh batteries.', 'WhatsApp +216 20 000 001'],
+  ['x2', 'TI-84 Plus CE graphing calculator', 'calculator', 4, 60, 'good', 'u8', true, 'Great for Calculus and Statistics. Charger included.', 'WhatsApp +216 20 000 001'],
+  ['x3', 'Arduino Uno starter kit', 'tech', 5, 40, 'good', 'u4', true, 'Board, breadboard, 40 jumpers, LEDs and sensors.', 'Telegram @mehdi_j'],
+  ['x4', 'Lab coat (size M)', 'lab', 1, 10, 'good', 'u12', false, 'Required for Physics and Chemistry labs.', 'WhatsApp +216 20 000 002'],
+  ['x5', 'Introduction to Algorithms (CLRS), 4th ed.', 'books', 3, 50, 'worn', 'u1', true, 'Highlighted but readable. Pick up at the library.', 'Instagram @amira.bs'],
+  ['x6', 'Portable monitor 15.6 inch', 'tech', 6, 80, 'new', 'u2', true, 'USB-C, ideal for coding marathons.', 'Telegram @youssef_t'],
+]
