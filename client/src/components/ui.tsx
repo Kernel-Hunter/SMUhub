@@ -28,7 +28,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 // ---------- primitives ----------
-const TINTS = [['rgb(108 182 255 / .16)', '#6cb6ff'], ['rgb(255 122 61 / .16)', '#ff9a66'], ['rgb(74 222 154 / .16)', '#4ade9a'], ['rgb(242 193 78 / .16)', '#f2c14e'], ['rgb(255 123 143 / .16)', '#ff7b8f'], ['rgb(167 139 250 / .16)', '#b8a2ff']]
+const TINTS = [['var(--accent-soft)', 'var(--accent)'], ['var(--moss-soft)', 'var(--moss)'], ['var(--sky-soft)', 'var(--sky)'], ['var(--gold-soft)', 'var(--gold)'], ['var(--rose-soft)', 'var(--rose)']]
 export function Avatar({ user, size = 36 }: { user: PublicUser | null; size?: number }) {
   const [bg, fg] = TINTS[[...(user?.id ?? 'x')].reduce((s, c) => s + c.charCodeAt(0), 0) % TINTS.length]
   const initials = user ? user.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase() : '?'
@@ -49,7 +49,7 @@ export function PageHeader({ eyebrow, title, sub, action }: { eyebrow?: string; 
     <header className="rise mb-8 flex flex-wrap items-end justify-between gap-4">
       <div className="max-w-2xl">
         {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
-        <h1 className="display gradient-text text-[2rem] sm:text-[2.5rem]">{title}</h1>
+        <h1 className="display text-[1.75rem] sm:text-[2rem]">{title}</h1>
         {sub && <p className="mt-2 text-[15px] leading-relaxed text-muted">{sub}</p>}
       </div>
       {action}
