@@ -26,7 +26,7 @@ export default function Threads({ kind }: { kind: ThreadKind }) {
         <select className="field" value={sort} onChange={(e) => set('sort', e.target.value)} aria-label="Sort"><option value="new">Newest</option><option value="top">Top voted</option></select>
         {qa && <label className="flex h-[2.8rem] items-center gap-2 rounded-xl px-2 text-sm"><input type="checkbox" checked={unsolved} onChange={(e) => set('open', e.target.checked ? '1' : '')} className="size-4 accent-[var(--accent)]" />Unanswered only</label>}
       </div>
-      {list.isLoading ? <Skeleton rows={4} /> : list.error ? <ErrorBox error={list.error} /> : !list.data?.length ? <Empty title="Quiet in here" hint="Nothing matches yet." /> : <div className="grid gap-3">{list.data.map((t) => <ThreadCard key={t.id} t={t} />)}</div>}
+      {list.isLoading ? <Skeleton rows={4} /> : list.error ? <ErrorBox error={list.error} /> : !list.data?.length ? <Empty title="Quiet in here" hint="Nothing matches yet." /> : <div className="grid">{list.data.map((t) => <ThreadCard key={t.id} t={t} />)}</div>}
     </div>
   )
 }

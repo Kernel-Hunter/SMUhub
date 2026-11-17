@@ -19,9 +19,9 @@ export default function Profile() {
         {[[u.xp, 'XP'], [u.rank ? `#${u.rank}` : '–', 'rank'], [data.resources.length, 'uploads'], [data.acceptedAnswers, 'accepted']].map(([v, l]) => <div key={l as string} className="p-4"><p className="display num text-2xl">{v}</p><p className="text-xs text-muted">{l}</p></div>)}
       </div>
       <h2 className="display mb-3 flex items-center gap-2 text-2xl"><FileUp size={20} />Uploads</h2>
-      <div className="mb-10 grid gap-3">{data.resources.length ? data.resources.map((r) => <ResourceCard key={r.id} r={r} />) : <p className="text-sm text-muted">No uploads yet.</p>}</div>
+      <div className="mb-10 grid gap-4 sm:grid-cols-2">{data.resources.length ? data.resources.map((r) => <ResourceCard key={r.id} r={r} />) : <p className="text-sm text-muted">No uploads yet.</p>}</div>
       <h2 className="display mb-3 flex items-center gap-2 text-2xl"><MessageSquareQuote size={20} />Public posts</h2>
-      <div className="grid gap-3">{data.threads.length ? data.threads.map((t) => <ThreadCard key={t.id} t={t} />) : <p className="text-sm text-muted">Nothing public yet.</p>}</div>
+      <div className="grid">{data.threads.length ? data.threads.map((t) => <ThreadCard key={t.id} t={t} />) : <p className="text-sm text-muted">Nothing public yet.</p>}</div>
       <p className="mt-8 flex items-center gap-2 text-xs text-faint"><Award size={13} />Anonymous posts never appear on profiles.</p>
     </div>
   )

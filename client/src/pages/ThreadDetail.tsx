@@ -29,7 +29,7 @@ export default function ThreadDetail() {
           <div className="flex flex-wrap gap-1.5">{t.courseCode && <Chip className="num">{t.courseCode}</Chip>}{t.category && <Chip tone={VOICE_TONE[t.category]}>{VOICE_LABEL[t.category]}</Chip>}{t.solved && <Chip tone="bg-moss-soft text-moss"><CheckCircle2 size={13} />Solved</Chip>}</div>
           <h1 className="display mt-3 text-3xl font-medium leading-tight sm:text-4xl">{t.title}</h1>
           <p className="mt-4 whitespace-pre-line text-[15px] leading-relaxed">{t.body}</p>
-          <p className="mt-4 flex items-center gap-2 text-xs text-muted"><Avatar user={t.author} size={22} />{t.author ? <Link className="font-medium hover:text-accent" to={`/u/${t.author.id}`}>{t.author.name}</Link> : 'Anonymous student'}{t.mine && !t.author?.id ? '' : ''}{t.mine && t.author === null ? ' (you)' : ''} · {timeAgo(t.createdAt)}</p>
+          <p className="mt-4 flex items-center gap-2 text-xs text-muted"><Avatar user={t.author} size={22} />{t.author ? <Link className="font-medium hover:underline" to={`/u/${t.author.id}`}>{t.author.name}</Link> : 'Anonymous student'}{t.mine && !t.author?.id ? '' : ''}{t.mine && t.author === null ? ' (you)' : ''} · {timeAgo(t.createdAt)}</p>
         </div>
       </div>
       <h2 className="display mb-4 mt-12 text-2xl">{replies.length} {qa ? (replies.length === 1 ? 'answer' : 'answers') : (replies.length === 1 ? 'comment' : 'comments')}</h2>
@@ -40,7 +40,7 @@ export default function ThreadDetail() {
             <div className="min-w-0 flex-1">
               {r.accepted && <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-moss"><CheckCircle2 size={14} />Accepted answer</p>}
               <p className="whitespace-pre-line text-[15px] leading-relaxed">{r.body}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted"><Avatar user={r.author} size={20} />{r.author ? <Link className="font-medium hover:text-accent" to={`/u/${r.author.id}`}>{r.author.name}</Link> : 'Anonymous student'}<span>{timeAgo(r.createdAt)}</span>
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted"><Avatar user={r.author} size={20} />{r.author ? <Link className="font-medium hover:underline" to={`/u/${r.author.id}`}>{r.author.name}</Link> : 'Anonymous student'}<span>{timeAgo(r.createdAt)}</span>
                 {qa && t.mine && !t.solved && <button className="btn btn-ghost btn-sm ml-auto" onClick={() => accept.mutate(r.id)}>Accept answer</button>}</div>
             </div>
           </div>

@@ -5,7 +5,7 @@ import { api } from '@/api/mock'
 import { Chip, Empty, ErrorBox, Field, PageHeader, Skeleton, Spinner, useToast } from '@/components/ui'
 import { cn, daysUntil, errMsg, formatDay, formatTime } from '@/lib/utils'
 
-const TONE = { event: 'bg-accent-soft text-accent', deadline: 'bg-rose-soft text-rose', club: 'bg-moss-soft text-moss' } as const
+const TONE = { event: 'bg-accent-soft text-ink', deadline: 'bg-rose-soft text-rose', club: 'bg-moss-soft text-moss' } as const
 
 export default function Events() {
   const qc = useQueryClient(); const toast = useToast()
@@ -36,7 +36,7 @@ export default function Events() {
         <ol className="grid gap-3">
           {list.data.map((e) => (
             <li key={e.id} className="card flex gap-4 p-4 sm:p-5">
-              <div className="w-16 shrink-0 text-center"><p className="eyebrow">{new Date(e.startsAt).toLocaleDateString(undefined, { month: 'short' })}</p><p className="display num text-4xl leading-none">{new Date(e.startsAt).getDate()}</p><p className="mt-1 text-[11px] font-semibold uppercase text-accent">{daysUntil(e.startsAt)}</p></div>
+              <div className="w-16 shrink-0 text-center"><p className="eyebrow">{new Date(e.startsAt).toLocaleDateString(undefined, { month: 'short' })}</p><p className="display num text-4xl leading-none">{new Date(e.startsAt).getDate()}</p><p className="mt-1 text-[11px] font-semibold uppercase text-ink">{daysUntil(e.startsAt)}</p></div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap gap-1.5"><Chip tone={TONE[e.kind]}>{e.kind === 'deadline' ? 'Deadline' : e.kind === 'club' ? 'Club' : 'Event'}</Chip>{e.courseCode && <Chip className="num">{e.courseCode}</Chip>}</div>
                 <h3 className="display mt-2 text-xl font-medium">{e.title}</h3>

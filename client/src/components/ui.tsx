@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
-import { ArrowBigUp, Check, Inbox, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { PublicUser } from '@/api/types'
 
@@ -17,10 +16,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastCtx.Provider value={push}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-[80] flex flex-col items-center gap-2 px-4 lg:bottom-6" aria-live="polite">
+      <div className="pointer-events-none fixed inset-x-0 bottom-5 z-[80] flex flex-col items-center gap-2 px-4" aria-live="polite">
         {items.map((t) => (
-          <div key={t.id} className={cn('rise pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium shadow-lg', t.tone === 'xp' ? 'border-accent bg-accent text-white' : t.tone === 'err' ? 'border-rose bg-rose-soft text-rose' : 'border-line bg-ink text-paper')}>
-            {t.tone === 'ok' && <Check size={15} />}{t.text}
+          <div key={t.id} className={cn('rise pointer-events-auto border-[1.5px] border-ink px-4 py-2.5 text-sm font-semibold shadow-[4px_4px_0_var(--ink)]', t.tone === 'xp' ? 'bg-accent text-[#121210]' : t.tone === 'err' ? 'bg-rose-soft text-rose' : 'bg-raised text-ink')}>
+            {t.tone === 'xp' && <span className="num mr-2">▲</span>}{t.text}
           </div>
         ))}
       </div>
@@ -29,66 +28,65 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 // ---------- primitives ----------
-const HUES = ['#e8460d', '#1f6b4f', '#2a4fd6', '#b7791f', '#b4234f', '#6d3fc4', '#0e7490']
+const TINTS = ['#f3e11a', '#ff9d7a', '#9fd8b4', '#a9bdf5', '#f4b6cb', '#e5c9ff', '#ffd27a']
 export function Avatar({ user, size = 36 }: { user: PublicUser | null; size?: number }) {
-  const name = user?.name ?? '?'
-  const hue = HUES[[...(user?.id ?? 'x')].reduce((s, c) => s + c.charCodeAt(0), 0) % HUES.length]
-  const initials = user ? name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase() : '?'
+  const tint = TINTS[[...(user?.id ?? 'x')].reduce((s, c) => s + c.charCodeAt(0), 0) % TINTS.length]
+  const initials = user ? user.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase() : '?'
   return (
-    <span aria-hidden className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white" style={{ width: size, height: size, background: user ? hue : 'var(--faint)', fontSize: size * 0.38 }}>
+    <span aria-hidden className={cn('num inline-flex shrink-0 items-center justify-center font-bold text-[#121210]', user ? 'border-[1.5px] border-ink' : 'border-[1.5px] border-dashed border-ink')}
+      style={{ width: size, height: size, background: user ? tint : 'transparent', color: user ? '#121210' : 'var(--ink)', fontSize: Math.max(9, size * 0.36), borderRadius: size > 40 ? 6 : 3 }}>
       {initials}
     </span>
   )
 }
 
 export function Chip({ children, tone, className }: { children: ReactNode; tone?: string; className?: string }) {
-  return <span className={cn('chip', tone && `${tone} border-transparent`, className)}>{children}</span>
+  return <span className={cn('chip', tone && `${tone} !border-transparent`, className)}>{children}</span>
 }
 
 export function PageHeader({ eyebrow, title, sub, action }: { eyebrow: string; title: ReactNode; sub?: string; action?: ReactNode }) {
   return (
-    <header className="rise mb-8 flex flex-wrap items-end justify-between gap-4">
-      <div className="max-w-2xl">
-        <p className="eyebrow mb-2">{eyebrow}</p>
-        <h1 className="display text-4xl font-medium leading-[1.05] sm:text-5xl">{title}</h1>
-        {sub && <p className="mt-3 text-[15px] leading-relaxed text-muted">{sub}</p>}
+    <header className="rise mb-10 border-b-[1.5px] border-ink pb-8">
+      <p className="eyebrow mb-4 flex items-center gap-2"><span className="inline-block size-2 bg-accent outline outline-1 outline-ink" />{eyebrow}</p>
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+        <h1 className="display max-w-3xl text-[clamp(2.6rem,6vw,4.75rem)]">{title}</h1>
+        {action}
       </div>
-      {action}
+      {sub && <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted">{sub}</p>}
     </header>
   )
 }
 
 export function Empty({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (
-    <div className="card flex flex-col items-center px-6 py-14 text-center">
-      <span className="mb-4 grid size-12 place-items-center rounded-full bg-paper text-faint"><Inbox size={22} /></span>
-      <p className="display text-xl">{title}</p>
-      {hint && <p className="mt-1 max-w-sm text-sm text-muted">{hint}</p>}
-      {action && <div className="mt-5">{action}</div>}
+    <div className="flex flex-col items-center border-[1.5px] border-dashed border-ink px-6 py-16 text-center">
+      <p className="display text-3xl">{title}</p>
+      {hint && <p className="mt-2 max-w-sm text-sm text-muted">{hint}</p>}
+      {action && <div className="mt-6">{action}</div>}
     </div>
   )
 }
 
 export function Skeleton({ rows = 4, className }: { rows?: number; className?: string }) {
   return (
-    <div className="grid gap-3" aria-busy>
-      {Array.from({ length: rows }).map((_, i) => <div key={i} className={cn('card h-24 animate-pulse', className)} style={{ opacity: 1 - i * 0.18 }} />)}
+    <div className="grid gap-3" aria-busy aria-label="Loading">
+      {Array.from({ length: rows }).map((_, i) => <div key={i} className={cn('h-24 animate-pulse border-[1.5px] border-dashed border-ink/30', className)} style={{ animationDelay: `${i * 90}ms` }} />)}
     </div>
   )
 }
 
-export function Spinner() { return <Loader2 className="animate-spin" size={16} /> }
+export function Spinner() { return <span className="num inline-block animate-spin">✳</span> }
 
 export function ErrorBox({ error }: { error: unknown }) {
-  return <div role="alert" className="card border-rose p-4 text-sm text-rose">{error instanceof Error ? error.message : 'Could not load this. Try again.'}</div>
+  return <div role="alert" className="border-[1.5px] border-rose bg-rose-soft p-4 text-sm font-medium text-rose">{error instanceof Error ? error.message : 'Could not load this. Try again.'}</div>
 }
 
 export function VoteButton({ votes, voted, disabled, onVote, label = 'Upvote' }: { votes: number; voted: boolean; disabled?: boolean; onVote: () => void; label?: string }) {
   return (
     <button type="button" aria-label={label} aria-pressed={voted} disabled={voted || disabled} onClick={onVote}
-      className={cn('group flex min-w-11 flex-col items-center rounded-xl border px-2 py-1.5 transition active:scale-95 disabled:cursor-default', voted ? 'border-accent bg-accent-soft text-accent' : 'border-line bg-raised text-muted hover:border-ink hover:text-ink disabled:opacity-60')}>
-      <ArrowBigUp size={20} className={cn(voted && 'fill-current')} />
-      <span className="num text-xs font-semibold">{votes}</span>
+      className={cn('flex w-12 shrink-0 flex-col items-center border-[1.5px] border-ink py-2 transition active:translate-y-px disabled:cursor-default', voted ? 'bg-accent text-[#121210]' : 'bg-raised hover:bg-ink hover:text-paper disabled:opacity-60 disabled:hover:bg-raised disabled:hover:text-ink')}>
+      <span className="text-sm leading-none">▲</span>
+      <span className="num mt-1 text-sm font-bold leading-none">{votes}</span>
     </button>
   )
 }
@@ -105,10 +103,10 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 
 export function Segmented<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div role="tablist" className="inline-flex rounded-full border border-line bg-surface p-1">
+    <div role="tablist" className="inline-flex border-[1.5px] border-ink bg-raised">
       {options.map((o) => (
         <button key={o.value} role="tab" aria-selected={value === o.value} onClick={() => onChange(o.value)}
-          className={cn('h-8 rounded-full px-4 text-sm font-medium transition', value === o.value ? 'bg-ink text-paper' : 'text-muted hover:text-ink')}>
+          className={cn('h-9 border-r-[1.5px] border-ink px-4 font-mono text-xs font-semibold uppercase tracking-wider transition last:border-r-0', value === o.value ? 'bg-ink text-paper' : 'hover:bg-accent hover:text-[#121210]')}>
           {o.label}
         </button>
       ))}

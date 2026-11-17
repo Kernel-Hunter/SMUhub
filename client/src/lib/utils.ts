@@ -20,11 +20,11 @@ export function daysUntil(t: number) {
 
 export const KIND_LABEL: Record<ResourceKind, string> = { notes: 'Notes', exam: 'Past exam', summary: 'Summary', slides: 'Slides', tutorial: 'Tutorial' }
 export const KIND_TONE: Record<ResourceKind, string> = {
-  notes: 'bg-sky-soft text-sky', exam: 'bg-rose-soft text-rose', summary: 'bg-moss-soft text-moss', slides: 'bg-gold-soft text-gold', tutorial: 'bg-accent-soft text-accent',
+  notes: 'bg-sky-soft text-sky', exam: 'bg-rose-soft text-rose', summary: 'bg-moss-soft text-moss', slides: 'bg-gold-soft text-gold', tutorial: 'bg-accent-soft text-ink',
 }
 export const VOICE_LABEL: Record<VoiceCategory, string> = { academics: 'Academics', facilities: 'Facilities', admin: 'Administration', 'campus-life': 'Campus life', praise: 'Praise', idea: 'Idea' }
 export const VOICE_TONE: Record<VoiceCategory, string> = {
-  academics: 'bg-sky-soft text-sky', facilities: 'bg-gold-soft text-gold', admin: 'bg-rose-soft text-rose', 'campus-life': 'bg-accent-soft text-accent', praise: 'bg-moss-soft text-moss', idea: 'bg-moss-soft text-moss',
+  academics: 'bg-sky-soft text-sky', facilities: 'bg-gold-soft text-gold', admin: 'bg-rose-soft text-rose', 'campus-life': 'bg-accent-soft text-ink', praise: 'bg-moss-soft text-moss', idea: 'bg-moss-soft text-moss',
 }
 export const RENTAL_LABEL: Record<RentalCategory, string> = { calculator: 'Calculators', lab: 'Lab gear', books: 'Books', tech: 'Tech', other: 'Other' }
 

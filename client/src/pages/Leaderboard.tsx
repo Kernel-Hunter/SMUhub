@@ -21,8 +21,8 @@ export default function Leaderboard() {
             <>
               <div className="mb-4 grid grid-cols-3 items-end gap-3">
                 {[data?.[1], data?.[0], data?.[2]].map((r, i) => r && (
-                  <Link to={`/u/${r.user.id}`} key={r.user.id} className={cn('card card-hover flex flex-col items-center p-4 text-center', i === 1 && 'border-accent pb-8 pt-6')}>
-                    {i === 1 && <Crown size={20} className="mb-1 text-accent" />}<Avatar user={r.user} size={i === 1 ? 60 : 46} />
+                  <Link to={`/u/${r.user.id}`} key={r.user.id} className={cn('card card-hover flex flex-col items-center p-4 text-center', i === 1 && 'border-ink pb-8 pt-6')}>
+                    {i === 1 && <Crown size={20} className="mb-1 text-ink" />}<Avatar user={r.user} size={i === 1 ? 60 : 46} />
                     <span className="mt-2 w-full truncate text-sm font-semibold">{r.user.name}</span><span className="display num text-2xl">{r.xp}</span><span className="eyebrow">#{r.rank}</span>
                   </Link>
                 ))}
@@ -41,7 +41,7 @@ export default function Leaderboard() {
         </div>
         <aside className="card h-fit p-5">
           <h2 className="display text-xl">How points work</h2>
-          <ul className="mt-4 grid gap-3">{rules.map(([p, t]) => <li key={t} className="flex gap-3 text-sm"><span className="num w-9 shrink-0 font-semibold text-accent">{p}</span><span className="text-muted">{t}</span></li>)}</ul>
+          <ul className="mt-4 grid gap-3">{rules.map(([p, t]) => <li key={t} className="flex gap-3 text-sm"><span className="num w-9 shrink-0 font-semibold text-ink">{p}</span><span className="text-muted">{t}</span></li>)}</ul>
           <div className="mt-5 rounded-xl bg-paper p-4 text-xs leading-relaxed text-muted"><p className="mb-1 flex items-center gap-1.5 font-semibold text-ink"><ShieldCheck size={14} className="text-moss" />Built to resist gaming</p>
             Server-side only · one claim per event · no self-votes · duplicate files rejected · {P.helpful === 5 ? RULES.dailyXpCap : ''} XP daily cap · max {RULES.pairWeeklyCap} points per student pair weekly · removed content loses its points.</div>
         </aside>

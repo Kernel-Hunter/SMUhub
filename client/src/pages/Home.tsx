@@ -1,18 +1,17 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, CalendarDays, Trophy, Upload } from 'lucide-react'
 import { api } from '@/api/mock'
 import { useAuth } from '@/auth/AuthContext'
 import { ResourceCard, ThreadCard } from '@/components/Cards'
 import { Avatar, Skeleton } from '@/components/ui'
 import { daysUntil, formatTime } from '@/lib/utils'
 
-function Section({ title, to, children }: { title: string; to: string; children: React.ReactNode }) {
+function Head({ n, title, to }: { n: string; title: string; to: string }) {
   return (
-    <section className="rise">
-      <div className="mb-4 flex items-baseline justify-between"><h2 className="display text-2xl">{title}</h2><Link to={to} className="flex items-center gap-1 text-sm font-medium text-muted hover:text-accent">See all <ArrowRight size={14} /></Link></div>
-      {children}
-    </section>
+    <div className="mb-5 flex items-baseline justify-between border-b-[1.5px] border-ink pb-2">
+      <h2 className="flex items-baseline gap-3"><span className="num text-xs text-muted">{n}</span><span className="display text-3xl">{title}</span></h2>
+      <Link to={to} className="font-mono text-[11px] font-semibold uppercase tracking-widest hover:underline">All →</Link>
+    </div>
   )
 }
 
@@ -24,57 +23,62 @@ export default function Home() {
   const events = useQuery({ queryKey: ['events'], queryFn: api.events.list })
   const board = useQuery({ queryKey: ['leaderboard', 'week'], queryFn: () => api.leaderboard.get('week') })
   if (!me) return null
-  const first = me.name.split(' ')[0]
+  const hour = new Date().getHours()
+  const greet = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening'
+  const [lead, ...rest] = res.data ?? []
   return (
-    <div className="grid gap-12">
+    <div className="grid gap-16">
       <header className="rise">
-        <p className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-        <h1 className="display mt-2 text-5xl font-medium leading-[1.03] sm:text-6xl">Hey {first}, <span className="text-muted">what do you need today?</span></h1>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link to="/resources/new" className="btn btn-accent"><Upload size={16} />Share a resource</Link>
+        <p className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · Front page</p>
+        <h1 className="display mt-4 text-[clamp(3rem,8vw,6.5rem)]">{greet}, <span className="hl">{me.name.split(' ')[0]}</span>.<br /><em className="text-muted">What do you need?</em></h1>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link to="/resources/new" className="btn btn-accent">Share a resource ↑</Link>
           <Link to="/qa/new" className="btn btn-ghost">Ask a question</Link>
           <Link to="/voice/new" className="btn btn-ghost">Speak up</Link>
         </div>
       </header>
 
-      <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
-        <div className="grid gap-12">
-          <Section title="Fresh resources" to="/resources">
-            {res.isLoading ? <Skeleton rows={3} /> : <div className="grid gap-3">{res.data?.slice(0, 4).map((r) => <ResourceCard key={r.id} r={r} />)}</div>}
-          </Section>
-          <Section title="Questions waiting for you" to="/qa">
-            {qa.isLoading ? <Skeleton rows={2} /> : <div className="grid gap-3">{qa.data?.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}
-          </Section>
-          <Section title="Hot on Campus Voice" to="/voice">
-            {voice.isLoading ? <Skeleton rows={2} /> : <div className="grid gap-3">{voice.data?.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}
-          </Section>
-        </div>
+      <div className="grid gap-x-12 gap-y-16 lg:grid-cols-[1fr_20rem]">
+        <section>
+          <Head n="01" title="Fresh in the library" to="/resources" />
+          {res.isLoading ? <Skeleton rows={3} /> : (
+            <div className="stagger grid gap-5 sm:grid-cols-2">
+              {lead && <div className="sm:col-span-2"><ResourceCard r={lead} lead /></div>}
+              {rest.slice(0, 4).map((r) => <ResourceCard key={r.id} r={r} />)}
+            </div>
+          )}
+        </section>
 
-        <aside className="grid content-start gap-6">
-          <div className="card rise p-5">
-            <div className="mb-4 flex items-center justify-between"><h3 className="display flex items-center gap-2 text-xl"><Trophy size={18} className="text-accent" />This week</h3><Link to="/leaderboard" className="text-sm text-muted hover:text-accent">Full board</Link></div>
-            <ol className="grid gap-3">
+        <aside className="grid content-start gap-12 lg:border-l-[1.5px] lg:border-ink lg:pl-8">
+          <section>
+            <Head n="02" title="Top this week" to="/leaderboard" />
+            <ol className="grid">
               {board.data?.slice(0, 5).map((r) => (
-                <li key={r.user.id} className="flex items-center gap-3">
-                  <span className="num w-5 text-sm text-faint">{r.rank}</span><Avatar user={r.user} size={30} />
-                  <Link to={`/u/${r.user.id}`} className="min-w-0 flex-1 truncate text-sm font-medium hover:text-accent">{r.user.name}{r.isMe && ' (you)'}</Link>
+                <li key={r.user.id} className="flex items-center gap-3 border-b border-line py-2.5">
+                  <span className="display num w-8 text-3xl">{r.rank}</span><Avatar user={r.user} size={28} />
+                  <Link to={`/u/${r.user.id}`} className="min-w-0 flex-1 truncate text-sm font-semibold hover:underline">{r.user.name}{r.isMe && ' (you)'}</Link>
                   <span className="num text-sm text-muted">{r.xp}</span>
                 </li>
               ))}
             </ol>
-          </div>
-          <div className="card rise p-5">
-            <div className="mb-4 flex items-center justify-between"><h3 className="display flex items-center gap-2 text-xl"><CalendarDays size={18} className="text-accent" />Coming up</h3><Link to="/events" className="text-sm text-muted hover:text-accent">All</Link></div>
+          </section>
+          <section>
+            <Head n="03" title="Coming up" to="/events" />
             <ul className="grid gap-4">
               {events.data?.slice(0, 4).map((e) => (
                 <li key={e.id} className="flex gap-3">
-                  <span className="w-16 shrink-0 text-xs font-semibold uppercase tracking-wide text-accent">{daysUntil(e.startsAt)}</span>
-                  <span className="min-w-0"><span className="block truncate text-sm font-medium">{e.title}</span><span className="text-xs text-muted">{formatTime(e.startsAt)} · {e.location}</span></span>
+                  <span className="grid w-12 shrink-0 place-items-center border-[1.5px] border-ink py-1"><span className="eyebrow !text-[.58rem]">{new Date(e.startsAt).toLocaleDateString(undefined, { month: 'short' })}</span><span className="display num text-2xl leading-none">{new Date(e.startsAt).getDate()}</span></span>
+                  <span className="min-w-0"><span className="block text-sm font-semibold leading-snug">{e.title}</span><span className="num text-[11px] uppercase text-muted">{daysUntil(e.startsAt)} · {formatTime(e.startsAt)}</span></span>
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         </aside>
+      </div>
+
+      <div className="grid gap-x-12 gap-y-16 lg:grid-cols-2">
+        <section><Head n="04" title="Unanswered" to="/qa" />{qa.isLoading ? <Skeleton rows={2} /> : <div className="grid">{qa.data?.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
+        <section><Head n="05" title="Campus Voice" to="/voice" />{voice.isLoading ? <Skeleton rows={2} /> : <div className="grid">{voice.data?.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
       </div>
     </div>
   )
