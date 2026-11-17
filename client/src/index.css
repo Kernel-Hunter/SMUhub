@@ -122,5 +122,13 @@ h1, h2, h3 { text-wrap: balance; }
 .float { animation: float 5s ease-in-out infinite; }
 .hero-bg { background: radial-gradient(120% 140% at 100% 0%, #6d86ff 0%, transparent 55%), radial-gradient(90% 120% at 0% 100%, #2a3fd6 0%, transparent 60%), linear-gradient(135deg, #3b5bff, #2c47e6); }
 .dark .hero-bg { background: radial-gradient(120% 140% at 100% 0%, #3a4fd0 0%, transparent 55%), radial-gradient(90% 120% at 0% 100%, #18248a 0%, transparent 60%), linear-gradient(135deg, #2338c4, #1a2a9e); }
+/* Section tones: one gradient per area of the app. */
+.tone-blue { background: radial-gradient(120% 140% at 100% 0%, #6d86ff, transparent 55%), linear-gradient(135deg, #3b5bff, #2c47e6); }
+.tone-violet { background: radial-gradient(120% 140% at 100% 0%, #b39dff, transparent 55%), linear-gradient(135deg, #7b5cf5, #5b3fd6); }
+.tone-orange { background: radial-gradient(120% 140% at 100% 0%, #ffb27a, transparent 55%), linear-gradient(135deg, #f2711c, #e0520a); }
+.tone-rose { background: radial-gradient(120% 140% at 100% 0%, #ff9ab5, transparent 55%), linear-gradient(135deg, #e0466f, #c22d58); }
+.tone-green { background: radial-gradient(120% 140% at 100% 0%, #6ee0b0, transparent 55%), linear-gradient(135deg, #14946c, #0d7556); }
+.tone-gold { background: radial-gradient(120% 140% at 100% 0%, #ffd77a, transparent 55%), linear-gradient(135deg, #e69a12, #c47a05); }
+.dark [class*='tone-'] { filter: saturate(.9) brightness(.82); }
 .dots-light { background-image: radial-gradient(rgb(255 255 255 / .18) 1px, transparent 1px); background-size: 16px 16px; }
 @media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation: none !important; transition: none !important; } }

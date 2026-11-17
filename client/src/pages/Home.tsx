@@ -1,18 +1,19 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, ArrowUpRight, HelpCircle, Upload } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, FileText, Handshake, HelpCircle, Megaphone, Trophy, Upload, type LucideIcon } from 'lucide-react'
 import { api } from '@/api/mock'
 import { useAuth } from '@/auth/AuthContext'
 import { ResourceCard, ThreadCard } from '@/components/Cards'
 import { Avatar, CountUp, Skeleton } from '@/components/ui'
+import Calendar from '@/components/Calendar'
 import { cn, deptOf, formatTime } from '@/lib/utils'
 
 const DAY = 86400000
 
-function Head({ title, to, count }: { title: string; to: string; count?: number }) {
+function Head({ title, to, count, icon: Icon, tone }: { title: string; to: string; count?: number; icon?: LucideIcon; tone?: string }) {
   return (
     <div className="mb-3 flex items-center justify-between px-0.5">
-      <h2 className="text-[15px] font-semibold tracking-[-0.01em]">{title}{count !== undefined && <span className="ml-2 rounded-full bg-surface px-2 py-0.5 text-[11.5px] font-medium text-muted shadow-[var(--ring)]">{count}</span>}</h2>
+      <h2 className="flex items-center text-[15px] font-semibold tracking-[-0.01em]">{Icon && <span className={cn('mr-2.5 grid size-7 place-items-center rounded-[8px]', tone)}><Icon size={15} /></span>}{title}{count !== undefined && <span className="ml-2 rounded-full bg-surface px-2 py-0.5 text-[11.5px] font-medium text-muted shadow-[var(--ring)]">{count}</span>}</h2>
       <Link to={to} className="group flex items-center gap-1 text-[12.5px] font-medium text-muted hover:text-accent">View all<ArrowRight size={12} className="transition group-hover:translate-x-0.5" /></Link>
     </div>
   )
@@ -27,29 +28,6 @@ function Ring({ pct, level }: { pct: number; level: number }) {
         <circle cx="48" cy="48" r={r} fill="none" stroke="#fff" strokeWidth="8" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} style={{ transition: 'stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1)' }} />
       </svg>
       <span className="absolute inset-0 grid place-content-center text-center leading-none text-white"><span className="text-[10px] font-medium uppercase tracking-wider opacity-70">Level</span><span className="num mt-1 text-[28px] font-semibold">{level}</span></span>
-    </div>
-  )
-}
-
-function MiniCalendar({ days }: { days: Map<number, string> }) {
-  const now = new Date(), y = now.getFullYear(), m = now.getMonth()
-  const first = (new Date(y, m, 1).getDay() + 6) % 7, total = new Date(y, m + 1, 0).getDate()
-  const cells = [...Array(first).fill(0), ...Array.from({ length: total }, (_, i) => i + 1)]
-  return (
-    <div>
-      <div className="mb-3 flex items-center justify-between"><p className="text-[13.5px] font-semibold">{now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p><Link to="/events" className="text-[12px] font-medium text-accent hover:underline">Open calendar</Link></div>
-      <div className="grid grid-cols-7 gap-y-1 text-center text-[11.5px]">
-        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => <span key={i} className="pb-1 font-medium text-faint">{d}</span>)}
-        {cells.map((d, i) => {
-          const kind = d ? days.get(d) : undefined, today = d === now.getDate()
-          return (
-            <span key={i} className="grid place-items-center">
-              <span className={cn('relative grid size-7 place-items-center rounded-full num', today ? 'bg-accent font-semibold text-white shadow-[0_4px_10px_-3px_var(--accent)]' : d ? 'text-ink' : '', d && d < now.getDate() && !today && 'text-faint')}>
-                {d || ''}{kind && !today && <span className={cn('absolute bottom-0.5 size-1 rounded-full', kind === 'deadline' ? 'bg-rose' : kind === 'club' ? 'bg-moss' : 'bg-accent')} />}
-              </span>
-            </span>)
-        })}
-      </div>
     </div>
   )
 }
@@ -111,6 +89,23 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {([
+          ['/resources/new', 'Share a file', 'Notes, past exams, slides', Upload, 'tone-blue'],
+          ['/qa/new', 'Ask a question', `${open.length} waiting for answers`, HelpCircle, 'tone-violet'],
+          ['/voice/new', 'Speak up', 'Name or no name, your call', Megaphone, 'tone-orange'],
+          ['/rentals', 'Borrow something', 'Calculators, lab gear, books', Handshake, 'tone-green'],
+        ] as [string, string, string, LucideIcon, string][]).map(([to, t, sub, Icon, tone]) => (
+          <Link key={to} to={to} className={cn(tone, 'group relative overflow-hidden rounded-[16px] p-4 text-white transition hover:-translate-y-0.5')}>
+            <span className="grid size-9 place-items-center rounded-[10px] bg-white/18 ring-1 ring-white/25"><Icon size={17} /></span>
+            <p className="mt-3 text-[14.5px] font-semibold">{t}</p>
+            <p className="mt-0.5 text-[12px] text-white/80">{sub}</p>
+            <ArrowUpRight size={16} className="absolute right-3 top-3 text-white/60 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-white" />
+            <Icon size={84} className="pointer-events-none absolute -bottom-5 -right-4 text-white/10" aria-hidden />
+          </Link>
+        ))}
+      </section>
+
       <section>
         <Head title="Your courses" to="/resources" />
         <div className="stagger grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -149,20 +144,21 @@ export default function Home() {
               ))}
             </div>
           </section>
-          <section><Head title="Latest in the library" to="/resources" count={res.data?.length} />{res.isLoading ? <Skeleton rows={4} /> : <div className="rows">{res.data?.slice(0, 5).map((r) => <ResourceCard key={r.id} r={r} />)}</div>}</section>
-          <section><Head title="Waiting for an answer" to="/qa?open=1" count={open.length} />{qa.isLoading ? <Skeleton rows={2} /> : <div className="rows">{open.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
-          <section><Head title="Most discussed on Campus Voice" to="/voice?sort=top" />{voice.isLoading ? <Skeleton rows={2} /> : <div className="rows">{voice.data?.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
+          <section><Head title="Latest in the library" to="/resources" count={res.data?.length} icon={FileText} tone="bg-accent-soft text-accent" />{res.isLoading ? <Skeleton rows={4} /> : <div className="rows">{res.data?.slice(0, 5).map((r) => <ResourceCard key={r.id} r={r} />)}</div>}</section>
+          <section><Head title="Waiting for an answer" to="/qa?open=1" count={open.length} icon={HelpCircle} tone="bg-violet-soft text-violet" />{qa.isLoading ? <Skeleton rows={2} /> : <div className="rows">{open.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
+          <section><Head title="Most discussed on Campus Voice" to="/voice?sort=top" icon={Megaphone} tone="bg-orange-soft text-orange" />{voice.isLoading ? <Skeleton rows={2} /> : <div className="rows">{voice.data?.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
         </div>
         <aside className="grid content-start gap-7">
           <section className="card p-5">
-            <MiniCalendar days={evDays} />
+            <div className="mb-3 flex items-center justify-between"><p className="text-[13.5px] font-semibold">{now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p><Link to="/events" className="text-[12px] font-medium text-accent hover:underline">Open calendar</Link></div>
+            <Calendar days={evDays} />
             <ol className="mt-4 grid gap-1 border-t border-line pt-3">{events.data?.slice(0, 3).map((e) => (
               <li key={e.id} className="flex items-center gap-3 rounded-[10px] px-2 py-2 transition hover:bg-hover">
                 <span className={cn('grid size-9 shrink-0 place-content-center rounded-[9px] text-center leading-none', e.kind === 'deadline' ? 'bg-rose-soft text-rose' : e.kind === 'club' ? 'bg-moss-soft text-moss' : 'bg-accent-soft text-accent')}><span className="num text-[14px] font-semibold">{new Date(e.startsAt).getDate()}</span></span>
                 <span className="min-w-0"><span className="block truncate text-[13px] font-medium">{e.title}</span><span className="text-[11.5px] text-muted">{new Date(e.startsAt).toLocaleDateString(undefined, { weekday: 'short' })}, {formatTime(e.startsAt)}</span></span>
               </li>))}</ol>
           </section>
-          <section><Head title="Leaders this week" to="/leaderboard" />
+          <section><Head title="Leaders this week" to="/leaderboard" icon={Trophy} tone="bg-gold-soft text-gold" />
             <div className="card p-2">
               <ol>{board.data?.slice(0, 6).map((r) => (
                 <li key={r.user.id}><Link to={`/u/${r.user.id}`} className={cn('flex items-center gap-3 rounded-[10px] px-3 py-2 transition-colors hover:bg-hover', r.isMe && 'bg-accent-soft')}>

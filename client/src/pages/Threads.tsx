@@ -1,32 +1,64 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Plus, Search } from 'lucide-react'
+import { HelpCircle, Megaphone, Plus, Search, X } from 'lucide-react'
 import { api } from '@/api/mock'
 import { ThreadCard } from '@/components/Cards'
-import { Empty, ErrorBox, PageHeader, Skeleton } from '@/components/ui'
-import { VOICE_LABEL } from '@/lib/utils'
+import Banner, { bannerBtn } from '@/components/Banner'
+import { Empty, ErrorBox, Segmented, Skeleton } from '@/components/ui'
+import { VOICE_LABEL, VOICE_TONE, cn, deptOf } from '@/lib/utils'
 import type { ThreadKind } from '@/api/types'
 
 export default function Threads({ kind }: { kind: ThreadKind }) {
   const [sp, setSp] = useSearchParams()
   const q = sp.get('q') ?? '', course = sp.get('course') ?? '', category = sp.get('cat') ?? '', sort = (sp.get('sort') ?? 'new') as 'new' | 'top', unsolved = sp.get('open') === '1'
   const set = (k: string, v: string) => setSp((p) => { const n = new URLSearchParams(p); v ? n.set(k, v) : n.delete(k); return n }, { replace: true })
-  const courses = useQuery({ queryKey: ['courses'], queryFn: api.courses.list })
-  const list = useQuery({ queryKey: ['threads', kind, { q, course, category, sort, unsolved }], queryFn: () => api.threads.list(kind, { q, course, category, sort, unsolved }) })
   const qa = kind === 'question'
+  const courses = useQuery({ queryKey: ['courses'], queryFn: api.courses.list })
+  const all = useQuery({ queryKey: ['threads', kind, 'all'], queryFn: () => api.threads.list(kind) })
+  const list = useQuery({ queryKey: ['threads', kind, { q, course, category, sort, unsolved }], queryFn: () => api.threads.list(kind, { q, course, category, sort, unsolved }) })
+  const a = all.data ?? []
+  const active = [q, course, category, unsolved ? '1' : ''].filter(Boolean).length
+  const stats: [string, number][] = qa
+    ? [['Questions', a.length], ['Solved', a.filter((t) => t.solved).length], ['Open', a.filter((t) => !t.solved).length]]
+    : [['Posts', a.length], ['Votes', a.reduce((s, t) => s + t.votes, 0)], ['Replies', a.reduce((s, t) => s + t.replyCount, 0)]]
+  const Item = ({ on, onClick, dot, label, count }: { on: boolean; onClick: () => void; dot: React.ReactNode; label: React.ReactNode; count: number }) => (
+    <button onClick={onClick} className={cn('flex items-center gap-2.5 rounded-[8px] px-2 py-1.5 text-left text-[13px] transition', on ? (qa ? 'bg-violet-soft font-medium text-violet' : 'bg-orange-soft font-medium text-orange') : 'hover:bg-hover')}>{dot}{label}<span className="num ml-auto text-[11.5px] text-faint">{count}</span></button>
+  )
   return (
     <div>
-      <PageHeader title={qa ? 'Questions & answers' : 'Campus Voice'}
+      <Banner tone={qa ? 'violet' : 'orange'} icon={qa ? <HelpCircle size={13} /> : <Megaphone size={13} />} label={qa ? 'Questions' : 'Campus Voice'}
+        title={qa ? 'Ask, answer, get unstuck' : 'Say it out loud'}
         sub={qa ? 'Ask by course. When an answer works for you, mark it as accepted.' : 'Feedback on courses, facilities and administration. You can post without your name.'}
-        action={<Link to={qa ? '/qa/new' : '/voice/new'} className="btn btn-accent"><Plus size={16} />{qa ? 'Ask a question' : 'New post'}</Link>} />
-      <div className="card mb-6 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="relative"><Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" /><input className="field !pl-10" placeholder="Search" value={q} onChange={(e) => set('q', e.target.value)} aria-label="Search" /></label>
-        {qa ? <select className="field" value={course} onChange={(e) => set('course', e.target.value)} aria-label="Course"><option value="">All courses</option>{courses.data?.map((c) => <option key={c.code} value={c.code}>{c.code} · {c.name}</option>)}</select>
-          : <select className="field" value={category} onChange={(e) => set('cat', e.target.value)} aria-label="Category"><option value="">All topics</option>{Object.entries(VOICE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}
-        <select className="field" value={sort} onChange={(e) => set('sort', e.target.value)} aria-label="Sort"><option value="new">Newest</option><option value="top">Top voted</option></select>
-        {qa && <label className="flex h-[2.8rem] items-center gap-2 rounded-xl px-2 text-sm"><input type="checkbox" checked={unsolved} onChange={(e) => set('open', e.target.checked ? '1' : '')} className="size-4 accent-[var(--accent)]" />Unanswered only</label>}
+        stats={stats} action={<Link to={qa ? '/qa/new' : '/voice/new'} className={bannerBtn}><Plus size={15} />{qa ? 'Ask a question' : 'New post'}</Link>} />
+
+      <div className="grid gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
+        <aside className="card h-fit p-4 lg:sticky lg:top-16">
+          <label className="relative block"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint" /><input className="field !pl-9" placeholder={qa ? 'Search questions' : 'Search posts'} value={q} onChange={(e) => set('q', e.target.value)} aria-label="Search" /></label>
+          {qa && (
+            <button onClick={() => set('open', unsolved ? '' : '1')} className="mt-4 flex w-full items-center justify-between rounded-[10px] bg-hover px-3 py-2.5 text-[13px] font-medium">
+              Unanswered only<span className={cn('relative h-5 w-9 rounded-full transition', unsolved ? 'bg-violet' : 'bg-line-strong')}><span className={cn('absolute top-0.5 size-4 rounded-full bg-white shadow transition-all', unsolved ? 'left-[18px]' : 'left-0.5')} /></span>
+            </button>
+          )}
+          <p className="mb-1.5 mt-5 text-[11.5px] font-semibold uppercase tracking-wider text-faint">{qa ? 'Courses' : 'Topics'}</p>
+          <div className="-mx-1 grid max-h-80 gap-0.5 overflow-auto">
+            {qa ? (<>
+              <Item on={!course} onClick={() => set('course', '')} dot={<span className="size-2 rounded-full bg-ink/30" />} label="All courses" count={a.length} />
+              {courses.data?.filter((c) => c.questions > 0).map((c) => <Item key={c.code} on={course === c.code} onClick={() => set('course', course === c.code ? '' : c.code)} dot={<span className="size-2 shrink-0 rounded-full" style={{ background: deptOf(c.dept).from }} />} label={<><span className="num">{c.code}</span><span className="truncate text-muted">{c.name}</span></>} count={c.questions} />)}
+            </>) : (<>
+              <Item on={!category} onClick={() => set('cat', '')} dot={<span className="size-2 rounded-full bg-ink/30" />} label="All topics" count={a.length} />
+              {Object.entries(VOICE_LABEL).map(([k, l]) => <Item key={k} on={category === k} onClick={() => set('cat', category === k ? '' : k)} dot={<span className={cn('size-2 rounded-full', VOICE_TONE[k as keyof typeof VOICE_TONE].split(' ')[1].replace('text-', 'bg-'))} />} label={l} count={a.filter((t) => t.category === k).length} />)}
+            </>)}
+          </div>
+          {active > 0 && <button onClick={() => setSp({}, { replace: true })} className="mt-5 flex items-center gap-1 text-[12.5px] font-medium text-muted hover:text-ink"><X size={13} />Clear filters</button>}
+        </aside>
+        <section className="min-w-0">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[13px] text-muted"><span className="font-semibold text-ink">{list.data?.length ?? 0}</span> {qa ? (list.data?.length === 1 ? 'question' : 'questions') : (list.data?.length === 1 ? 'post' : 'posts')}</p>
+            <Segmented value={sort} onChange={(v) => set('sort', v === 'new' ? '' : v)} options={[{ value: 'new', label: 'Newest' }, { value: 'top', label: 'Top voted' }]} />
+          </div>
+          {list.isLoading ? <Skeleton rows={5} /> : list.error ? <ErrorBox error={list.error} /> : !list.data?.length ? <Empty title="Nothing here yet" hint={qa ? 'No questions match. Ask the first one.' : 'No posts match these filters.'} /> : <div className="rows stagger">{list.data.map((t) => <ThreadCard key={t.id} t={t} />)}</div>}
+        </section>
       </div>
-      {list.isLoading ? <Skeleton rows={4} /> : list.error ? <ErrorBox error={list.error} /> : !list.data?.length ? <Empty title="Quiet in here" hint="Nothing matches yet." /> : <div className="rows">{list.data.map((t) => <ThreadCard key={t.id} t={t} />)}</div>}
     </div>
   )
 }

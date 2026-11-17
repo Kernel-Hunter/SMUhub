@@ -24,7 +24,7 @@ export const KIND_TONE: Record<ResourceKind, string> = {
 }
 export const VOICE_LABEL: Record<VoiceCategory, string> = { academics: 'Academics', facilities: 'Facilities', admin: 'Administration', 'campus-life': 'Campus life', praise: 'Praise', idea: 'Idea' }
 export const VOICE_TONE: Record<VoiceCategory, string> = {
-  academics: 'bg-sky-soft text-sky', facilities: 'bg-gold-soft text-gold', admin: 'bg-rose-soft text-rose', 'campus-life': 'bg-accent-soft text-ink', praise: 'bg-moss-soft text-moss', idea: 'bg-moss-soft text-moss',
+  academics: 'bg-sky-soft text-sky', facilities: 'bg-gold-soft text-gold', admin: 'bg-rose-soft text-rose', 'campus-life': 'bg-violet-soft text-violet', praise: 'bg-moss-soft text-moss', idea: 'bg-orange-soft text-orange',
 }
 export const RENTAL_LABEL: Record<RentalCategory, string> = { calculator: 'Calculators', lab: 'Lab gear', books: 'Books', tech: 'Tech', other: 'Other' }
 

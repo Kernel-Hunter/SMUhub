@@ -1,38 +1,56 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, KeyRound, ShieldAlert } from 'lucide-react'
+import { BookOpen, Calculator, FlaskConical, Handshake, KeyRound, Laptop, Package, Plus, ShieldAlert, X } from 'lucide-react'
 import { api } from '@/api/mock'
-import { Avatar, Chip, Empty, ErrorBox, Field, PageHeader, Segmented, Skeleton, Spinner, useToast } from '@/components/ui'
-import { RENTAL_LABEL, errMsg, formatDay } from '@/lib/utils'
+import Banner, { bannerBtn } from '@/components/Banner'
+import { Avatar, Empty, ErrorBox, Field, Skeleton, Spinner, useToast } from '@/components/ui'
+import { RENTAL_LABEL, cn, errMsg, formatDay } from '@/lib/utils'
 import type { RentalCategory, RentalItem } from '@/api/types'
 
 const day = 86400000
 const iso = (t: number) => new Date(t).toISOString().slice(0, 10)
+const CAT: Record<RentalCategory, { icon: typeof Calculator; tone: string; soft: string }> = {
+  calculator: { icon: Calculator, tone: 'tone-blue', soft: 'bg-accent-soft text-accent' },
+  lab: { icon: FlaskConical, tone: 'tone-green', soft: 'bg-moss-soft text-moss' },
+  books: { icon: BookOpen, tone: 'tone-violet', soft: 'bg-violet-soft text-violet' },
+  tech: { icon: Laptop, tone: 'tone-orange', soft: 'bg-orange-soft text-orange' },
+  other: { icon: Package, tone: 'tone-gold', soft: 'bg-gold-soft text-gold' },
+}
 
 function ItemCard({ it }: { it: RentalItem }) {
-  const qc = useQueryClient(); const toast = useToast()
+  const qc = useQueryClient(); const toast = useToast(); const c = CAT[it.category]; const Icon = c.icon
   const [ask, setAsk] = useState(false); const [from, setFrom] = useState(iso(Date.now())); const [to, setTo] = useState(iso(Date.now() + 2 * day)); const [note, setNote] = useState('')
   const done = () => { qc.invalidateQueries({ queryKey: ['rentals'] }); qc.invalidateQueries({ queryKey: ['incoming'] }) }
   const req = useMutation({ mutationFn: () => api.rentals.request(it.id, new Date(from).getTime(), new Date(to).getTime(), note), onSuccess: () => { setAsk(false); toast('Request sent to the owner.'); done() }, onError: (e) => toast(errMsg(e), 'err') })
   const back = useMutation({ mutationFn: () => api.rentals.markReturned(it.id), onSuccess: () => { toast('Marked as returned.'); done() }, onError: (e) => toast(errMsg(e), 'err') })
   const r = it.myRequest
   return (
-    <div className="card flex flex-col p-5">
-      <div className="flex items-start justify-between gap-3"><Chip>{RENTAL_LABEL[it.category]}</Chip><Chip tone={it.available ? 'bg-moss-soft text-moss' : 'bg-gold-soft text-gold'}>{it.available ? 'Available' : 'Rented out'}</Chip></div>
-      <h3 className="display mt-3 text-xl font-medium leading-snug">{it.title}</h3>
-      <p className="mt-1 flex-1 text-sm text-muted">{it.description}</p>
-      <p className="mt-4 flex items-baseline gap-2"><span className="display num text-3xl">{it.pricePerDay}</span><span className="text-sm text-muted">TND / day · {it.deposit} TND deposit</span></p>
-      <p className="mt-3 flex items-center gap-2 text-xs text-muted"><Avatar user={it.owner} size={20} />{it.owner.name} · {it.condition}</p>
-      {r?.status === 'accepted' && <p className="mt-3 flex items-center gap-2 rounded-xl bg-moss-soft p-3 text-sm text-moss"><KeyRound size={15} />Accepted. Contact: <strong>{r.contact}</strong></p>}
-      {r?.status === 'pending' && <p className="mt-3 rounded-xl bg-paper p-3 text-sm text-muted">Request pending · {formatDay(r.from)} → {formatDay(r.to)}</p>}
-      {r?.status === 'declined' && <p className="mt-3 rounded-xl bg-rose-soft p-3 text-sm text-rose">Your last request was declined.</p>}
-      {it.mine ? (it.available ? <p className="mt-3 text-xs text-muted">{it.pendingRequests ? `${it.pendingRequests} pending request(s) below` : 'Your listing'}</p> : <button className="btn btn-ghost mt-3" onClick={() => back.mutate()}>Mark as returned</button>)
-        : it.available && (!r || r.status === 'declined' || r.status === 'returned') && (ask ? (
-          <form className="mt-3 grid gap-2" onSubmit={(e: FormEvent) => { e.preventDefault(); req.mutate() }}>
-            <div className="grid grid-cols-2 gap-2"><input className="field" type="date" value={from} min={iso(Date.now())} onChange={(e) => setFrom(e.target.value)} aria-label="From" /><input className="field" type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} aria-label="To" /></div>
-            <input className="field" placeholder="Short note (optional)" maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
-            <div className="flex gap-2"><button className="btn btn-primary flex-1" disabled={req.isPending}>{req.isPending ? <Spinner /> : 'Send request'}</button><button type="button" className="btn btn-ghost" onClick={() => setAsk(false)}>Cancel</button></div>
-          </form>) : <button className="btn btn-primary mt-3" onClick={() => setAsk(true)}>Request to rent</button>)}
+    <div className="card card-hover flex flex-col overflow-hidden">
+      <div className={cn(c.tone, 'relative flex h-24 items-end justify-between px-5 pb-3 text-white')}>
+        <div className="dots-light pointer-events-none absolute inset-0 opacity-50" aria-hidden />
+        <span className="relative grid size-11 place-items-center rounded-[12px] bg-white/18 ring-1 ring-white/30 backdrop-blur"><Icon size={20} /></span>
+        <span className={cn('relative rounded-full px-2.5 py-1 text-[11.5px] font-semibold', it.available ? 'bg-white text-[#0d7556]' : 'bg-black/25 text-white')}>{it.available ? 'Available' : 'Rented out'}</span>
+      </div>
+      <div className="flex flex-1 flex-col p-5">
+        <p className="text-[12px] font-medium text-muted">{RENTAL_LABEL[it.category]} · {it.condition}</p>
+        <h3 className="mt-1 text-[16px] font-semibold leading-snug">{it.title}</h3>
+        <p className="mt-1 line-clamp-2 flex-1 text-[13px] text-muted">{it.description}</p>
+        <div className="mt-4 flex items-end justify-between gap-3">
+          <p><span className="num text-[26px] font-semibold leading-none tracking-tight">{it.pricePerDay}</span><span className="ml-1 text-[12.5px] text-muted">TND / day</span></p>
+          <span className="chip num">{it.deposit} TND deposit</span>
+        </div>
+        <p className="mt-4 flex items-center gap-2 border-t border-line pt-3 text-[12px] text-muted"><Avatar user={it.owner} size={22} /><span className="font-medium text-ink">{it.owner.name}</span>{it.mine && <span className="chip ml-auto">You</span>}</p>
+        {r?.status === 'accepted' && <p className="mt-3 flex items-center gap-2 rounded-[10px] bg-moss-soft p-3 text-[13px] text-moss"><KeyRound size={15} />Accepted. Contact: <strong>{r.contact}</strong></p>}
+        {r?.status === 'pending' && <p className="mt-3 rounded-[10px] bg-gold-soft p-3 text-[13px] text-gold">Waiting for the owner · {formatDay(r.from)} to {formatDay(r.to)}</p>}
+        {r?.status === 'declined' && <p className="mt-3 rounded-[10px] bg-rose-soft p-3 text-[13px] text-rose">Your last request was declined.</p>}
+        {it.mine ? (it.available ? <p className="mt-3 text-[12px] text-muted">{it.pendingRequests ? `${it.pendingRequests} pending ${it.pendingRequests === 1 ? 'request' : 'requests'}` : 'No requests yet'}</p> : <button className="btn btn-ghost mt-3" onClick={() => back.mutate()}>Mark as returned</button>)
+          : it.available && (!r || r.status === 'declined' || r.status === 'returned') && (ask ? (
+            <form className="mt-3 grid gap-2" onSubmit={(e: FormEvent) => { e.preventDefault(); req.mutate() }}>
+              <div className="grid grid-cols-2 gap-2"><input className="field" type="date" value={from} min={iso(Date.now())} onChange={(e) => setFrom(e.target.value)} aria-label="From" /><input className="field" type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} aria-label="To" /></div>
+              <input className="field" placeholder="Short note (optional)" maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
+              <div className="flex gap-2"><button className="btn btn-primary flex-1" disabled={req.isPending}>{req.isPending ? <Spinner /> : 'Send request'}</button><button type="button" className="btn btn-ghost" onClick={() => setAsk(false)}>Cancel</button></div>
+            </form>) : <button className="btn btn-primary mt-3" onClick={() => setAsk(true)}>Request to rent</button>)}
+      </div>
     </div>
   )
 }
@@ -45,33 +63,56 @@ export default function Rentals() {
   const incoming = useQuery({ queryKey: ['incoming'], queryFn: api.rentals.incoming })
   const respond = useMutation({ mutationFn: (v: { id: string; ok: boolean }) => api.rentals.respond(v.id, v.ok), onSuccess: () => { qc.invalidateQueries({ queryKey: ['rentals'] }); qc.invalidateQueries({ queryKey: ['incoming'] }) }, onError: (e) => toast(errMsg(e), 'err') })
   const create = useMutation({ mutationFn: () => api.rentals.create(f), onSuccess: () => { qc.invalidateQueries({ queryKey: ['rentals'] }); setOpen(false); toast('Item listed.') }, onError: (e) => setErr(errMsg(e)) })
-  const items = (list.data ?? []).filter((i) => cat === 'all' || i.category === cat)
+  const all = list.data ?? []
+  const items = all.filter((i) => cat === 'all' || i.category === cat)
+  const pill = (on: boolean) => cn('flex h-9 shrink-0 items-center gap-2 rounded-full px-3.5 text-[13px] font-medium transition', on ? 'bg-ink text-paper' : 'bg-surface text-muted shadow-[var(--ring)] hover:text-ink')
   return (
     <div>
-      <PageHeader title="Rentals" sub="Borrow calculators, lab gear and books from other students. You see the owner's contact once they accept."
-        action={<button className="btn btn-accent" onClick={() => setOpen(!open)}><Plus size={16} />List an item</button>} />
-      <p className="mb-6 flex items-start gap-2 rounded-xl border border-dashed border-line p-3 text-xs text-muted"><ShieldAlert size={14} className="mt-0.5 shrink-0" />No money moves through SMUhub. Meet on campus, check the item together and keep the deposit agreement simple.</p>
-      {!!incoming.data?.length && (
-        <section className="card rise mb-8 p-5"><h2 className="display mb-3 text-xl">Requests for your items</h2>
-          <ul className="grid gap-3">{incoming.data.map((q) => (
-            <li key={q.id} className="flex flex-wrap items-center gap-3"><Avatar user={q.renter} size={30} /><span className="min-w-0 flex-1 text-sm"><strong>{q.renter.name}</strong> · {formatDay(q.from)} → {formatDay(q.to)}{q.note && <span className="block text-xs text-muted">“{q.note}”</span>}</span>
-              <button className="btn btn-primary btn-sm" onClick={() => respond.mutate({ id: q.id, ok: true })}>Accept</button><button className="btn btn-ghost btn-sm" onClick={() => respond.mutate({ id: q.id, ok: false })}>Decline</button></li>))}</ul></section>
-      )}
+      <Banner tone="green" icon={<Handshake size={13} />} label="Rentals" title="Borrow it from a classmate" sub="Calculators, lab coats, books and chargers. You see the owner's contact once they accept."
+        stats={[['Listed', all.length], ['Available', all.filter((i) => i.available).length], ['Yours', all.filter((i) => i.mine).length]]}
+        action={<button className={bannerBtn} onClick={() => setOpen(!open)}>{open ? <X size={15} /> : <Plus size={15} />}{open ? 'Close' : 'List an item'}</button>} />
+
       {open && (
-        <form className="card rise mb-8 grid gap-4 p-5 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); setErr(''); create.mutate() }}>
-          <div className="sm:col-span-2"><Field label="Item"><input className="field" required maxLength={80} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field></div>
-          <Field label="Category"><select className="field" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value as RentalCategory })}>{Object.entries(RENTAL_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
+        <form className="card rise mb-7 grid gap-4 p-6 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); setErr(''); create.mutate() }}>
+          <div className="sm:col-span-2"><Field label="Item"><input className="field" required maxLength={80} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="Casio fx-991EX" /></Field></div>
+          <div className="sm:col-span-2"><span className="label">Category</span><div className="flex flex-wrap gap-2">{(Object.keys(CAT) as RentalCategory[]).map((k) => { const I = CAT[k].icon; return <button type="button" key={k} onClick={() => setF({ ...f, category: k })} className={cn('chip h-9 cursor-pointer gap-1.5 px-3 text-[12.5px] transition', f.category === k ? CAT[k].soft + ' ring-1 ring-current' : 'hover:text-ink')}><I size={14} />{RENTAL_LABEL[k]}</button> })}</div></div>
           <Field label="Condition"><select className="field" value={f.condition} onChange={(e) => setF({ ...f, condition: e.target.value as typeof f.condition })}><option value="new">New</option><option value="good">Good</option><option value="worn">Worn</option></select></Field>
-          <Field label="Price per day (TND)"><input className="field" type="number" min={0} max={200} value={f.pricePerDay} onChange={(e) => setF({ ...f, pricePerDay: +e.target.value })} /></Field>
-          <Field label="Deposit (TND)"><input className="field" type="number" min={0} max={2000} value={f.deposit} onChange={(e) => setF({ ...f, deposit: +e.target.value })} /></Field>
+          <div className="grid grid-cols-2 gap-3"><Field label="TND per day"><input className="field" type="number" min={0} max={200} value={f.pricePerDay} onChange={(e) => setF({ ...f, pricePerDay: +e.target.value })} /></Field><Field label="Deposit"><input className="field" type="number" min={0} max={2000} value={f.deposit} onChange={(e) => setF({ ...f, deposit: +e.target.value })} /></Field></div>
           <div className="sm:col-span-2"><Field label="Description"><textarea className="field min-h-20" maxLength={400} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field></div>
           <div className="sm:col-span-2"><Field label="Private contact" hint="WhatsApp, Telegram or Instagram. Only shown to a renter once you accept."><input className="field" required maxLength={80} value={f.contact} onChange={(e) => setF({ ...f, contact: e.target.value })} /></Field></div>
-          {err && <p role="alert" className="text-sm text-rose sm:col-span-2">{err}</p>}
-          <button className="btn btn-primary sm:col-span-2 sm:justify-self-end" disabled={create.isPending}>{create.isPending ? <Spinner /> : 'Publish listing'}</button>
+          {err && <p role="alert" className="rounded-[10px] bg-rose-soft px-3 py-2 text-[13px] text-rose sm:col-span-2">{err}</p>}
+          <div className="flex justify-end sm:col-span-2"><button className="btn btn-primary h-10 px-6" disabled={create.isPending}>{create.isPending ? <Spinner /> : 'Publish listing'}</button></div>
         </form>
       )}
-      <div className="mb-6 overflow-x-auto"><Segmented value={cat} onChange={setCat} options={[{ value: 'all', label: 'All' }, ...Object.entries(RENTAL_LABEL).map(([value, label]) => ({ value: value as RentalCategory, label }))]} /></div>
-      {list.isLoading ? <Skeleton rows={3} /> : list.error ? <ErrorBox error={list.error} /> : !items.length ? <Empty title="No items yet" hint="List something you do not need every day." /> : <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{items.map((i) => <ItemCard key={i.id} it={i} />)}</div>}
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_290px]">
+        <section className="min-w-0">
+          <div className="-mx-1 mb-5 flex gap-2 overflow-x-auto px-1 pb-1">
+            <button className={pill(cat === 'all')} onClick={() => setCat('all')}>All<span className="num text-[11.5px] opacity-60">{all.length}</span></button>
+            {(Object.keys(CAT) as RentalCategory[]).map((k) => { const I = CAT[k].icon; return <button key={k} className={pill(cat === k)} onClick={() => setCat(k)}><span className={cn('grid size-5 place-items-center rounded-full', cat === k ? 'bg-white/20' : CAT[k].soft)}><I size={12} /></span>{RENTAL_LABEL[k]}<span className="num text-[11.5px] opacity-60">{all.filter((i) => i.category === k).length}</span></button> })}
+          </div>
+          {list.isLoading ? <Skeleton rows={3} /> : list.error ? <ErrorBox error={list.error} /> : !items.length ? <Empty title="No items yet" hint="List something you do not need every day." /> : <div className="grid gap-4 stagger sm:grid-cols-2 2xl:grid-cols-3">{items.map((i) => <ItemCard key={i.id} it={i} />)}</div>}
+        </section>
+
+        <aside className="grid h-fit gap-4 xl:sticky xl:top-16">
+          <div className="card p-5">
+            <p className="flex items-center justify-between text-[14px] font-semibold">Requests for your items{!!incoming.data?.length && <span className="num grid size-6 place-items-center rounded-full bg-moss text-[12px] text-white">{incoming.data.length}</span>}</p>
+            {!incoming.data?.length ? <p className="mt-2 text-[12.5px] text-muted">Nobody has asked yet. Requests show up here.</p> : (
+              <ul className="mt-3 grid gap-3">{incoming.data.map((q) => (
+                <li key={q.id} className="rounded-[12px] bg-hover p-3">
+                  <p className="flex items-center gap-2 text-[13px]"><Avatar user={q.renter} size={26} /><span className="min-w-0"><strong className="block truncate">{q.renter.name}</strong><span className="text-[11.5px] text-muted">{formatDay(q.from)} to {formatDay(q.to)}</span></span></p>
+                  {q.note && <p className="mt-2 text-[12px] text-muted">"{q.note}"</p>}
+                  <div className="mt-2.5 flex gap-2"><button className="btn btn-sm flex-1 bg-moss text-white hover:bg-moss/90" onClick={() => respond.mutate({ id: q.id, ok: true })}>Accept</button><button className="btn btn-ghost btn-sm flex-1" onClick={() => respond.mutate({ id: q.id, ok: false })}>Decline</button></div>
+                </li>))}</ul>
+            )}
+          </div>
+          <div className="card p-5">
+            <p className="mb-3 text-[14px] font-semibold">How it works</p>
+            <ol className="grid gap-3 text-[12.5px] text-muted">{['Send a request with your dates.', 'The owner accepts and you get their contact.', 'Meet on campus and check the item together.', 'Bring it back. The owner marks it returned.'].map((s, i) => <li key={s} className="flex gap-3"><span className="num grid size-6 shrink-0 place-items-center rounded-full bg-moss-soft text-[11.5px] font-semibold text-moss">{i + 1}</span><span className="pt-0.5">{s}</span></li>)}</ol>
+          </div>
+          <p className="flex gap-2 rounded-[14px] bg-gold-soft p-4 text-[12px] leading-relaxed text-gold"><ShieldAlert size={15} className="mt-0.5 shrink-0" />No money moves through SMUhub. Agree on the deposit in person and keep it simple.</p>
+        </aside>
+      </div>
     </div>
   )
 }

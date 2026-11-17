@@ -1,37 +1,76 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Monitor, Moon, Sun } from 'lucide-react'
+import { Check, RotateCcw, Settings as Cog } from 'lucide-react'
 import { api } from '@/api/mock'
 import { useAuth } from '@/auth/AuthContext'
-import { Field, PageHeader, Spinner, useToast } from '@/components/ui'
+import Banner from '@/components/Banner'
+import { Avatar, Field, Spinner, useToast } from '@/components/ui'
 import { cn, errMsg, timeAgo } from '@/lib/utils'
 
-function applyTheme(t: 'light' | 'dark' | 'system') {
+type Theme = 'light' | 'dark' | 'system'
+function applyTheme(t: Theme) {
   try { localStorage.setItem('smuhub.theme', t) } catch { /* ignore */ }
   document.documentElement.classList.toggle('dark', t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches))
+}
+
+function Preview({ dark }: { dark: boolean }) {
+  const bg = dark ? '#0d0f15' : '#f3f4f8', side = dark ? '#151821' : '#ffffff', line = dark ? '#262a36' : '#e4e6ee'
+  return (
+    <span className="flex h-full w-full" style={{ background: bg }}>
+      <span className="w-[30%] p-1.5" style={{ background: side, borderRight: `1px solid ${line}` }}><span className="block h-1.5 w-3/4 rounded-full bg-[#3b5bff]" /><span className="mt-1.5 block h-1 w-1/2 rounded-full" style={{ background: line }} /><span className="mt-1 block h-1 w-2/3 rounded-full" style={{ background: line }} /></span>
+      <span className="flex-1 p-1.5"><span className="block h-5 rounded-[4px] bg-[linear-gradient(135deg,#3b5bff,#7b5cf5)]" /><span className="mt-1.5 grid grid-cols-2 gap-1"><span className="h-4 rounded-[3px]" style={{ background: side, border: `1px solid ${line}` }} /><span className="h-4 rounded-[3px]" style={{ background: side, border: `1px solid ${line}` }} /></span></span>
+    </span>
+  )
 }
 
 export default function Settings() {
   const { me } = useAuth(); const qc = useQueryClient(); const toast = useToast()
   const [f, setF] = useState({ name: me?.name ?? '', major: me?.major ?? '', year: me?.year ?? 1, bio: me?.bio ?? '' })
-  const [theme, setTheme] = useState<string>(() => { try { return localStorage.getItem('smuhub.theme') ?? 'light' } catch { return 'system' } })
+  const [theme, setTheme] = useState<Theme>(() => { try { return (localStorage.getItem('smuhub.theme') as Theme) ?? 'light' } catch { return 'light' } })
   const xp = useQuery({ queryKey: ['xp'], queryFn: api.me.xp, refetchInterval: 5000 })
   const save = useMutation({ mutationFn: () => api.me.update(f), onSuccess: (m) => { qc.setQueryData(['me'], m); toast('Profile saved.') }, onError: (e) => toast(errMsg(e), 'err') })
   const submit = (e: FormEvent) => { e.preventDefault(); save.mutate() }
+  const total = (xp.data ?? []).reduce((s, x) => s + x.points, 0)
   return (
-    <div className="mx-auto max-w-2xl">
-      <PageHeader title="Settings" />
-      <section className="card mb-6 p-5"><h2 className="display mb-3 text-xl">Appearance</h2>
-        <div className="grid grid-cols-3 gap-3">{([['light', Sun], ['dark', Moon], ['system', Monitor]] as const).map(([k, Icon]) => (
-          <button key={k} onClick={() => { setTheme(k); applyTheme(k) }} className={cn('flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-medium capitalize transition', theme === k ? 'border-ink bg-paper' : 'border-line text-muted hover:text-ink')}><Icon size={18} />{k}</button>))}</div></section>
-      <form onSubmit={submit} className="card mb-6 grid gap-4 p-5"><h2 className="display text-xl">Profile</h2>
-        <Field label="Display name" hint="Synced from Moodle on sign-in in production."><input className="field" maxLength={50} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
-        <div className="grid gap-4 sm:grid-cols-2"><Field label="Major"><input className="field" maxLength={40} value={f.major} onChange={(e) => setF({ ...f, major: e.target.value })} /></Field><Field label="Year"><select className="field" value={f.year} onChange={(e) => setF({ ...f, year: +e.target.value })}>{[1, 2, 3, 4, 5, 6].map((y) => <option key={y} value={y}>Year {y}</option>)}</select></Field></div>
-        <Field label="Bio"><textarea className="field min-h-20" maxLength={240} value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value })} /></Field>
-        <button className="btn btn-primary justify-self-end" disabled={save.isPending}>{save.isPending ? <Spinner /> : 'Save changes'}</button></form>
-      <section className="card p-5"><h2 className="display mb-3 text-xl">XP activity</h2>
-        {xp.data?.length ? <ul className="grid gap-2">{xp.data.map((x) => <li key={x.id} className="flex items-center gap-3 text-sm"><span className={cn('num w-12 font-semibold', x.points < 0 ? 'text-rose' : 'text-moss')}>{x.points > 0 ? '+' : ''}{x.points}</span><span className="min-w-0 flex-1 truncate text-muted">{x.label}</span><span className="text-xs text-faint">{timeAgo(x.at)}</span></li>)}</ul> : <p className="text-sm text-muted">No XP yet. Upload a resource or answer a question.</p>}</section>
-      <button className="btn btn-ghost mt-6 text-xs" onClick={() => confirm('Reset all demo data?') && api.dev.reset()}>Reset demo data</button>
+    <div>
+      <Banner tone="blue" icon={<Cog size={13} />} label="Settings" title="Your account" sub="Your name and photo come from Moodle. Everything else here is yours to change." />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid content-start gap-6">
+          <form onSubmit={submit} className="card grid gap-5 p-6">
+            <div className="flex items-center gap-4"><Avatar user={me ?? null} size={52} /><div><p className="text-[15px] font-semibold">Profile</p><p className="text-[12.5px] text-muted">Shown on your uploads, answers and public posts.</p></div></div>
+            <Field label="Display name" hint="Synced from Moodle on sign-in in production."><input className="field" maxLength={50} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
+            <div className="grid gap-4 sm:grid-cols-2"><Field label="Major"><input className="field" maxLength={40} value={f.major} onChange={(e) => setF({ ...f, major: e.target.value })} /></Field><Field label="Year"><select className="field" value={f.year} onChange={(e) => setF({ ...f, year: +e.target.value })}>{[1, 2, 3, 4, 5, 6].map((y) => <option key={y} value={y}>Year {y}</option>)}</select></Field></div>
+            <Field label="Bio"><textarea className="field min-h-24" maxLength={240} value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value })} placeholder="What you study, what you can help with" /></Field>
+            <div className="flex justify-end border-t border-line pt-5"><button className="btn btn-primary h-10 px-6" disabled={save.isPending}>{save.isPending ? <Spinner /> : 'Save changes'}</button></div>
+          </form>
+
+          <section className="card p-6">
+            <p className="text-[15px] font-semibold">Appearance</p><p className="text-[12.5px] text-muted">Light is the default. System follows your device.</p>
+            <div className="mt-4 grid grid-cols-3 gap-3">{(['light', 'dark', 'system'] as const).map((k) => (
+              <button key={k} onClick={() => { setTheme(k); applyTheme(k) }} className="group text-left">
+                <span className={cn('relative block h-24 overflow-hidden rounded-[12px] ring-2 transition', theme === k ? 'ring-accent' : 'ring-line group-hover:ring-line-strong')}>
+                  {k === 'system' ? <span className="flex h-full"><span className="w-1/2 overflow-hidden"><span className="block h-full w-[200%]"><Preview dark={false} /></span></span><span className="w-1/2 overflow-hidden"><span className="block h-full w-[200%] -translate-x-1/2"><Preview dark /></span></span></span> : <Preview dark={k === 'dark'} />}
+                  {theme === k && <span className="absolute right-1.5 top-1.5 grid size-5 place-items-center rounded-full bg-accent text-white"><Check size={12} /></span>}
+                </span>
+                <span className={cn('mt-2 block text-[13px] font-medium capitalize', theme === k ? 'text-ink' : 'text-muted')}>{k}</span>
+              </button>))}</div>
+          </section>
+        </div>
+
+        <aside className="grid h-fit gap-4 lg:sticky lg:top-16">
+          <section className="card overflow-hidden">
+            <div className="tone-blue px-5 py-4 text-white"><p className="text-[12px] text-white/80">Points earned so far</p><p className="num text-[28px] font-semibold leading-tight">{total}</p></div>
+            <div className="p-5">
+              <p className="mb-3 text-[13.5px] font-semibold">Recent activity</p>
+              {xp.data?.length ? <ul className="grid gap-2.5">{xp.data.slice(0, 12).map((x) => <li key={x.id} className="flex items-center gap-3 text-[13px]"><span className={cn('num grid h-6 w-11 shrink-0 place-items-center rounded-[7px] text-[12px] font-semibold', x.points < 0 ? 'bg-rose-soft text-rose' : 'bg-moss-soft text-moss')}>{x.points > 0 ? '+' : ''}{x.points}</span><span className="min-w-0 flex-1 truncate text-muted">{x.label}</span><span className="shrink-0 text-[11.5px] text-faint">{timeAgo(x.at)}</span></li>)}</ul> : <p className="text-[13px] text-muted">No points yet. Upload a file or answer a question.</p>}
+            </div>
+          </section>
+          <section className="card p-5">
+            <p className="text-[13.5px] font-semibold">Demo data</p><p className="mt-1 text-[12.5px] text-muted">This preview keeps everything in your browser. Reset puts the sample content back.</p>
+            <button className="btn btn-ghost btn-sm mt-3 text-rose" onClick={() => confirm('Reset all demo data?') && api.dev.reset()}><RotateCcw size={13} />Reset demo data</button>
+          </section>
+        </aside>
+      </div>
     </div>
   )
 }
