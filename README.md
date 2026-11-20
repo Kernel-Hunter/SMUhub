@@ -12,7 +12,7 @@ The private home of SMU students: a shared resource library, peer Q&A, an anonym
 
 ## Run locally
 
-Needs Node 20+, pnpm, and MongoDB running on `127.0.0.1:27017`.
+Needs Node 20+, pnpm, and MongoDB running on `localhost:27017` (database `SMUhub`, created automatically).
 
 ```bash
 # 1. API (terminal 1)
