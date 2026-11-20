@@ -30,8 +30,8 @@ export function Logo({ className }: { className?: string }) {
 
 function Item({ to, label, icon: Icon, end }: { to: string; label: string; icon: typeof Search; end?: boolean }) {
   return (
-    <NavLink to={to} end={end} className={({ isActive }) => cn('flex h-8 items-center gap-2.5 rounded-[7px] px-2.5 text-[13.5px] font-medium transition-colors', isActive ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-hover hover:text-ink')}>
-      {({ isActive }) => <><Icon size={16} strokeWidth={1.75} className={isActive ? 'text-accent' : ''} />{label}</>}
+    <NavLink to={to} end={end} className={({ isActive }) => cn('flex h-8 min-w-0 items-center gap-2.5 rounded-[7px] px-2.5 text-[13.5px] font-medium transition-colors', isActive ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-hover hover:text-ink')}>
+      {({ isActive }) => <><Icon size={16} strokeWidth={1.75} className={cn('shrink-0', isActive && 'text-accent')} /><span className="truncate">{label}</span></>}
     </NavLink>
   )
 }
@@ -41,22 +41,26 @@ function Sidebar({ onNav }: { onNav?: () => void }) {
   if (!me) return null
   const level = Math.floor(Math.sqrt(me.xp / 20)), lo = level * level * 20, hi = (level + 1) ** 2 * 20
   const pct = Math.max(4, ((me.xp - lo) / (hi - lo)) * 100)
+  // Layout: every block spans the same box (12px from the sidebar edges) and pads its content by 10px (px-2.5),
+  // so logo, nav labels, section title, XP card and user row all line up on the same left and right edges.
+  // Stacks are flex columns, not CSS grids: an implicit grid column grows to its widest child's min-content,
+  // and nowrap (truncated) text made that wider than the sidebar.
   return (
-    <div className="flex h-full flex-col px-3 py-3.5" onClick={onNav}>
-      <div className="flex items-center justify-between px-1.5"><Logo /><span className="rounded-full bg-accent-soft px-2 py-0.5 text-[10.5px] font-semibold text-accent">Beta</span></div>
-      <nav className="mt-6 grid gap-0.5" aria-label="Main">{MAIN.map((n) => <Item key={n.to} {...n} />)}</nav>
+    <div className="flex h-full min-w-0 flex-col px-3 py-3.5" onClick={onNav}>
+      <div className="flex items-center justify-between gap-2 px-2.5"><Logo /><span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[10.5px] font-semibold text-accent">Beta</span></div>
+      <nav className="mt-6 flex flex-col gap-0.5" aria-label="Main">{MAIN.map((n) => <Item key={n.to} {...n} />)}</nav>
       <p className="mt-7 px-2.5 pb-1.5 text-[12px] font-medium text-faint">You</p>
-      <nav className="grid gap-0.5" aria-label="Account"><Item to={`/u/${me.id}`} label="Profile" icon={UserRound} /><Item to="/settings" label="Settings" icon={Settings} /></nav>
-      <div className="mt-auto grid gap-2">
-        <Link to="/leaderboard" className="group rounded-[12px] bg-hover p-3 transition hover:bg-accent-soft">
-          <div className="flex items-baseline justify-between"><span className="text-[12.5px] font-semibold">Level {level}</span><span className="num text-[11.5px] text-muted">{me.xp} / {hi} XP</span></div>
+      <nav className="flex flex-col gap-0.5" aria-label="Account"><Item to={`/u/${me.id}`} label="Profile" icon={UserRound} /><Item to="/settings" label="Settings" icon={Settings} /></nav>
+      <div className="mt-auto flex flex-col gap-2 pt-4">
+        <Link to="/leaderboard" className="group block rounded-[12px] bg-hover px-2.5 py-3 transition hover:bg-accent-soft">
+          <div className="flex items-baseline justify-between gap-2"><span className="text-[12.5px] font-semibold">Level {level}</span><span className="num truncate text-[11.5px] text-muted">{me.xp} / {hi} XP</span></div>
           <div className="mt-2 flex gap-[3px]">{Array.from({ length: 10 }).map((_, i) => <span key={i} className={cn('h-1 flex-1 rounded-full', i < Math.round(pct / 10) ? 'bg-accent' : 'bg-line-strong')} />)}</div>
           <p className="mt-2 text-[12px] text-muted">{me.rank ? `#${me.rank} on campus this term` : 'Share something to get ranked'}</p>
         </Link>
-        <div className="flex items-center gap-2.5 rounded-[9px] p-1.5 transition hover:bg-hover">
+        <div className="flex items-center gap-2.5 rounded-[9px] px-2.5 py-1.5 transition hover:bg-hover">
           <Avatar user={me} size={28} />
-          <span className="min-w-0 flex-1 leading-tight"><span className="block truncate text-[13px] font-medium">{me.name}</span><span className="block truncate text-[11.5px] text-muted">{me.major}, year {me.year}</span></span>
-          <button aria-label="Sign out" title="Sign out" onClick={(e) => { e.stopPropagation(); logout() }} className="grid size-7 place-items-center rounded-md text-faint hover:text-ink"><LogOut size={14} /></button>
+          <span className="min-w-0 flex-1 leading-tight"><span className="block truncate text-[13px] font-medium" title={me.name}>{me.name}</span><span className="block truncate text-[11.5px] text-muted" title={`${me.major}, year ${me.year}`}>{me.major}, year {me.year}</span></span>
+          <button type="button" aria-label="Sign out" title="Sign out" onClick={(e) => { e.stopPropagation(); logout() }} className="-mr-1 grid size-7 shrink-0 place-items-center rounded-md text-faint hover:bg-surface hover:text-ink"><LogOut size={14} /></button>
         </div>
       </div>
     </div>
