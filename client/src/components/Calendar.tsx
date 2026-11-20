@@ -16,8 +16,8 @@ export default function Calendar({ days, size = 'sm', selected, onSelect }: { da
           <span key={i} className="grid place-items-center">
             <Tag {...(Tag === 'button' ? { type: 'button' as const, onClick: () => onSelect!(d) } : {})}
               className={cn('num relative grid place-items-center rounded-full transition', lg ? 'size-10' : 'size-7',
-                today ? 'bg-accent font-semibold text-white shadow-[0_4px_10px_-3px_var(--accent)]' : selected === d ? 'bg-ink text-paper' : d ? 'hover:bg-hover' : '', past && !today && 'text-faint')}>
-              {d || ''}{kind && !today && <span className={cn('absolute bottom-1 size-1 rounded-full', kind === 'deadline' ? 'bg-rose' : kind === 'club' ? 'bg-moss' : 'bg-accent')} />}
+                today ? 'bg-accent-fill font-semibold text-on-accent' : selected === d ? 'bg-ink text-paper' : d ? 'hover:bg-hover' : '', past && !today && 'text-faint')}>
+              {d || ''}{kind && !today && <span className={cn('absolute bottom-1 size-1 rounded-full', kind === 'deadline' ? 'bg-danger' : kind === 'club' ? 'bg-faint' : 'bg-accent')} />}
             </Tag>
           </span>)
       })}

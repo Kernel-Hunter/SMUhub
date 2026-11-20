@@ -28,13 +28,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 // ---------- primitives ----------
-const TINTS = [['var(--accent-soft)', 'var(--accent)'], ['var(--moss-soft)', 'var(--moss)'], ['var(--sky-soft)', 'var(--sky)'], ['var(--gold-soft)', 'var(--gold)'], ['var(--rose-soft)', 'var(--rose)']]
+// Neutral initials: colour is reserved for the accent and for states.
 export function Avatar({ user, size = 36 }: { user: PublicUser | null; size?: number }) {
-  const [bg, fg] = TINTS[[...(user?.id ?? 'x')].reduce((s, c) => s + c.charCodeAt(0), 0) % TINTS.length]
   const initials = user ? user.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase() : '?'
   return (
     <span aria-hidden className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold"
-      style={{ width: size, height: size, background: user ? bg : 'var(--paper)', color: user ? fg : 'var(--faint)', fontSize: Math.max(9, size * 0.38), boxShadow: user ? 'none' : 'inset 0 0 0 1px var(--line-strong)' }}>
+      style={{ width: size, height: size, background: user ? 'var(--subtle)' : 'var(--bg)', color: user ? 'var(--muted)' : 'var(--faint)', fontSize: Math.max(9, size * 0.38), boxShadow: user ? 'none' : 'inset 0 0 0 1px var(--line-strong)' }}>
       {initials}
     </span>
   )
