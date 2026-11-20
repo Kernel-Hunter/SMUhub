@@ -45,11 +45,11 @@ export default function Palette({ open, onClose }: { open: boolean; onClose: () 
         if (e.key === 'Escape') onClose()
       }}>
         <div className="flex items-center gap-3 border-b border-line px-4"><Search size={16} className="text-faint" />
-          <input ref={ref} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search resources, questions, pages…" className="h-13 w-full bg-transparent py-4 text-[15px] outline-none focus-visible:!outline-none placeholder:text-faint" aria-label="Search" /><span className="kbd">esc</span></div>
+          <input ref={ref} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search resources, questions, pages…" className="h-13 w-full bg-transparent py-4 text-base outline-none focus-visible:!outline-none placeholder:text-faint" aria-label="Search" /><span className="kbd">esc</span></div>
         <ul className="max-h-[50vh] overflow-auto p-2">
           {items.length === 0 && <li className="px-3 py-8 text-center text-sm text-muted">No results for “{term}”.</li>}
           {items.map((it, n) => { const Icon = it.icon; return (
-            <li key={it.id}><button onMouseMove={() => setI(n)} onClick={() => go(it)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm ${n === i ? 'bg-line' : ''}`}>
+            <li key={it.id}><button onMouseMove={() => setI(n)} onClick={() => go(it)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm ${n === i ? 'bg-line' : ''}`}>
               <Icon size={16} className="shrink-0 text-muted" /><span className="min-w-0 flex-1 truncate">{it.label}</span><span className="text-xs text-faint">{it.hint}</span>{n === i && <CornerDownLeft size={13} className="text-faint" />}</button></li>) })}
         </ul>
       </div>

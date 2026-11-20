@@ -10,22 +10,22 @@ export default function Banner({ tone, icon, label, title, sub, stats, action, c
   stats?: [string, ReactNode][]; action?: ReactNode; children?: ReactNode
 }) {
   return (
-    <section className={cn(`tone-${tone}`, 'relative mb-7 overflow-hidden rounded-[22px] px-6 py-7 text-white sm:px-8')} style={{ boxShadow: `0 22px 44px -26px ${TONE_SHADOW[tone]}` }}>
+    <section className={cn(`tone-${tone}`, 'relative mb-7 overflow-hidden rounded-lg px-6 py-7 text-white sm:px-8')} style={{ boxShadow: `0 22px 44px -26px ${TONE_SHADOW[tone]}` }}>
       <div className="dots-light pointer-events-none absolute inset-0 opacity-60 [mask-image:linear-gradient(90deg,transparent_30%,#000)]" aria-hidden />
       <div className="pointer-events-none absolute -right-20 -top-28 size-80 rounded-full bg-white/10 blur-2xl" aria-hidden />
       <div className="relative flex flex-wrap items-end justify-between gap-6">
         <div className="min-w-0 max-w-xl">
-          <p className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-medium ring-1 ring-white/20">{icon}{label}</p>
-          <h1 className="mt-3 text-[1.85rem] font-semibold leading-tight tracking-[-0.025em] sm:text-[2.1rem]">{title}</h1>
-          {sub && <p className="mt-1.5 text-[14px] text-white/80">{sub}</p>}
-          {action && <div className="mt-5 flex flex-wrap gap-2.5">{action}</div>}
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium ring-1 ring-white/20">{icon}{label}</p>
+          <h1 className="mt-3 text-2xl font-semibold leading-tight sm:text-2xl">{title}</h1>
+          {sub && <p className="mt-2 text-sm text-white/80">{sub}</p>}
+          {action && <div className="mt-5 flex flex-wrap gap-3">{action}</div>}
         </div>
         {stats && (
-          <div className="flex gap-2.5">
+          <div className="flex gap-3">
             {stats.map(([l, v]) => (
-              <div key={l} className="min-w-[92px] rounded-[14px] bg-white/12 px-4 py-3 ring-1 ring-white/20 backdrop-blur-md">
-                <p className="text-[22px] font-semibold leading-none tracking-[-0.02em]">{v}</p>
-                <p className="mt-1.5 text-[11.5px] text-white/75">{l}</p>
+              <div key={l} className="min-w-[92px] rounded-lg bg-white/12 px-4 py-3 ring-1 ring-white/20 backdrop-blur-md">
+                <p className="text-lg font-semibold leading-none">{v}</p>
+                <p className="mt-2 text-xs text-white/75">{l}</p>
               </div>
             ))}
           </div>

@@ -9,10 +9,10 @@ function Preview() {
   return (
     <div className="relative mx-auto h-[26rem] w-full max-w-md" aria-hidden>
       <div className="card absolute left-0 top-4 w-[88%] -rotate-3 p-4 shadow-2xl backdrop-blur" style={{ background: 'var(--raised)' }}>
-        <div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-lg bg-rose-soft text-rose"><FileText size={18} /></span><div className="flex-1"><p className="text-xs text-muted"><span className="num font-semibold text-ink">CS224</span> · Past exam</p><p className="mt-0.5 text-sm font-semibold">Databases final 2025, solved</p><p className="mt-2 flex gap-3 text-xs text-muted"><span className="flex items-center gap-1"><ThumbsUp size={11} />24</span><span className="flex items-center gap-1"><Download size={11} />188</span></p></div><span className="flex items-center gap-1 text-xs font-medium text-accent"><BadgeCheck size={13} />Verified</span></div>
+        <div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-lg bg-rose-soft text-rose"><FileText size={18} /></span><div className="flex-1"><p className="text-xs text-muted"><span className="num font-semibold text-ink">CS224</span> · Past exam</p><p className="mt-1 text-sm font-semibold">Databases final 2025, solved</p><p className="mt-2 flex gap-3 text-xs text-muted"><span className="flex items-center gap-1"><ThumbsUp size={11} />24</span><span className="flex items-center gap-1"><Download size={11} />188</span></p></div><span className="flex items-center gap-1 text-xs font-medium text-accent"><BadgeCheck size={13} />Verified</span></div>
       </div>
       <div className="card absolute right-0 top-32 w-[84%] rotate-2 p-4 shadow-2xl" style={{ background: 'var(--raised)' }}>
-        <p className="text-xs text-muted">Campus Voice · anonymous</p><p className="mt-1 text-sm font-semibold">The library closes at 6pm during exam weeks</p><p className="mt-1.5 text-xs text-muted">58 votes · 12 replies</p>
+        <p className="text-xs text-muted">Campus Voice · anonymous</p><p className="mt-1 text-sm font-semibold">The library closes at 6pm during exam weeks</p><p className="mt-2 text-xs text-muted">58 votes · 12 replies</p>
       </div>
       <div className="card absolute bottom-2 left-6 flex w-[80%] items-center gap-3 p-4 shadow-2xl" style={{ background: 'var(--raised)' }}>
         <span className="grid size-9 place-items-center rounded-full bg-accent-soft text-sm font-semibold text-accent">IG</span><div className="flex-1"><p className="text-sm font-semibold">Ines Gharbi</p><p className="text-xs text-muted">Rank #1 this week</p></div><span className="num text-sm font-medium">236 XP</span>
@@ -35,7 +35,7 @@ export default function Login() {
       <section className="relative flex flex-col justify-between px-6 py-8 sm:px-14">
         <Logo />
         <form onSubmit={submit} className="rise mx-auto w-full max-w-sm py-12">
-          <h1 className="display gradient-text text-4xl">Welcome back</h1>
+          <h1 className="display gradient-text text-2xl">Welcome back</h1>
           <p className="mt-2 text-sm text-muted">Sign in with your Moodle account.</p>
           <div className="mt-8 grid gap-4">
             <label><span className="label">Username</span><input className="field !h-11" autoComplete="username" autoFocus value={u} onChange={(e) => setU(e.target.value)} placeholder="firstname.lastname" required /></label>
@@ -49,7 +49,7 @@ export default function Login() {
         <p className="text-xs text-faint">© SMUhub · Made by students, for students</p>
       </section>
       <section className="relative hidden flex-col justify-center gap-10 border-l border-line px-14 lg:flex">
-        <div className="mx-auto max-w-md text-center"><h2 className="display gradient-text text-4xl">Everything your courses never gave you.</h2><p className="mt-3 text-sm text-muted">Notes, past exams and honest answers from the students who just took the course.</p></div>
+        <div className="mx-auto max-w-md text-center"><h2 className="display gradient-text text-2xl">Everything your courses never gave you.</h2><p className="mt-3 text-sm text-muted">Notes, past exams and honest answers from the students who just took the course.</p></div>
         <Preview />
       </section>
     </div>

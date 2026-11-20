@@ -7,7 +7,7 @@ export default function Calendar({ days, size = 'sm', selected, onSelect }: { da
   const cells = [...Array(first).fill(0), ...Array.from({ length: total }, (_, i) => i + 1)]
   const lg = size === 'lg'
   return (
-    <div className={cn('grid grid-cols-7 text-center', lg ? 'gap-1.5 text-[13px]' : 'gap-y-1 text-[11.5px]')}>
+    <div className={cn('grid grid-cols-7 text-center', lg ? 'gap-2 text-sm' : 'gap-y-1 text-xs')}>
       {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => <span key={d} className="pb-1 font-medium text-faint">{lg ? d : d[0]}</span>)}
       {cells.map((d, i) => {
         const kind = d ? days.get(d) : undefined, today = d === now.getDate(), past = d && d < now.getDate()
