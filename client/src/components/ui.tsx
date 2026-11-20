@@ -18,7 +18,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="pointer-events-none fixed inset-x-0 bottom-5 z-[80] flex flex-col items-center gap-2 px-4" aria-live="polite">
         {items.map((t) => (
-          <div key={t.id} className={cn('rise pointer-events-auto rounded-md px-4 py-3 text-sm font-medium shadow-[var(--lift)]', t.tone === 'xp' ? 'bg-ink text-paper' : t.tone === 'err' ? 'bg-rose-soft text-rose' : 'bg-surface text-ink')}>
+          <div key={t.id} className={cn('rise pointer-events-auto rounded-md border px-4 py-3 text-sm font-medium shadow-popover', t.tone === 'xp' ? 'border-transparent bg-ink text-paper' : t.tone === 'err' ? 'border-danger/30 bg-danger-soft text-danger' : 'border-line bg-surface text-ink')}>
             {t.tone === 'xp' && <span className="mr-2">↑</span>}{t.text}
           </div>
         ))}
@@ -58,7 +58,7 @@ export function PageHeader({ eyebrow, title, sub, action }: { eyebrow?: string; 
 
 export function Empty({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center rounded-xl bg-side px-6 py-14 text-center">
+    <div className="flex flex-col items-center rounded-lg border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
       <p className="text-base font-semibold">{title}</p>
       {hint && <p className="mt-1 max-w-sm text-sm text-muted">{hint}</p>}
       {action && <div className="mt-5">{action}</div>}
@@ -69,7 +69,7 @@ export function Empty({ title, hint, action }: { title: string; hint?: string; a
 export function Skeleton({ rows = 4, className }: { rows?: number; className?: string }) {
   return (
     <div className="grid gap-3" aria-busy aria-label="Loading">
-      {Array.from({ length: rows }).map((_, i) => <div key={i} className={cn('h-16 animate-pulse rounded-xl bg-hover', className)} style={{ animationDelay: `${i * 80}ms` }} />)}
+      {Array.from({ length: rows }).map((_, i) => <div key={i} className={cn('h-16 animate-pulse rounded-md bg-hover', className)} style={{ animationDelay: `${i * 80}ms` }} />)}
     </div>
   )
 }
@@ -77,13 +77,13 @@ export function Skeleton({ rows = 4, className }: { rows?: number; className?: s
 export function Spinner() { return <span className="inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> }
 
 export function ErrorBox({ error }: { error: unknown }) {
-  return <div role="alert" className="rounded-xl border border-rose/30 bg-rose-soft p-4 text-sm font-medium text-rose">{error instanceof Error ? error.message : 'Could not load this. Try again.'}</div>
+  return <div role="alert" className="rounded-md border border-danger/30 bg-danger-soft p-4 text-sm font-medium text-danger">{error instanceof Error ? error.message : 'Could not load this. Try again.'}</div>
 }
 
 export function VoteButton({ votes, voted, disabled, onVote, label = 'Upvote' }: { votes: number; voted: boolean; disabled?: boolean; onVote: () => void; label?: string }) {
   return (
     <button type="button" aria-label={label} aria-pressed={voted} disabled={voted || disabled} onClick={onVote}
-      className={cn('flex w-11 shrink-0 flex-col items-center rounded-lg border py-2 transition active:scale-95 disabled:cursor-default', voted ? 'border-transparent bg-accent-soft text-accent' : 'border-line-strong bg-surface hover:bg-hover disabled:opacity-60 disabled:hover:border-line-strong')}>
+      className={cn('flex w-10 shrink-0 flex-col items-center rounded-sm border py-1 transition-colors disabled:cursor-default', voted ? 'border-transparent bg-accent-soft text-accent' : 'border-line-strong bg-surface hover:bg-hover disabled:opacity-60 disabled:hover:border-line-strong')}>
       <svg viewBox="0 0 16 16" className="size-3.5" fill="currentColor" aria-hidden><path d="M8 3l5 7H3z" /></svg>
       <span className="num text-xs font-semibold">{votes}</span>
     </button>
@@ -102,10 +102,10 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 
 export function Segmented<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div role="tablist" className="inline-flex rounded-md bg-hover p-1">
+    <div role="tablist" className="inline-flex rounded-sm border border-line bg-subtle p-1">
       {options.map((o) => (
         <button key={o.value} role="tab" aria-selected={value === o.value} onClick={() => onChange(o.value)}
-          className={cn('h-7 rounded-sm px-3 text-xs font-medium transition', value === o.value ? 'bg-surface text-ink shadow-[var(--ring)]' : 'text-muted hover:text-ink')}>
+          className={cn('h-7 rounded-sm px-3 text-xs font-medium transition', value === o.value ? 'bg-surface text-ink ring-1 ring-line' : 'text-muted hover:text-ink')}>
           {o.label}
         </button>
       ))}

@@ -1,40 +1,40 @@
 import type { ReactNode } from 'react'
-import { cn } from '@/lib/utils'
 
+/** @deprecated Kept so existing call sites compile; page headers no longer use colour. */
 export type Tone = 'blue' | 'violet' | 'orange' | 'rose' | 'green' | 'gold'
-export const TONE_SHADOW: Record<Tone, string> = { blue: '#3b5bff', violet: '#7b5cf5', orange: '#f2711c', rose: '#e0466f', green: '#14946c', gold: '#e69a12' }
 
-/** Coloured page header. Each area of the app has its own tone. */
-export default function Banner({ tone, icon, label, title, sub, stats, action, children }: {
-  tone: Tone; icon: ReactNode; label: string; title: ReactNode; sub?: string
+/**
+ * Page header: small section label, title, grey context line, optional actions and metrics.
+ * Sober on purpose: no background colour, separated from the content by a 1px rule.
+ */
+export default function Banner({ icon, label, title, sub, stats, action, children }: {
+  tone?: Tone; icon: ReactNode; label: string; title: ReactNode; sub?: string
   stats?: [string, ReactNode][]; action?: ReactNode; children?: ReactNode
 }) {
   return (
-    <section className={cn(`tone-${tone}`, 'relative mb-7 overflow-hidden rounded-lg px-6 py-7 text-white sm:px-8')} style={{ boxShadow: `0 22px 44px -26px ${TONE_SHADOW[tone]}` }}>
-      <div className="dots-light pointer-events-none absolute inset-0 opacity-60 [mask-image:linear-gradient(90deg,transparent_30%,#000)]" aria-hidden />
-      <div className="pointer-events-none absolute -right-20 -top-28 size-80 rounded-full bg-white/10 blur-2xl" aria-hidden />
-      <div className="relative flex flex-wrap items-end justify-between gap-6">
-        <div className="min-w-0 max-w-xl">
-          <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium ring-1 ring-white/20">{icon}{label}</p>
-          <h1 className="mt-3 text-2xl font-semibold leading-tight sm:text-2xl">{title}</h1>
-          {sub && <p className="mt-2 text-sm text-white/80">{sub}</p>}
-          {action && <div className="mt-5 flex flex-wrap gap-3">{action}</div>}
+    <header className="mb-8 border-b border-line pb-6">
+      <div className="flex flex-wrap items-end justify-between gap-6">
+        <div className="min-w-0 max-w-2xl">
+          <p className="flex items-center gap-2 text-xs font-medium text-muted"><span className="text-faint" aria-hidden>{icon}</span>{label}</p>
+          <h1 className="mt-1 text-2xl font-semibold">{title}</h1>
+          {sub && <p className="mt-2 text-sm text-muted">{sub}</p>}
+          {action && <div className="mt-4 flex flex-wrap gap-2">{action}</div>}
         </div>
         {stats && (
-          <div className="flex gap-3">
+          <dl className="flex flex-wrap gap-3">
             {stats.map(([l, v]) => (
-              <div key={l} className="min-w-[92px] rounded-lg bg-white/12 px-4 py-3 ring-1 ring-white/20 backdrop-blur-md">
-                <p className="text-lg font-semibold leading-none">{v}</p>
-                <p className="mt-2 text-xs text-white/75">{l}</p>
+              <div key={l} className="flex min-w-24 flex-col-reverse rounded-md border border-line bg-surface px-4 py-2">
+                <dt className="text-xs text-muted">{l}</dt>
+                <dd className="num text-lg font-semibold text-heading">{v}</dd>
               </div>
             ))}
-          </div>
+          </dl>
         )}
         {children}
       </div>
-    </section>
+    </header>
   )
 }
 
-export const bannerBtn = 'btn h-10 bg-white px-4 text-[#161a26] shadow-[0_6px_16px_-6px_rgb(0_0_0/.35)] hover:bg-white/90'
-export const bannerGhost = 'btn h-10 bg-white/12 px-4 text-white ring-1 ring-white/25 hover:bg-white/20'
+export const bannerBtn = 'btn btn-primary h-9'
+export const bannerGhost = 'btn btn-secondary h-9'
