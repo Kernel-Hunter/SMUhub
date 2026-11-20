@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { BadgeCheck, ThumbsUp, Download, FileText } from 'lucide-react'
+import { BadgeCheck, ThumbsUp, Download, FileText, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import { ALLOWED_DOMAINS, checkSmuEmail } from '@/api/auth'
 import { Logo } from '@/components/Shell'
@@ -26,13 +26,14 @@ export default function Login() {
   const { login } = useAuth()
   const [email, setEmail] = useState(''); const [p, setP] = useState('')
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('')
+  const [showPw, setShowPw] = useState(false)
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (busy) return
     const invalid = checkSmuEmail(email)
     if (invalid) { setErr(invalid); return }
     if (!p) { setErr('Entre ton mot de passe.'); return }
-    setBusy(true); setErr('')
+    setBusy(true); setErr(''); setShowPw(false)
     // On success the app re-renders on the signed-in routes and this page unmounts.
     try { await login(email, p) } catch (x) { setErr(errMsg(x)); setP(''); setBusy(false) }
   }
@@ -46,7 +47,15 @@ export default function Login() {
           <p className="mt-2 text-sm text-muted">Sign in with your SMU email.</p>
           <fieldset disabled={busy} className="mt-8 grid gap-4">
             <label><span className="label">SMU email</span><input className="field !h-11" type="email" inputMode="email" autoComplete="email" autoFocus value={email} onChange={(e) => { setEmail(e.target.value); setErr('') }} placeholder={`firstname.lastname@${ALLOWED_DOMAINS[0] ?? 'smu.tn'}`} aria-invalid={!!err} required /></label>
-            <label><span className="label">Password</span><input className="field !h-11" type="password" autoComplete="current-password" value={p} onChange={(e) => { setP(e.target.value); setErr('') }} aria-invalid={!!err} required /></label>
+            <label><span className="label">Password</span>
+              <span className="relative block">
+                <input className="field !h-11 !pr-11" type={showPw ? 'text' : 'password'} autoComplete="current-password" value={p} onChange={(e) => { setP(e.target.value); setErr('') }} aria-invalid={!!err} required />
+                <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? 'Hide password' : 'Show password'} aria-pressed={showPw} title={showPw ? 'Hide password' : 'Show password'}
+                  className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-muted transition hover:bg-hover hover:text-ink">
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </span>
+            </label>
             {err && <p role="alert" className="rounded-lg bg-rose-soft px-3 py-2 text-sm text-rose">{err}</p>}
             <button className="btn btn-accent mt-1 !h-11 text-sm" disabled={busy || !email || !p} aria-busy={busy}>{busy ? <Spinner /> : 'Continue'}</button>
           </fieldset>
