@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthContext'
 import Shell from '@/components/Shell'
 import Login from '@/pages/Login'
@@ -18,14 +18,38 @@ const Leaderboard = lazy(() => import('@/pages/Leaderboard'))
 const Profile = lazy(() => import('@/pages/Profile'))
 const Settings = lazy(() => import('@/pages/Settings'))
 
+type FromState = { from?: string } | null
+
+/** Signed out on a protected page: go to /login and remember where the student wanted to go. */
+function ToLogin() {
+  const { pathname, search } = useLocation()
+  return <Navigate to="/login" replace state={{ from: pathname + search }} />
+}
+
+/** Signed in on /login: go back to the page that asked for a login, or home. */
+function FromLogin() {
+  const from = (useLocation().state as FromState)?.from
+  const safe = from && from.startsWith('/') && !from.startsWith('//') && from !== '/login' ? from : '/'
+  return <Navigate to={safe} replace />
+}
+
 export default function App() {
   const { me, loading } = useAuth()
+  // Wait for GET /api/auth/me before choosing a screen, so the Login page never flashes for signed-in students.
   if (loading) return <div className="mx-auto max-w-3xl p-10"><Skeleton rows={3} /></div>
-  if (!me) return <Routes><Route path="*" element={<Login />} /></Routes>
+  if (!me) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<ToLogin />} />
+      </Routes>
+    )
+  }
   return (
     <Shell>
       <Suspense fallback={<Skeleton rows={4} />}>
         <Routes>
+          <Route path="/login" element={<FromLogin />} />
           <Route path="/" element={<Home />} />
           <Route path="/resources" element={<Resources />} />
           <Route path="/resources/new" element={<Upload />} />
