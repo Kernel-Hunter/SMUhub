@@ -2,19 +2,17 @@
 
 `client/src/api/mock.ts` is the reference implementation. Every method there maps to one REST endpoint. Swap the object for `fetch` calls with the same signatures and the UI needs no other change. The client is never trusted: every rule below must be enforced on the server.
 
-## Authentication (Moodle)
+## Authentication (implemented)
 
-Students sign in with their Moodle credentials. Recommended flow:
+Students sign in with their SMU email and a password. Code: `server/src/routes/auth.ts`, `server/src/middleware/requireAuth.ts`.
 
-1. `POST /api/auth/login {username, password}`.
-2. Server forwards the credentials to `${MOODLE_URL}/login/token.php` with `service=moodle_mobile_app`, then calls `core_webservice_get_site_info` for the user id and full name.
-3. Discard the Moodle token. Never store or log the password.
-4. Create a server-side session: random 256-bit token in an `HttpOnly; Secure; SameSite=Lax` cookie, store only its SHA-256 hash. Identify users by Moodle user id.
-5. Rate-limit login per IP and per username.
+- `POST /api/auth/login {email, password}`: email is trimmed and lowercased; its domain must be in `ALLOWED_EMAIL_DOMAINS` (403 otherwise). Bad email or password both answer 401 "Email ou mot de passe incorrect." Failed attempts are rate limited per IP.
+- On success the server sets `smuhub_session`: a JWT (HS256, `JWT_SECRET`) holding only the user id, in an `HttpOnly; SameSite=Lax` cookie, `Secure` in production, expiring after `SESSION_DAYS`.
+- `POST /api/auth/logout` clears the cookie (204). `GET /api/auth/me` returns `{ user }` or 401.
+- `requireAuth` guards every protected route: valid token, user still exists, email domain still allowed. It sets `req.user`.
+- Passwords are stored as bcrypt hashes (12 rounds) in `users.passwordHash`, never returned by the API.
 
-Verify before building on it: the university must have Moodle mobile web services enabled, and accounts must have local passwords (not SSO-only). If Moodle uses Microsoft SSO, use tenant-restricted Microsoft sign-in or an email OTP to `@medtech.tn` instead. Keep auth behind one interface so this is a one-file change.
-
-Tell students plainly that they type their Moodle password into SMUhub.
+Known limit: a JWT stays valid until it expires even after logout on another device. If instant revocation is needed, add a `tokenVersion` on the user and check it in `requireAuth`.
 
 ## Leaderboard integrity rules
 
