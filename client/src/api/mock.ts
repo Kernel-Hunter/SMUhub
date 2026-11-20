@@ -31,6 +31,7 @@ type DB = {
 
 const KEY = 'smuhub.mock.v2'
 const SESSION = 'smuhub.mock.session'
+const OWNER = 'smuhub.mock.owner' // id (from the real API) of the student the mock data belongs to
 const ME = 'me'
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
 const sleep = (ms = 160) => new Promise((r) => setTimeout(r, ms + Math.random() * 120))
@@ -184,23 +185,29 @@ export const api = {
   rules: RULES,
 
   auth: {
+    /** Mock profile (XP, rank, uploads) of the student signed in through the real API. */
     async session(): Promise<Me | null> { await sleep(60); return sessionId() ? toMe() : null },
-    /** Real server: proxies Moodle login/token.php, never stores or logs the password. */
-    async login(username: string, password: string): Promise<Me> {
-      await sleep(550)
-      const name = username.trim()
-      if (name.length < 3 || password.length < 4) fail('invalidlogin', 'Invalid login, please try again.')
-      let me = db.users.find((u) => u.id === ME)
-      const display = name.split('@')[0].split(/[._\s-]+/).filter(Boolean).map((s) => s[0].toUpperCase() + s.slice(1)).join(' ') || name
-      if (!me) {
-        me = { id: ME, name: display, major: 'Computer Science', year: 2, bio: '', joinedAt: Date.now(), role: 'student', courses: ['CS324', 'CS224', 'MATH210'] }
-        db.users.push(me)
+  },
+
+  /**
+   * Bridge between the real auth API (server/) and the parts still on the mock.
+   * Login and logout happen on the server; these calls only keep the mock's "current student" in sync.
+   * Remove once resources, Q&A and events have their own endpoints.
+   */
+  bridge: {
+    attach(user: { id: string; firstName: string; lastName: string; major: string; year: number; createdAt: string }) {
+      let owner: string | null = null
+      try { owner = localStorage.getItem(OWNER) } catch { /* ignore */ }
+      // Another student signed in on this browser: start from fresh demo data so nothing leaks between accounts.
+      if (owner !== user.id) { db = seed(); try { localStorage.setItem(OWNER, user.id) } catch { /* ignore */ } }
+      if (!db.users.some((u) => u.id === ME)) {
+        db.users.push({ id: ME, name: `${user.firstName} ${user.lastName}`.trim(), major: user.major || 'Undeclared', year: user.year || 1, bio: '', joinedAt: Date.parse(user.createdAt) || Date.now(), role: 'student', courses: ['CS324', 'CS224', 'MATH210'] })
         db.ledger.push({ id: uid(), userId: ME, actorId: 'system', kind: 'seed', points: 40, refKey: 'seed:me', label: 'Welcome bonus', at: Date.now() })
-      } else me.name = display
-      localStorage.setItem(SESSION, ME); save()
-      return toMe()
+      }
+      try { localStorage.setItem(SESSION, ME) } catch { /* ignore */ }
+      save()
     },
-    async logout() { localStorage.removeItem(SESSION) },
+    detach() { try { localStorage.removeItem(SESSION) } catch { /* ignore */ } },
   },
 
   me: {
