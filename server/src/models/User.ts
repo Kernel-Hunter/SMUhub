@@ -1,4 +1,4 @@
-import { Schema, model, type HydratedDocument, type InferSchemaType } from 'mongoose'
+import { Schema, model, type HydratedDocumentFromSchema, type InferSchemaType } from 'mongoose'
 
 const userSchema = new Schema(
   {
@@ -14,7 +14,7 @@ const userSchema = new Schema(
 )
 
 export type UserFields = InferSchemaType<typeof userSchema>
-export type UserDoc = HydratedDocument<UserFields>
+export type UserDoc = HydratedDocumentFromSchema<typeof userSchema>
 
 /** The only shape the API ever returns for a user. Never includes passwordHash. */
 export type PublicUserDto = {
