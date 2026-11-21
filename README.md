@@ -33,7 +33,7 @@ Open two terminals.
 cd server
 npm install
 cp .env.example .env      # Windows PowerShell: Copy-Item .env.example .env
-# edit .env and set JWT_SECRET (see Configuration)
+# edit .env and set JWT_SECRET and SEED_PASSWORD (see Configuration)
 npm run seed              # creates the database and 2 test students
 npm run dev               # http://localhost:4000
 ```
@@ -45,12 +45,12 @@ pnpm install
 pnpm dev                  # http://localhost:5173
 ```
 
-Open http://localhost:5173 and sign in with a test account:
+Open http://localhost:5173 and sign in with a test account. The password is the `SEED_PASSWORD` value in `server/.env`:
 
 | Email | Password |
 | --- | --- |
-| `yasmine.trabelsi@medtech.tn` | `SmuTest2026!` |
-| `ahmed.benali@msb.tn` | `SmuTest2026!` |
+| `yasmine.trabelsi@medtech.tn` | `SEED_PASSWORD` |
+| `ahmed.benali@msb.tn` | `SEED_PASSWORD` |
 
 Start the API first. If it is not running, the Vite terminal shows `http proxy error: /api/auth/me ECONNREFUSED` and the login page says it cannot reach the server.
 
@@ -69,6 +69,7 @@ Copy `server/.env.example` to `server/.env`. The server validates these values a
 | `PORT` | no | `4000` | API port |
 | `SESSION_DAYS` | no | `7` | How long a login lasts (max 30) |
 | `LOGIN_RATE_LIMIT` | no | `10` | Failed login attempts allowed per IP per 15 minutes |
+| `SEED_PASSWORD` | for `npm run seed` | | Password given to the test students (8 to 128 characters). Only read by the seed script. |
 | `NODE_ENV` | no | `development` | `production` turns on the `Secure` cookie flag (HTTPS only) |
 
 ### `client/.env.local` (optional)
@@ -89,7 +90,7 @@ MongoDB database `SMUhub` (the name comes from `MONGODB_URI`). You do not need t
 | --- | --- | --- |
 | `users` | `email` (lowercase, trimmed), `passwordHash` (bcrypt, never returned by the API), `firstName`, `lastName`, `major`, `year`, `createdAt` | `_id`, `email_1` (unique) |
 
-`npm run seed` can be run again at any time: it updates the two test students and resets their password.
+`npm run seed` can be run again at any time: it matches the two test students by email, updates them in place (no duplicates) and resets their password to `SEED_PASSWORD`.
 
 MongoDB refuses two databases whose names differ only by case (`smuhub` and `SMUhub`). If the seed fails with "db already exists with different case", drop the old one in Compass or point `MONGODB_URI` at the existing name.
 
