@@ -4,16 +4,17 @@ import { BookOpen, CalendarDays, HelpCircle, LayoutGrid, LogOut, Megaphone, Menu
 import { useAuth } from '@/auth/AuthContext'
 import { Avatar } from './ui'
 import Palette from './Palette'
+import Flow from './Flow'
 import { cn } from '@/lib/utils'
 
 const MAIN = [
-  { to: '/', label: 'Home', icon: LayoutGrid, end: true },
-  { to: '/resources', label: 'Library', icon: BookOpen },
-  { to: '/qa', label: 'Questions', icon: HelpCircle },
-  { to: '/voice', label: 'Campus Voice', icon: Megaphone },
-  { to: '/events', label: 'Calendar', icon: CalendarDays },
-  { to: '/rentals', label: 'Rentals', icon: PackageOpen },
-  { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+  { to: '/', label: 'Home', icon: LayoutGrid, end: true, hue: 'blue' },
+  { to: '/resources', label: 'Library', icon: BookOpen, hue: 'blue' },
+  { to: '/qa', label: 'Questions', icon: HelpCircle, hue: 'violet' },
+  { to: '/voice', label: 'Campus Voice', icon: Megaphone, hue: 'orange' },
+  { to: '/events', label: 'Calendar', icon: CalendarDays, hue: 'rose' },
+  { to: '/rentals', label: 'Rentals', icon: PackageOpen, hue: 'green' },
+  { to: '/leaderboard', label: 'Leaderboard', icon: Trophy, hue: 'gold' },
 ]
 const TITLES: Record<string, string> = { '': 'Home', resources: 'Library', qa: 'Questions', voice: 'Campus Voice', events: 'Calendar', rentals: 'Rentals', leaderboard: 'Leaderboard', settings: 'Settings', u: 'Profile' }
 
@@ -30,10 +31,13 @@ export function Logo({ className }: { className?: string }) {
   )
 }
 
-function Item({ to, label, icon: Icon, end }: { to: string; label: string; icon: typeof Search; end?: boolean }) {
+function Item({ to, label, icon: Icon, end, hue = 'blue' }: { to: string; label: string; icon: typeof Search; end?: boolean; hue?: string }) {
   return (
-    <NavLink to={to} end={end} className={({ isActive }) => cn('flex h-8 min-w-0 items-center gap-3 rounded-sm px-3 text-sm font-medium transition-colors', isActive ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-hover hover:text-ink')}>
-      {({ isActive }) => <><Icon size={16} strokeWidth={1.75} className={cn('shrink-0', isActive && 'text-accent')} /><span className="truncate">{label}</span></>}
+    <NavLink to={to} end={end} className={({ isActive }) => cn(`hue-${hue}`, 'group relative flex h-9 min-w-0 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors', isActive ? 'bg-hue-soft text-hue' : 'text-muted hover:bg-hover hover:text-ink')}>
+      {({ isActive }) => <>
+        {isActive && <span className="absolute -left-3 top-1.5 bottom-1.5 w-[3px] rounded-r-full" style={{ background: 'var(--hue)', animation: 'fade .2s' }} aria-hidden />}
+        <span className={cn('grid size-6 shrink-0 place-items-center rounded-[6px] transition-colors', isActive ? 'bg-hue' : 'group-hover:text-hue')}><Icon size={15} strokeWidth={isActive ? 2 : 1.75} /></span>
+        <span className="truncate">{label}</span></>}
     </NavLink>
   )
 }
@@ -50,14 +54,15 @@ function Sidebar({ onNav }: { onNav?: () => void }) {
   return (
     <div className="flex h-full min-w-0 flex-col px-3 py-4" onClick={onNav}>
       <div className="flex items-center justify-between gap-2 px-3"><Logo /><span className="shrink-0 rounded-sm bg-accent-soft px-2 text-xs font-medium text-accent">Beta</span></div>
-      <nav className="mt-6 flex flex-col gap-1" aria-label="Main">{MAIN.map((n) => <Item key={n.to} {...n} />)}</nav>
+      <nav className="mt-6 flex flex-col gap-0.5" aria-label="Main">{MAIN.map((n) => <Item key={n.to} {...n} />)}</nav>
       <p className="mt-8 px-3 pb-2 text-xs font-medium text-faint">You</p>
       <nav className="flex flex-col gap-1" aria-label="Account"><Item to={`/u/${me.id}`} label="Profile" icon={UserRound} /><Item to="/settings" label="Settings" icon={Settings} /></nav>
       <div className="mt-auto flex flex-col gap-2 pt-4">
-        <Link to="/leaderboard" className="block rounded-md border border-line bg-surface px-3 py-3 transition-colors hover:border-line-strong hover:bg-bg">
-          <div className="flex items-baseline justify-between gap-2"><span className="text-xs font-semibold">Level {level}</span><span className="num truncate text-xs text-muted">{me.xp} / {hi} XP</span></div>
-          <div className="mt-2 flex gap-1" aria-hidden>{Array.from({ length: 10 }).map((_, i) => <span key={i} className={cn('h-1 flex-1 rounded-full', i < Math.round(pct / 10) ? 'bg-accent' : 'bg-line-strong')} />)}</div>
-          <p className="mt-2 text-xs text-muted">{me.rank ? `#${me.rank} on campus this term` : 'Share something to get ranked'}</p>
+        <Link to="/leaderboard" className="night relative block overflow-hidden rounded-[10px] px-3 py-3 transition-transform hover:-translate-y-0.5">
+          <Flow className="w-full text-[#3fb0d0] opacity-40" />
+          <div className="relative flex items-baseline justify-between gap-2"><span className="text-xs font-semibold">Level {level}</span><span className="num truncate text-xs text-white/70">{me.xp} / {hi} XP</span></div>
+          <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-white/15" aria-hidden><span className="block h-full rounded-full bg-[#3fb0d0] transition-[width] duration-700" style={{ width: `${pct}%` }} /></div>
+          <p className="relative mt-2 text-xs text-white/70">{me.rank ? `#${me.rank} on campus this term` : 'Share something to get ranked'}</p>
         </Link>
         <div className="flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-hover">
           <Avatar user={me} size={28} />

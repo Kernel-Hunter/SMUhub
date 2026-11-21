@@ -5,9 +5,11 @@ import { Avatar } from './ui'
 import { KIND_LABEL, VOICE_LABEL, VOICE_TONE, timeAgo, cn } from '@/lib/utils'
 
 
+const EXT_HUE: Record<string, string> = { pdf: 'rose', docx: 'blue', pptx: 'orange', xlsx: 'green', png: 'violet', jpg: 'violet' }
+
 export function FileBadge({ ext, size = 'md' }: { ext: string; size?: 'md' | 'lg' }) {
   return (
-    <span className={cn('grid shrink-0 place-items-center rounded-sm border border-line bg-subtle font-mono font-medium uppercase text-muted', size === 'lg' ? 'h-14 w-12 text-xs' : 'h-10 w-10 text-xs')}>{ext}</span>
+    <span className={cn(`hue-${EXT_HUE[ext] ?? 'blue'}`, 'tile font-mono font-semibold uppercase', size === 'lg' ? 'h-14 w-12 text-xs' : 'h-10 w-10 text-[11px]')}>{ext}</span>
   )
 }
 
