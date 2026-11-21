@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { BadgeCheck, ThumbsUp, Download, FileText } from 'lucide-react'
+import { BadgeCheck, ThumbsUp, Download, FileText, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import { Logo } from '@/components/Shell'
 import { Spinner } from '@/components/ui'
@@ -25,8 +25,9 @@ export default function Login() {
   const { login } = useAuth()
   const [u, setU] = useState(''); const [p, setP] = useState('')
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('')
+  const [showPw, setShowPw] = useState(false)
   async function submit(e: FormEvent) {
-    e.preventDefault(); setBusy(true); setErr('')
+    e.preventDefault(); setBusy(true); setErr(''); setShowPw(false)
     try { await login(u, p) } catch (x) { setErr(errMsg(x)); setBusy(false) }
   }
   return (
@@ -38,7 +39,17 @@ export default function Login() {
           <p className="mt-2 text-sm text-muted">Sign in with your Moodle account.</p>
           <div className="mt-8 grid grid-cols-1 gap-4">
             <label><span className="label">Username</span><input className="field !h-10" autoComplete="username" autoFocus value={u} onChange={(e) => setU(e.target.value)} placeholder="firstname.lastname" required /></label>
-            <label><span className="label">Password</span><input className="field !h-10" type="password" autoComplete="current-password" value={p} onChange={(e) => setP(e.target.value)} required /></label>
+            <div>
+              <label htmlFor="login-password" className="label">Password</label>
+              <div className="relative">
+                <input id="login-password" className="field !h-10 !pr-10" type={showPw ? 'text' : 'password'} autoComplete="current-password" value={p} onChange={(e) => setP(e.target.value)} required />
+                {/* Native button: reachable with Tab, toggled with Enter or Space. type="button" so it never submits the form. */}
+                <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} aria-pressed={showPw} aria-controls="login-password" title={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  className="absolute right-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-sm text-muted transition-colors hover:bg-hover hover:text-ink">
+                  {showPw ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
+                </button>
+              </div>
+            </div>
             {err && <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">{err}</p>}
             <button className="btn btn-accent mt-1 !h-10 text-sm" disabled={busy || !u || !p}>{busy ? <Spinner /> : 'Continue'}</button>
           </div>
