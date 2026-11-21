@@ -25,12 +25,12 @@ function Preview() {
 
 export default function Login() {
   const { login } = useAuth()
-  const [u, setU] = useState(''); const [p, setP] = useState('')
+  const [email, setEmail] = useState(''); const [p, setP] = useState('')
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('')
   const [showPw, setShowPw] = useState(false)
   async function submit(e: FormEvent) {
     e.preventDefault(); setBusy(true); setErr(''); setShowPw(false)
-    try { await login(u, p) } catch (x) { setErr(errMsg(x)); setBusy(false) }
+    try { await login(email, p) } catch (x) { setErr(errMsg(x)); setBusy(false) }
   }
   return (
     <div className="grid min-h-dvh bg-bg lg:grid-cols-[1fr_1.1fr]">
@@ -38,9 +38,9 @@ export default function Login() {
         <Logo />
         <form onSubmit={submit} className="rise mx-auto w-full max-w-sm py-12">
           <h1 className="text-2xl font-semibold">Welcome back</h1>
-          <p className="mt-2 text-sm text-muted">Sign in with your Moodle account.</p>
+          <p className="mt-2 text-sm text-muted">Sign in with your SMU email.</p>
           <div className="mt-8 grid grid-cols-1 gap-4">
-            <label><span className="label">Username</span><input className="field !h-10" autoComplete="username" autoFocus value={u} onChange={(e) => setU(e.target.value)} placeholder="firstname.lastname" required /></label>
+            <label><span className="label">SMU email</span><input className="field !h-10" type="email" inputMode="email" autoComplete="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="firstname.lastname@medtech.tn" required /></label>
             <div>
               <label htmlFor="login-password" className="label">Password</label>
               <div className="relative">
@@ -53,10 +53,9 @@ export default function Login() {
               </div>
             </div>
             {err && <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">{err}</p>}
-            <button className="btn btn-accent mt-1 !h-10 text-sm" disabled={busy || !u || !p}>{busy ? <Spinner /> : 'Continue'}</button>
+            <button className="btn btn-accent mt-1 !h-10 text-sm" disabled={busy || !email || !p}>{busy ? <Spinner /> : 'Continue'}</button>
           </div>
-          <p className="mt-6 text-xs leading-relaxed text-muted">Only SMU students can sign in. Your password goes directly to Moodle and is never stored by SMUhub.</p>
-          <p className="mt-3 rounded-md border border-line bg-surface px-3 py-2 text-xs text-faint">Demo build: any username and a 4+ character password.</p>
+          <p className="mt-6 text-xs leading-relaxed text-muted">Only SMU students can sign in, with their university email address.</p>
         </form>
         <p className="text-xs text-faint">© SMUhub · Made by students, for students</p>
       </section>
