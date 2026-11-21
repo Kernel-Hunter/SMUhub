@@ -42,7 +42,7 @@ export default function Upload() {
               <div className="flex items-center gap-3 text-left"><FileBadge ext={file.name.split('.').pop()?.toLowerCase() ?? 'pdf'} /><span><span className="flex items-center gap-2 text-sm font-medium"><FileCheck2 size={14} className="text-moss" />{file.name}</span><span className="text-xs text-muted">{formatSize(file.size)}</span></span>
                 <button type="button" aria-label="Remove file" className="btn btn-ghost btn-sm ml-2 !px-2" onClick={(e) => { e.stopPropagation(); setFile(null) }}><X size={14} /></button></div>
             ) : (<>
-              <span className="tone-blue grid size-12 place-items-center rounded-lg text-white shadow-[0_10px_20px_-8px_#3b5bff]"><CloudUpload size={22} /></span>
+              <span className="grid size-12 place-items-center rounded-md bg-subtle text-muted"><CloudUpload size={22} /></span>
               <p className="mt-3 text-sm font-semibold">Drop your file here, or click to browse</p>
               <p className="mt-1 text-xs text-muted">{RULES.allowedExt.join(', ').toUpperCase()} up to 25 MB</p>
             </>)}
@@ -63,11 +63,11 @@ export default function Upload() {
           <div className="card p-5">
             <p className="text-sm font-semibold">How you earn points</p>
             <ul className="mt-3 grid gap-3">
-              {[[`+${P.helpful}`, 'each classmate who rates it helpful', 'bg-accent-soft text-accent'], [`+${P.verified}`, `when ${RULES.verifyThreshold} different students rate it`, 'bg-moss-soft text-moss'], ['0', 'for duplicates or files nobody rates', 'bg-hover text-muted']].map(([p, t, c]) => (
+              {[[`+${P.helpful}`, 'each classmate who rates it helpful', 'bg-accent-soft text-accent'], [`+${P.verified}`, `when ${RULES.verifyThreshold} different students rate it`, 'bg-accent-soft text-accent'], ['0', 'for duplicates or files nobody rates', 'bg-hover text-muted']].map(([p, t, c]) => (
                 <li key={t} className="flex items-center gap-3 text-sm"><span className={cn('num grid h-7 w-11 shrink-0 place-items-center rounded-md text-xs font-semibold', c)}>{p}</span><span className="text-muted">{t}</span></li>))}
             </ul>
           </div>
-          <div className="card flex gap-3 p-5 text-xs leading-relaxed text-muted"><ShieldCheck size={18} className="mt-1 shrink-0 text-moss" />The server checks every file's type, size and fingerprint. Copies of a file that's already here are rejected.</div>
+          <div className="card flex gap-3 p-5 text-xs leading-relaxed text-muted"><ShieldCheck size={18} className="mt-1 shrink-0 text-muted" />The server checks every file's type, size and fingerprint. Copies of a file that's already here are rejected.</div>
         </aside>
       </div>
     </div>
