@@ -22,7 +22,7 @@ export default function Threads({ kind }: { kind: ThreadKind }) {
     ? [['Questions', a.length], ['Solved', a.filter((t) => t.solved).length], ['Open', a.filter((t) => !t.solved).length]]
     : [['Posts', a.length], ['Votes', a.reduce((s, t) => s + t.votes, 0)], ['Replies', a.reduce((s, t) => s + t.replyCount, 0)]]
   const Item = ({ on, onClick, dot, label, count }: { on: boolean; onClick: () => void; dot: React.ReactNode; label: React.ReactNode; count: number }) => (
-    <button onClick={onClick} className={cn('flex items-center gap-3 rounded-md px-2 py-2 text-left text-sm transition', on ? (qa ? 'bg-violet-soft font-medium text-violet' : 'bg-orange-soft font-medium text-orange') : 'hover:bg-hover')}>{dot}{label}<span className="num ml-auto text-xs text-faint">{count}</span></button>
+    <button onClick={onClick} className={cn('flex items-center gap-3 rounded-md px-2 py-2 text-left text-sm transition', on ? 'bg-accent-soft font-medium text-accent' : 'hover:bg-hover')}>{dot}{label}<span className="num ml-auto text-xs text-faint">{count}</span></button>
   )
   return (
     <div>
@@ -36,14 +36,14 @@ export default function Threads({ kind }: { kind: ThreadKind }) {
           <label className="relative block"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint" /><input className="field !pl-9" placeholder={qa ? 'Search questions' : 'Search posts'} value={q} onChange={(e) => set('q', e.target.value)} aria-label="Search" /></label>
           {qa && (
             <button onClick={() => set('open', unsolved ? '' : '1')} className="mt-4 flex w-full items-center justify-between rounded-md bg-hover px-3 py-3 text-sm font-medium">
-              Unanswered only<span className={cn('relative h-5 w-9 rounded-full transition', unsolved ? 'bg-violet' : 'bg-line-strong')}><span className={cn('absolute top-1 size-4 rounded-full bg-white shadow transition-all', unsolved ? 'left-[18px]' : 'left-1')} /></span>
+              Unanswered only<span className={cn('relative h-5 w-9 rounded-full transition', unsolved ? 'bg-accent-fill' : 'bg-line-strong')}><span className={cn('absolute top-1 size-4 rounded-full bg-white ring-1 ring-black/10 transition-all', unsolved ? 'left-[18px]' : 'left-1')} /></span>
             </button>
           )}
           <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-faint">{qa ? 'Courses' : 'Topics'}</p>
-          <div className="-mx-1 grid max-h-80 gap-1 overflow-auto">
+          <div className="-mx-1 grid max-h-80 grid-cols-1 gap-1 overflow-auto">
             {qa ? (<>
               <Item on={!course} onClick={() => set('course', '')} dot={<span className="size-2 rounded-full bg-ink/30" />} label="All courses" count={a.length} />
-              {courses.data?.filter((c) => c.questions > 0).map((c) => <Item key={c.code} on={course === c.code} onClick={() => set('course', course === c.code ? '' : c.code)} dot={<span className="size-2 shrink-0 rounded-full" style={{ background: deptOf(c.dept).from }} />} label={<><span className="num">{c.code}</span><span className="truncate text-muted">{c.name}</span></>} count={c.questions} />)}
+              {courses.data?.filter((c) => c.questions > 0).map((c) => <Item key={c.code} on={course === c.code} onClick={() => set('course', course === c.code ? '' : c.code)} dot={<span className="size-2 shrink-0 rounded-full" style={{ background: deptOf(c.dept).dot }} aria-hidden />} label={<><span className="mono text-xs">{c.code}</span><span className="min-w-0 truncate text-muted">{c.name}</span></>} count={c.questions} />)}
             </>) : (<>
               <Item on={!category} onClick={() => set('cat', '')} dot={<span className="size-2 rounded-full bg-ink/30" />} label="All topics" count={a.length} />
               {Object.entries(VOICE_LABEL).map(([k, l]) => <Item key={k} on={category === k} onClick={() => set('cat', category === k ? '' : k)} dot={<span className={cn('size-2 rounded-full', VOICE_TONE[k as keyof typeof VOICE_TONE].split(' ')[1].replace('text-', 'bg-'))} />} label={l} count={a.filter((t) => t.category === k).length} />)}

@@ -19,7 +19,6 @@ export default function ThreadDetail() {
   if (isLoading) return <Skeleton rows={3} />
   if (error || !data) return <ErrorBox error={error} />
   const { thread: t, replies } = data; const qa = t.kind === 'question'
-  const tone = qa ? 'tone-violet' : 'tone-orange'
   const submit = (e: FormEvent) => { e.preventDefault(); reply.mutate() }
   return (
     <div>
@@ -27,11 +26,10 @@ export default function ThreadDetail() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="grid min-w-0 content-start gap-6">
           <article className="card overflow-hidden">
-            <div className={cn(tone, 'h-1.5')} />
             <div className="flex gap-5 p-6">
               <VoteButton votes={t.votes} voted={t.iVoted || t.mine} disabled={t.mine} onVote={() => vote.mutate()} />
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap gap-2">{t.courseCode && <span className="chip num">{t.courseCode}</span>}{t.category && <span className={cn('chip', VOICE_TONE[t.category])}>{VOICE_LABEL[t.category]}</span>}{t.solved && <span className="chip bg-moss-soft text-moss"><CheckCircle2 size={12} />Solved</span>}</div>
+                <div className="flex flex-wrap gap-2">{t.courseCode && <span className="chip num">{t.courseCode}</span>}{t.category && <span className={cn('chip', VOICE_TONE[t.category])}>{VOICE_LABEL[t.category]}</span>}{t.solved && <span className="chip bg-success-soft text-success"><CheckCircle2 size={12} />Solved</span>}</div>
                 <h1 className="display mt-3 text-2xl">{t.title}</h1>
                 <p className="mt-3 whitespace-pre-line text-sm leading-relaxed">{t.body}</p>
               </div>
@@ -43,11 +41,11 @@ export default function ThreadDetail() {
             {replies.length > 0 && (
               <div className="rows">
                 {replies.map((r) => (
-                  <div key={r.id} className={cn('relative flex gap-4 px-5 py-4', r.accepted && 'bg-moss-soft')}>
-                    {r.accepted && <span className="absolute inset-y-0 left-0 w-1 bg-moss" />}
+                  <div key={r.id} className={cn('relative flex gap-4 px-5 py-4', r.accepted && 'bg-success-soft')}>
+                    {r.accepted && <span className="absolute inset-y-0 left-0 w-1 bg-success" />}
                     <VoteButton votes={r.votes} voted={r.iVoted || r.mine} disabled={r.mine} onVote={() => voteReply.mutate(r.id)} />
                     <div className="min-w-0 flex-1">
-                      {r.accepted && <p className="mb-2 flex items-center gap-2 text-xs font-semibold text-moss"><CheckCircle2 size={13} />Accepted answer</p>}
+                      {r.accepted && <p className="mb-2 flex items-center gap-2 text-xs font-semibold text-success"><CheckCircle2 size={13} />Accepted answer</p>}
                       <p className="whitespace-pre-line text-sm leading-relaxed">{r.body}</p>
                       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted"><Avatar user={r.author} size={20} />{r.author ? <Link className="font-medium text-ink hover:text-accent" to={`/u/${r.author.id}`}>{r.author.name}</Link> : 'Anonymous'}<span className="text-faint">·</span>{timeAgo(r.createdAt)}
                         {qa && t.mine && !t.solved && <button className="btn btn-ghost btn-sm ml-auto" onClick={() => accept.mutate(r.id)}><CheckCircle2 size={13} />Accept</button>}</div>
@@ -71,10 +69,10 @@ export default function ThreadDetail() {
             <p className="text-xs font-semibold uppercase tracking-wider text-faint">Posted by</p>
             {t.author ? (
               <Link to={`/u/${t.author.id}`} className="mt-3 flex items-center gap-3"><Avatar user={t.author} size={38} /><span className="leading-tight"><span className="block text-sm font-semibold">{t.author.name}</span><span className="text-xs text-muted">{t.author.major}, year {t.author.year}</span></span></Link>
-            ) : <p className="mt-3 flex items-center gap-3"><span className="grid size-[38px] place-items-center rounded-full bg-hover text-muted"><EyeOff size={16} /></span><span className="text-sm font-semibold">Anonymous student{t.mine && ' (you)'}</span></p>}
+            ) : <p className="mt-3 flex items-center gap-3"><span className="grid size-10 place-items-center rounded-full bg-hover text-muted"><EyeOff size={16} /></span><span className="text-sm font-semibold">Anonymous student{t.mine && ' (you)'}</span></p>}
             <div className="mt-5 grid grid-cols-2 gap-2 text-center">
-              <div className="rounded-md bg-hover py-3"><p className="num flex items-center justify-center gap-1 text-base font-semibold text-accent"><ThumbsUp size={13} />{t.votes}</p><p className="text-xs text-muted">votes</p></div>
-              <div className="rounded-md bg-hover py-3"><p className="num text-base font-semibold text-violet">{replies.length}</p><p className="text-xs text-muted">{qa ? 'answers' : 'replies'}</p></div>
+              <div className="rounded-md bg-hover py-3"><p className="num flex items-center justify-center gap-1 text-base font-semibold text-heading"><ThumbsUp size={13} />{t.votes}</p><p className="text-xs text-muted">votes</p></div>
+              <div className="rounded-md bg-hover py-3"><p className="num text-base font-semibold text-heading">{replies.length}</p><p className="text-xs text-muted">{qa ? 'answers' : 'replies'}</p></div>
             </div>
             <p className="mt-4 text-xs text-muted">Posted {timeAgo(t.createdAt)}</p>
           </div>
