@@ -10,9 +10,9 @@ import type { CampusEvent } from '@/api/types'
 
 type Kind = CampusEvent['kind']
 const KIND: Record<Kind, { label: string; tone: string; soft: string; dot: string }> = {
-  event: { label: 'Event', tone: 'tone-blue', soft: 'bg-accent-soft text-accent', dot: 'bg-accent' },
-  deadline: { label: 'Deadline', tone: 'tone-rose', soft: 'bg-rose-soft text-rose', dot: 'bg-rose' },
-  club: { label: 'Club', tone: 'tone-green', soft: 'bg-moss-soft text-moss', dot: 'bg-moss' },
+  event: { label: 'Event', tone: 'border-line', soft: 'bg-accent-soft text-accent', dot: 'bg-accent' },
+  deadline: { label: 'Deadline', tone: 'border-danger/40', soft: 'bg-danger-soft text-danger', dot: 'bg-danger' },
+  club: { label: 'Club', tone: 'border-line', soft: 'bg-subtle text-muted', dot: 'bg-faint' },
 }
 const blank = { title: '', kind: 'event' as Kind, when: '', location: '', description: '' }
 
@@ -48,7 +48,7 @@ export default function Events() {
           <Field label="When"><input className="field" type="datetime-local" required value={f.when} onChange={(e) => setF({ ...f, when: e.target.value })} /></Field>
           <div className="sm:col-span-2"><Field label="Where"><input className="field" maxLength={80} value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="Room, building or link" /></Field></div>
           <div className="sm:col-span-2"><Field label="Details"><textarea className="field min-h-20" maxLength={500} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field></div>
-          {err && <p role="alert" className="rounded-md bg-rose-soft px-3 py-2 text-sm text-rose sm:col-span-2">{err}</p>}
+          {err && <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger sm:col-span-2">{err}</p>}
           <div className="flex justify-end sm:col-span-2"><button className="btn btn-primary h-10 px-6" disabled={create.isPending}>{create.isPending ? <Spinner /> : 'Publish event'}</button></div>
         </form>
       )}
@@ -65,10 +65,10 @@ export default function Events() {
               <ol className="grid gap-3 stagger">
                 {items.map((e) => { const k = KIND[e.kind]; const d = new Date(e.startsAt); return (
                   <li key={e.id} className="card card-hover flex gap-4 p-4">
-                    <div className={cn(k.tone, 'grid w-[62px] shrink-0 content-center rounded-lg py-3 text-center text-white')}>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-white/80">{d.toLocaleDateString(undefined, { month: 'short' })}</p>
-                      <p className="num text-2xl font-semibold leading-none">{d.getDate()}</p>
-                      <p className="mt-1 text-xs font-medium text-white/85">{d.toLocaleDateString(undefined, { weekday: 'short' })}</p>
+                    <div className={cn(k.tone, 'grid w-16 shrink-0 content-center rounded-md border bg-surface py-3 text-center')}>
+                      <p className="text-xs font-medium uppercase text-faint">{d.toLocaleDateString(undefined, { month: 'short' })}</p>
+                      <p className="num text-lg font-semibold text-heading">{d.getDate()}</p>
+                      <p className="text-xs text-muted">{d.toLocaleDateString(undefined, { weekday: 'short' })}</p>
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2"><span className={cn('chip', k.soft)}>{k.label}</span>{e.courseCode && <span className="chip num">{e.courseCode}</span>}<span className="text-xs font-semibold text-muted">{daysUntil(e.startsAt)}</span></div>
@@ -76,7 +76,7 @@ export default function Events() {
                       {e.description && <p className="mt-1 line-clamp-2 text-sm text-muted">{e.description}</p>}
                       <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted"><span>{formatDay(e.startsAt)} · {formatTime(e.startsAt)}</span>{e.location && <span className="flex items-center gap-1"><MapPin size={12} />{e.location}</span>}<span className="flex items-center gap-1"><Users size={12} />{e.going} going</span></p>
                     </div>
-                    <button className={cn('btn btn-sm self-start', e.iGo ? 'bg-moss text-white hover:bg-moss/90' : 'btn-ghost')} onClick={() => go.mutate(e.id)}>{e.iGo ? <><Check size={14} />Going</> : 'Join'}</button>
+                    <button className={cn('btn btn-sm self-start', e.iGo ? 'bg-success-soft text-success' : 'btn-secondary')} onClick={() => go.mutate(e.id)}>{e.iGo ? <><Check size={14} />Going</> : 'Join'}</button>
                   </li>) })}
               </ol>
             </div>
