@@ -3,7 +3,11 @@ import { z } from 'zod'
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
-  MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
+  MONGODB_URI: z
+    .string()
+    .min(1, 'MONGODB_URI is required')
+    .regex(/^mongodb(\+srv)?:\/\//, 'MONGODB_URI must start with mongodb:// or mongodb+srv://')
+    .refine((v) => !/<db_(username|password)>/.test(v), 'MONGODB_URI still contains <db_username> or <db_password>: replace them with your Atlas credentials'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   SESSION_DAYS: z.coerce.number().positive().max(30).default(7),
   ALLOWED_EMAIL_DOMAINS: z.string().min(1, 'ALLOWED_EMAIL_DOMAINS is required'),
