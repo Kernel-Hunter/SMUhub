@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { BadgeCheck, ThumbsUp, Download, FileText, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
+import { ALLOWED_DOMAINS, checkSmuEmail } from '@/api/auth'
 import { Logo } from '@/components/Shell'
 import { Spinner } from '@/components/ui'
 import { errMsg } from '@/lib/utils'
@@ -29,26 +30,32 @@ export default function Login() {
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('')
   const [showPw, setShowPw] = useState(false)
   async function submit(e: FormEvent) {
-    e.preventDefault(); setBusy(true); setErr(''); setShowPw(false)
-    try { await login(email, p) } catch (x) { setErr(errMsg(x)); setBusy(false) }
+    e.preventDefault()
+    if (busy) return
+    const invalid = checkSmuEmail(email)
+    if (invalid) { setErr(invalid); return }
+    if (!p) { setErr('Entre ton mot de passe.'); return }
+    setBusy(true); setErr(''); setShowPw(false)
+    // On success the app re-renders on the signed-in routes and this page unmounts.
+    try { await login(email, p) } catch (x) { setErr(errMsg(x)); setP(''); setBusy(false) }
   }
   return (
     <div className="grid min-h-dvh bg-bg lg:grid-cols-[1fr_1.1fr]">
       <section className="flex flex-col justify-between px-6 py-8 sm:px-12">
         <Logo />
-        <form onSubmit={submit} className="rise mx-auto w-full max-w-sm py-12">
+        <form onSubmit={submit} noValidate className="rise mx-auto w-full max-w-sm py-12">
           {/* Full SMU logo; on dark backgrounds it sits on a white rounded tile so the blue stays readable. */}
           <span className="mb-8 inline-block rounded-md dark:bg-white dark:px-3 dark:py-2">
             <img src="/smu-logo.png" alt="Logo South Mediterranean University" width={153} height={64} className="h-16 w-auto object-contain" />
           </span>
           <h1 className="text-2xl font-semibold">Welcome back</h1>
           <p className="mt-2 text-sm text-muted">Sign in with your SMU email.</p>
-          <div className="mt-8 grid grid-cols-1 gap-4">
-            <label><span className="label">SMU email</span><input className="field !h-10" type="email" inputMode="email" autoComplete="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="firstname.lastname@medtech.tn" required /></label>
+          <fieldset disabled={busy} className="mt-8 grid min-w-0 grid-cols-1 gap-4">
+            <label><span className="label">SMU email</span><input className="field !h-10" type="email" inputMode="email" autoComplete="email" autoFocus value={email} onChange={(e) => { setEmail(e.target.value); setErr('') }} placeholder={`firstname.lastname@${ALLOWED_DOMAINS[0] ?? 'smu.tn'}`} aria-invalid={!!err} required /></label>
             <div>
               <label htmlFor="login-password" className="label">Password</label>
               <div className="relative">
-                <input id="login-password" className="field !h-10 !pr-10" type={showPw ? 'text' : 'password'} autoComplete="current-password" value={p} onChange={(e) => setP(e.target.value)} required />
+                <input id="login-password" className="field !h-10 !pr-10" type={showPw ? 'text' : 'password'} autoComplete="current-password" value={p} onChange={(e) => { setP(e.target.value); setErr('') }} aria-invalid={!!err} required />
                 {/* Native button: reachable with Tab, toggled with Enter or Space. type="button" so it never submits the form. */}
                 <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} aria-pressed={showPw} aria-controls="login-password" title={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                   className="absolute right-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-sm text-muted transition-colors hover:bg-hover hover:text-ink">
@@ -57,9 +64,9 @@ export default function Login() {
               </div>
             </div>
             {err && <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">{err}</p>}
-            <button className="btn btn-accent mt-1 !h-10 text-sm" disabled={busy || !email || !p}>{busy ? <Spinner /> : 'Continue'}</button>
-          </div>
-          <p className="mt-6 text-xs leading-relaxed text-muted">Only SMU students can sign in, with their university email address.</p>
+            <button className="btn btn-accent mt-1 !h-10 text-sm" disabled={busy || !email || !p} aria-busy={busy}>{busy ? <Spinner /> : 'Continue'}</button>
+          </fieldset>
+          <p className="mt-6 text-xs leading-relaxed text-muted">Only SMU students can sign in: {ALLOWED_DOMAINS.map((d) => '@' + d).join(', ')}.</p>
         </form>
         <p className="text-xs text-faint">© SMUhub · Made by students, for students</p>
       </section>
