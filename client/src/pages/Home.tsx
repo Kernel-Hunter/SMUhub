@@ -6,16 +6,17 @@ import { useAuth } from '@/auth/AuthContext'
 import { ResourceCard, ThreadCard } from '@/components/Cards'
 import { Avatar, CountUp, Skeleton } from '@/components/ui'
 import Calendar from '@/components/Calendar'
+import Flow from '@/components/Flow'
 import { cn, deptOf, formatTime } from '@/lib/utils'
 
 const DAY = 86400000
 
 /** Section title with an optional neutral icon, count and "View all" link. */
-function Head({ title, to, count, icon: Icon }: { title: string; to: string; count?: number; icon?: LucideIcon }) {
+function Head({ title, to, count, icon: Icon, hue = 'blue' }: { title: string; to: string; count?: number; icon?: LucideIcon; hue?: string }) {
   return (
-    <div className="mb-3 flex items-center justify-between">
+    <div className={cn(`hue-${hue}`, 'mb-3 flex items-center justify-between')}>
       <h2 className="flex items-center gap-2 text-base font-semibold">
-        {Icon && <span className="grid size-7 place-items-center rounded-sm bg-subtle text-muted"><Icon size={16} /></span>}
+        {Icon && <span className="tile size-7"><Icon size={16} /></span>}
         {title}
         {count !== undefined && <span className="num rounded-sm border border-line bg-surface px-2 text-xs font-medium text-muted">{count}</span>}
       </h2>
@@ -55,27 +56,36 @@ export default function Home() {
 
   return (
     <div className="grid grid-cols-1 gap-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0 max-w-2xl">
-          <p className="text-xs font-medium text-faint">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-          <h1 className="mt-1 text-2xl font-semibold">{greet}, {me.name.split(' ')[0]}</h1>
-          <p className="mt-2 text-sm text-muted">{fresh > 0 ? `${fresh} new ${fresh === 1 ? 'file' : 'files'} landed in your courses this week.` : 'Nothing new in your courses this week.'} {open.length} {open.length === 1 ? 'question is' : 'questions are'} still waiting for an answer.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/resources/new" className="btn btn-primary h-9"><Upload size={16} />Share a file</Link>
-          <Link to="/qa?open=1" className="btn btn-secondary h-9"><HelpCircle size={16} />Answer a question</Link>
+      <header className="night relative overflow-hidden rounded-[14px] px-6 py-7 sm:px-8">
+        <Flow className="text-[#3fb0d0] opacity-70" />
+        <div className="relative flex flex-wrap items-center justify-between gap-6">
+          <div className="min-w-0 max-w-xl">
+            <p className="text-xs font-medium text-white/60">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+            <h1 className="mt-1 text-[28px] font-semibold leading-tight">{greet}, {me.name.split(' ')[0]}</h1>
+            <p className="mt-2 text-sm text-white/75">{fresh > 0 ? `${fresh} new ${fresh === 1 ? 'file' : 'files'} landed in your courses this week.` : 'Nothing new in your courses this week.'} {open.length} {open.length === 1 ? 'question is' : 'questions are'} still waiting for an answer.</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link to="/resources/new" className="btn h-9 bg-[#3fb0d0] text-[#06222c] hover:bg-[#5cc0dc]"><Upload size={16} />Share a file</Link>
+              <Link to="/qa?open=1" className="btn h-9 border-white/20 bg-white/10 text-white hover:bg-white/15"><HelpCircle size={16} />Answer a question</Link>
+            </div>
+          </div>
+          <dl className="flex gap-3">
+            {([['Your XP', <CountUp value={me.xp} />], ['Rank', me.rank ? `#${me.rank}` : '-'], ['Uploads', me.uploads]] as [string, React.ReactNode][]).map(([l, v]) => (
+              <div key={l} className="flex min-w-24 flex-col-reverse rounded-[10px] border border-white/12 bg-white/[.06] px-4 py-3">
+                <dt className="text-xs text-white/60">{l}</dt><dd className="num text-2xl font-semibold">{v}</dd>
+              </div>))}
+          </dl>
         </div>
       </header>
 
       <section className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
         {([
-          ['/resources/new', 'Share a file', 'Notes, past exams, slides', Upload],
-          ['/qa/new', 'Ask a question', `${open.length} waiting for answers`, HelpCircle],
-          ['/voice/new', 'Speak up', 'Name or no name, your call', Megaphone],
-          ['/rentals', 'Borrow something', 'Calculators, lab gear, books', Handshake],
-        ] as [string, string, string, LucideIcon][]).map(([to, t, sub, Icon]) => (
-          <Link key={to} to={to} className="card card-hover group flex items-start gap-3 p-4">
-            <span className="grid size-8 shrink-0 place-items-center rounded-sm bg-subtle text-muted transition-colors group-hover:text-accent"><Icon size={16} /></span>
+          ['/resources/new', 'Share a file', 'Notes, past exams, slides', Upload, 'blue'],
+          ['/qa/new', 'Ask a question', `${open.length} waiting for answers`, HelpCircle, 'violet'],
+          ['/voice/new', 'Speak up', 'Name or no name, your call', Megaphone, 'orange'],
+          ['/rentals', 'Borrow something', 'Calculators, lab gear, books', Handshake, 'green'],
+        ] as [string, string, string, LucideIcon, string][]).map(([to, t, sub, Icon, hue]) => (
+          <Link key={to} to={to} className={cn(`hue-${hue}`, 'card card-hover group flex items-start gap-3 p-4 hover:!border-[var(--hue-line)]')}>
+            <span className="tile size-9 transition-colors group-hover:bg-[var(--hue)] group-hover:text-white"><Icon size={17} /></span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium text-ink">{t}</span>
               <span className="mt-1 block text-xs text-muted">{sub}</span>
@@ -89,10 +99,9 @@ export default function Home() {
         <Head title="Your courses" to="/resources" />
         <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
           {(courses.isLoading ? [] : mine).map((c) => (
-            <Link key={c.code} to={`/resources?course=${c.code}`} className="card card-hover group p-4">
+            <Link key={c.code} to={`/resources?course=${c.code}`} className="card card-hover group overflow-hidden p-4" style={{ boxShadow: `inset 0 3px 0 ${deptOf(c.dept).dot}, var(--shadow-card)` }}>
               <span className="flex items-center gap-2">
-                <span className="size-2 shrink-0 rounded-full" style={{ background: deptOf(c.dept).dot }} aria-hidden />
-                <span className="mono text-xs font-medium text-muted">{c.code}</span>
+                <span className="mono rounded-[5px] px-1.5 py-0.5 text-xs font-semibold" style={{ color: deptOf(c.dept).dot, background: `color-mix(in srgb, ${deptOf(c.dept).dot} 12%, var(--surface))` }}>{c.code}</span>
                 <ArrowUpRight size={14} className="ml-auto text-faint transition-colors group-hover:text-ink" aria-hidden />
               </span>
               <span className="mt-2 block truncate text-sm font-medium text-ink">{c.name}</span>
@@ -106,13 +115,13 @@ export default function Home() {
           <section className="card p-5">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div><p className="text-sm text-muted">Campus activity, last 7 days</p><p className="mt-1 text-2xl font-semibold text-heading"><CountUp value={total} /> <span className="text-sm font-normal text-muted">uploads and posts</span></p></div>
-              <div className="flex gap-4 text-xs text-muted"><span className="flex items-center gap-2"><span className="size-2 rounded-full bg-accent-fill" />Uploads</span><span className="flex items-center gap-2"><span className="size-2 rounded-full bg-[var(--border-input)]" />Posts</span></div>
+              <div className="flex gap-4 text-xs text-muted"><span className="flex items-center gap-2"><span className="size-2 rounded-full bg-accent-fill" />Uploads</span><span className="flex items-center gap-2"><span className="size-2 rounded-full bg-[#5b54c9]" />Posts</span></div>
             </div>
             <div className="mt-6 grid h-36 grid-cols-7 items-end gap-3">
               {week.map((w, i) => (
                 <div key={i} className="group flex h-full flex-col items-center justify-end gap-2">
                   <div className="relative flex w-full max-w-10 flex-1 flex-col justify-end overflow-hidden rounded-sm bg-subtle">
-                    <span className="bar block w-full bg-[var(--border-input)]" style={{ height: `${(w.posts / peak) * 100}%`, animationDelay: `${i * 50}ms` }} />
+                    <span className="bar block w-full bg-[#5b54c9]/80" style={{ height: `${(w.posts / peak) * 100}%`, animationDelay: `${i * 50}ms` }} />
                     <span className="bar block w-full bg-accent-fill" style={{ height: `${(w.up / peak) * 100}%`, animationDelay: `${i * 50}ms` }} />
                     <span className="num pointer-events-none absolute inset-x-0 top-1 text-center text-xs font-semibold text-ink opacity-0 transition group-hover:opacity-100">{w.up + w.posts}</span>
                   </div>
@@ -122,8 +131,8 @@ export default function Home() {
             </div>
           </section>
           <section><Head title="Latest in the library" to="/resources" count={res.data?.length} icon={FileText} />{res.isLoading ? <Skeleton rows={4} /> : <div className="rows">{res.data?.slice(0, 5).map((r) => <ResourceCard key={r.id} r={r} />)}</div>}</section>
-          <section><Head title="Waiting for an answer" to="/qa?open=1" count={open.length} icon={HelpCircle} />{qa.isLoading ? <Skeleton rows={2} /> : <div className="rows">{open.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
-          <section><Head title="Most discussed on Campus Voice" to="/voice?sort=top" icon={Megaphone} />{voice.isLoading ? <Skeleton rows={2} /> : <div className="rows">{voice.data?.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
+          <section><Head title="Waiting for an answer" to="/qa?open=1" count={open.length} icon={HelpCircle} hue="violet" />{qa.isLoading ? <Skeleton rows={2} /> : <div className="rows">{open.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
+          <section><Head title="Most discussed on Campus Voice" to="/voice?sort=top" icon={Megaphone} hue="orange" />{voice.isLoading ? <Skeleton rows={2} /> : <div className="rows">{voice.data?.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
         </div>
         <aside className="grid min-w-0 grid-cols-1 content-start gap-8">
           <section className="card p-5">
@@ -135,7 +144,7 @@ export default function Home() {
                 <span className="min-w-0"><span className="block truncate text-sm font-medium">{e.title}</span><span className="text-xs text-muted">{new Date(e.startsAt).toLocaleDateString(undefined, { weekday: 'short' })}, {formatTime(e.startsAt)}</span></span>
               </li>))}</ol>
           </section>
-          <section><Head title="Leaders this week" to="/leaderboard" icon={Trophy} />
+          <section><Head title="Leaders this week" to="/leaderboard" icon={Trophy} hue="gold" />
             <div className="card p-2">
               <ol>{board.data?.slice(0, 6).map((r) => (
                 <li key={r.user.id}><Link to={`/u/${r.user.id}`} className={cn('flex items-center gap-3 rounded-sm px-3 py-2 transition-colors hover:bg-hover', r.isMe && 'bg-accent-soft')}>
