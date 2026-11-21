@@ -7,15 +7,17 @@ import { errMsg } from '@/lib/utils'
 
 function Preview() {
   return (
-    <div className="mx-auto grid w-full max-w-md gap-3" aria-hidden>
-      <div className="card p-4">
-        <div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-md bg-subtle text-muted"><FileText size={18} /></span><div className="flex-1"><p className="text-xs text-muted"><span className="mono font-medium text-ink">CS224</span> · Past exam</p><p className="mt-1 text-sm font-semibold">Databases final 2025, solved</p><p className="mt-2 flex gap-3 text-xs text-muted"><span className="flex items-center gap-1"><ThumbsUp size={11} />24</span><span className="flex items-center gap-1"><Download size={11} />188</span></p></div><span className="flex items-center gap-1 text-xs font-medium text-accent"><BadgeCheck size={13} />Verified</span></div>
+    // Same composition as before the redesign: three overlapping, slightly rotated cards.
+    // Depth comes from a neutral popover shadow only; no gradient, glow or coloured shadow.
+    <div className="relative mx-auto h-[26rem] w-full max-w-md" aria-hidden>
+      <div className="card absolute left-0 top-4 w-[88%] -rotate-3 p-4 shadow-popover">
+        <div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-md bg-subtle text-muted"><FileText size={18} /></span><div className="flex-1"><p className="text-xs text-muted"><span className="mono font-medium text-ink">CS224</span> · Past exam</p><p className="mt-1 text-sm font-semibold">Databases final 2025, solved</p><p className="mt-2 flex gap-3 text-xs text-muted"><span className="flex items-center gap-1"><ThumbsUp size={11} />24</span><span className="flex items-center gap-1"><Download size={11} />188</span></p></div><span className="flex items-center gap-1 text-xs font-medium text-success"><BadgeCheck size={13} />Verified</span></div>
       </div>
-      <div className="card p-4">
+      <div className="card absolute right-0 top-32 w-[84%] rotate-2 p-4 shadow-popover">
         <p className="text-xs text-muted">Campus Voice · anonymous</p><p className="mt-1 text-sm font-semibold">The library closes at 6pm during exam weeks</p><p className="mt-2 text-xs text-muted">58 votes · 12 replies</p>
       </div>
-      <div className="card flex items-center gap-3 p-4">
-        <span className="grid size-9 place-items-center rounded-full bg-subtle text-sm font-semibold text-muted">IG</span><div className="flex-1"><p className="text-sm font-semibold">Ines Gharbi</p><p className="text-xs text-muted">Rank #1 this week</p></div><span className="num text-sm font-medium">236 XP</span>
+      <div className="card absolute bottom-2 left-6 flex w-[80%] items-center gap-3 p-4 shadow-popover">
+        <span className="grid size-9 place-items-center rounded-full bg-accent-soft text-sm font-semibold text-accent">IG</span><div className="flex-1"><p className="text-sm font-semibold">Ines Gharbi</p><p className="text-xs text-muted">Rank #1 this week</p></div><span className="num text-sm font-medium">236 XP</span>
       </div>
     </div>
   )
@@ -58,7 +60,7 @@ export default function Login() {
         </form>
         <p className="text-xs text-faint">© SMUhub · Made by students, for students</p>
       </section>
-      <section className="hidden flex-col justify-center gap-8 border-l border-line bg-surface px-12 lg:flex">
+      <section className="hidden flex-col justify-center gap-10 border-l border-line bg-[color-mix(in_srgb,var(--accent-soft)_50%,var(--bg))] px-12 lg:flex">
         <div className="mx-auto max-w-md text-center"><h2 className="text-lg font-semibold">Everything your courses never gave you.</h2><p className="mt-3 text-sm text-muted">Notes, past exams and honest answers from the students who just took the course.</p></div>
         <Preview />
       </section>
