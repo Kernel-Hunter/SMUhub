@@ -30,7 +30,7 @@ export default function ThreadDetail() {
               <VoteButton votes={t.votes} voted={t.iVoted || t.mine} disabled={t.mine} onVote={() => vote.mutate()} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap gap-2">{t.courseCode && <span className="chip num">{t.courseCode}</span>}{t.category && <span className={cn('chip', VOICE_TONE[t.category])}>{VOICE_LABEL[t.category]}</span>}{t.solved && <span className="chip bg-success-soft text-success"><CheckCircle2 size={12} />Solved</span>}</div>
-                <h1 className="display mt-3 text-2xl">{t.title}</h1>
+                <h1 className="mt-3 text-2xl font-semibold">{t.title}</h1>
                 <p className="mt-3 whitespace-pre-line text-sm leading-relaxed">{t.body}</p>
               </div>
             </div>

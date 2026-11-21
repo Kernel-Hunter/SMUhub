@@ -39,7 +39,7 @@ export default function Upload() {
           <div onDragOver={(e) => { e.preventDefault(); setDrag(true) }} onDragLeave={() => setDrag(false)} onDrop={drop} onClick={() => !file && input.current?.click()}
             className={cn('flex cursor-pointer flex-col items-center rounded-lg border-2 border-dashed px-6 py-10 text-center transition', drag ? 'border-accent bg-accent-soft' : 'border-line-strong bg-hover hover:border-accent/50')}>
             {file ? (
-              <div className="flex items-center gap-3 text-left"><FileBadge ext={file.name.split('.').pop()?.toLowerCase() ?? 'pdf'} /><span><span className="flex items-center gap-2 text-sm font-medium"><FileCheck2 size={14} className="text-moss" />{file.name}</span><span className="text-xs text-muted">{formatSize(file.size)}</span></span>
+              <div className="flex items-center gap-3 text-left"><FileBadge ext={file.name.split('.').pop()?.toLowerCase() ?? 'pdf'} /><span><span className="flex items-center gap-2 text-sm font-medium"><FileCheck2 size={14} className="text-success" />{file.name}</span><span className="text-xs text-muted">{formatSize(file.size)}</span></span>
                 <button type="button" aria-label="Remove file" className="btn btn-ghost btn-sm ml-2 !px-2" onClick={(e) => { e.stopPropagation(); setFile(null) }}><X size={14} /></button></div>
             ) : (<>
               <span className="grid size-12 place-items-center rounded-md bg-subtle text-muted"><CloudUpload size={22} /></span>
@@ -56,7 +56,7 @@ export default function Upload() {
             <Field label="Academic year"><input className="field" value={f.academicYear} onChange={(e) => setF({ ...f, academicYear: e.target.value })} /></Field>
           </div>
           <Field label="Description" hint="What does it cover, and who is it for?"><textarea className="field min-h-24" maxLength={600} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
-          {err && <p role="alert" className="rounded-md bg-rose-soft px-3 py-2 text-sm text-rose">{err}</p>}
+          {err && <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">{err}</p>}
           <div className="flex items-center justify-between gap-4 border-t border-line pt-5"><p className="text-xs text-muted">Up to {RULES.uploadsPerDay} uploads a day.</p><button className="btn btn-primary h-10 px-6" disabled={m.isPending}>{m.isPending ? <Spinner /> : 'Publish'}</button></div>
         </form>
         <aside className="grid h-fit gap-4">
