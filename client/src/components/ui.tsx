@@ -18,7 +18,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="pointer-events-none fixed inset-x-0 bottom-5 z-[80] flex flex-col items-center gap-2 px-4" aria-live="polite">
         {items.map((t) => (
-          <div key={t.id} className={cn('rise pointer-events-auto rounded-[10px] px-4 py-2.5 text-[13px] font-medium shadow-[var(--lift)]', t.tone === 'xp' ? 'bg-ink text-paper' : t.tone === 'err' ? 'bg-rose-soft text-rose' : 'bg-surface text-ink')}>
+          <div key={t.id} className={cn('rise pointer-events-auto rounded-md border px-4 py-3 text-sm font-medium shadow-popover', t.tone === 'xp' ? 'border-transparent bg-ink text-paper' : t.tone === 'err' ? 'border-danger/30 bg-danger-soft text-danger' : 'border-line bg-surface text-ink')}>
             {t.tone === 'xp' && <span className="mr-2">↑</span>}{t.text}
           </div>
         ))}
@@ -28,13 +28,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 // ---------- primitives ----------
-const TINTS = [['var(--accent-soft)', 'var(--accent)'], ['var(--moss-soft)', 'var(--moss)'], ['var(--sky-soft)', 'var(--sky)'], ['var(--gold-soft)', 'var(--gold)'], ['var(--rose-soft)', 'var(--rose)']]
+// Neutral initials: colour is reserved for the accent and for states.
 export function Avatar({ user, size = 36 }: { user: PublicUser | null; size?: number }) {
-  const [bg, fg] = TINTS[[...(user?.id ?? 'x')].reduce((s, c) => s + c.charCodeAt(0), 0) % TINTS.length]
   const initials = user ? user.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase() : '?'
   return (
     <span aria-hidden className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold"
-      style={{ width: size, height: size, background: user ? bg : 'var(--paper)', color: user ? fg : 'var(--faint)', fontSize: Math.max(9, size * 0.38), boxShadow: user ? 'none' : 'inset 0 0 0 1px var(--line-strong)' }}>
+      style={{ width: size, height: size, background: user ? 'var(--subtle)' : 'var(--bg)', color: user ? 'var(--muted)' : 'var(--faint)', fontSize: Math.max(9, size * 0.38), boxShadow: user ? 'none' : 'inset 0 0 0 1px var(--line-strong)' }}>
       {initials}
     </span>
   )
@@ -48,9 +47,9 @@ export function PageHeader({ eyebrow, title, sub, action }: { eyebrow?: string; 
   return (
     <header className="rise mb-7 flex flex-wrap items-end justify-between gap-4">
       <div className="max-w-2xl">
-        {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
-        <h1 className="display text-[1.6rem]">{title}</h1>
-        {sub && <p className="mt-1 max-w-xl text-[13.5px] text-muted">{sub}</p>}
+        {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
+        <h1 className="text-2xl font-semibold">{title}</h1>
+        {sub && <p className="mt-1 max-w-xl text-sm text-muted">{sub}</p>}
       </div>
       {action}
     </header>
@@ -59,7 +58,7 @@ export function PageHeader({ eyebrow, title, sub, action }: { eyebrow?: string; 
 
 export function Empty({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center rounded-xl bg-side px-6 py-14 text-center">
+    <div className="flex flex-col items-center rounded-lg border border-dashed border-line-strong bg-surface px-6 py-12 text-center">
       <p className="text-base font-semibold">{title}</p>
       {hint && <p className="mt-1 max-w-sm text-sm text-muted">{hint}</p>}
       {action && <div className="mt-5">{action}</div>}
@@ -70,7 +69,7 @@ export function Empty({ title, hint, action }: { title: string; hint?: string; a
 export function Skeleton({ rows = 4, className }: { rows?: number; className?: string }) {
   return (
     <div className="grid gap-3" aria-busy aria-label="Loading">
-      {Array.from({ length: rows }).map((_, i) => <div key={i} className={cn('h-16 animate-pulse rounded-xl bg-hover', className)} style={{ animationDelay: `${i * 80}ms` }} />)}
+      {Array.from({ length: rows }).map((_, i) => <div key={i} className={cn('h-16 animate-pulse rounded-md bg-hover', className)} style={{ animationDelay: `${i * 80}ms` }} />)}
     </div>
   )
 }
@@ -78,13 +77,13 @@ export function Skeleton({ rows = 4, className }: { rows?: number; className?: s
 export function Spinner() { return <span className="inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> }
 
 export function ErrorBox({ error }: { error: unknown }) {
-  return <div role="alert" className="rounded-xl border border-rose/30 bg-rose-soft p-4 text-sm font-medium text-rose">{error instanceof Error ? error.message : 'Could not load this. Try again.'}</div>
+  return <div role="alert" className="rounded-md border border-danger/30 bg-danger-soft p-4 text-sm font-medium text-danger">{error instanceof Error ? error.message : 'Could not load this. Try again.'}</div>
 }
 
 export function VoteButton({ votes, voted, disabled, onVote, label = 'Upvote' }: { votes: number; voted: boolean; disabled?: boolean; onVote: () => void; label?: string }) {
   return (
     <button type="button" aria-label={label} aria-pressed={voted} disabled={voted || disabled} onClick={onVote}
-      className={cn('flex w-11 shrink-0 flex-col items-center rounded-lg border py-1.5 transition active:scale-95 disabled:cursor-default', voted ? 'border-transparent bg-accent-soft text-accent' : 'border-line-strong bg-surface hover:bg-hover disabled:opacity-60 disabled:hover:border-line-strong')}>
+      className={cn('flex w-10 shrink-0 flex-col items-center rounded-sm border py-1 transition-colors disabled:cursor-default', voted ? 'border-transparent bg-accent-soft text-accent' : 'border-line-strong bg-surface hover:bg-hover disabled:opacity-60 disabled:hover:border-line-strong')}>
       <svg viewBox="0 0 16 16" className="size-3.5" fill="currentColor" aria-hidden><path d="M8 3l5 7H3z" /></svg>
       <span className="num text-xs font-semibold">{votes}</span>
     </button>
@@ -96,17 +95,17 @@ export function Field({ label, children, hint }: { label: string; children: Reac
     <label className="block">
       <span className="label">{label}</span>
       {children}
-      {hint && <span className="mt-1.5 block text-xs text-faint">{hint}</span>}
+      {hint && <span className="mt-2 block text-xs text-faint">{hint}</span>}
     </label>
   )
 }
 
 export function Segmented<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div role="tablist" className="inline-flex rounded-[9px] bg-hover p-0.5">
+    <div role="tablist" className="inline-flex rounded-sm border border-line bg-subtle p-1">
       {options.map((o) => (
         <button key={o.value} role="tab" aria-selected={value === o.value} onClick={() => onChange(o.value)}
-          className={cn('h-7 rounded-[7px] px-3 text-[12.5px] font-medium transition', value === o.value ? 'bg-surface text-ink shadow-[var(--ring)]' : 'text-muted hover:text-ink')}>
+          className={cn('h-7 rounded-sm px-3 text-xs font-medium transition', value === o.value ? 'bg-surface text-ink ring-1 ring-line' : 'text-muted hover:text-ink')}>
           {o.label}
         </button>
       ))}

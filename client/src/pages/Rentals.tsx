@@ -9,12 +9,12 @@ import type { RentalCategory, RentalItem } from '@/api/types'
 
 const day = 86400000
 const iso = (t: number) => new Date(t).toISOString().slice(0, 10)
-const CAT: Record<RentalCategory, { icon: typeof Calculator; tone: string; soft: string }> = {
-  calculator: { icon: Calculator, tone: 'tone-blue', soft: 'bg-accent-soft text-accent' },
-  lab: { icon: FlaskConical, tone: 'tone-green', soft: 'bg-moss-soft text-moss' },
-  books: { icon: BookOpen, tone: 'tone-violet', soft: 'bg-violet-soft text-violet' },
-  tech: { icon: Laptop, tone: 'tone-orange', soft: 'bg-orange-soft text-orange' },
-  other: { icon: Package, tone: 'tone-gold', soft: 'bg-gold-soft text-gold' },
+const CAT: Record<RentalCategory, { icon: typeof Calculator; soft: string }> = {
+  calculator: { icon: Calculator, soft: 'bg-subtle text-muted' },
+  lab: { icon: FlaskConical, soft: 'bg-subtle text-muted' },
+  books: { icon: BookOpen, soft: 'bg-subtle text-muted' },
+  tech: { icon: Laptop, soft: 'bg-subtle text-muted' },
+  other: { icon: Package, soft: 'bg-subtle text-muted' },
 }
 
 function ItemCard({ it }: { it: RentalItem }) {
@@ -26,24 +26,23 @@ function ItemCard({ it }: { it: RentalItem }) {
   const r = it.myRequest
   return (
     <div className="card card-hover flex flex-col overflow-hidden">
-      <div className={cn(c.tone, 'relative flex h-24 items-end justify-between px-5 pb-3 text-white')}>
-        <div className="dots-light pointer-events-none absolute inset-0 opacity-50" aria-hidden />
-        <span className="relative grid size-11 place-items-center rounded-[12px] bg-white/18 ring-1 ring-white/30 backdrop-blur"><Icon size={20} /></span>
-        <span className={cn('relative rounded-full px-2.5 py-1 text-[11.5px] font-semibold', it.available ? 'bg-white text-[#0d7556]' : 'bg-black/25 text-white')}>{it.available ? 'Available' : 'Rented out'}</span>
+      <div className="flex items-center justify-between border-b border-line px-5 py-4">
+        <span className={cn('grid size-10 place-items-center rounded-md', c.soft)}><Icon size={20} /></span>
+        <span className={cn('chip', it.available ? 'bg-success-soft text-success' : 'bg-subtle text-muted')}>{it.available ? 'Available' : 'Rented out'}</span>
       </div>
       <div className="flex flex-1 flex-col p-5">
-        <p className="text-[12px] font-medium text-muted">{RENTAL_LABEL[it.category]} · {it.condition}</p>
-        <h3 className="mt-1 text-[16px] font-semibold leading-snug">{it.title}</h3>
-        <p className="mt-1 line-clamp-2 flex-1 text-[13px] text-muted">{it.description}</p>
+        <p className="text-xs font-medium text-muted">{RENTAL_LABEL[it.category]} · {it.condition}</p>
+        <h3 className="mt-1 text-base font-semibold leading-snug">{it.title}</h3>
+        <p className="mt-1 line-clamp-2 flex-1 text-sm text-muted">{it.description}</p>
         <div className="mt-4 flex items-end justify-between gap-3">
-          <p><span className="num text-[26px] font-semibold leading-none tracking-tight">{it.pricePerDay}</span><span className="ml-1 text-[12.5px] text-muted">TND / day</span></p>
+          <p><span className="num text-2xl font-semibold leading-none tracking-tight">{it.pricePerDay}</span><span className="ml-1 text-xs text-muted">TND / day</span></p>
           <span className="chip num">{it.deposit} TND deposit</span>
         </div>
-        <p className="mt-4 flex items-center gap-2 border-t border-line pt-3 text-[12px] text-muted"><Avatar user={it.owner} size={22} /><span className="font-medium text-ink">{it.owner.name}</span>{it.mine && <span className="chip ml-auto">You</span>}</p>
-        {r?.status === 'accepted' && <p className="mt-3 flex items-center gap-2 rounded-[10px] bg-moss-soft p-3 text-[13px] text-moss"><KeyRound size={15} />Accepted. Contact: <strong>{r.contact}</strong></p>}
-        {r?.status === 'pending' && <p className="mt-3 rounded-[10px] bg-gold-soft p-3 text-[13px] text-gold">Waiting for the owner · {formatDay(r.from)} to {formatDay(r.to)}</p>}
-        {r?.status === 'declined' && <p className="mt-3 rounded-[10px] bg-rose-soft p-3 text-[13px] text-rose">Your last request was declined.</p>}
-        {it.mine ? (it.available ? <p className="mt-3 text-[12px] text-muted">{it.pendingRequests ? `${it.pendingRequests} pending ${it.pendingRequests === 1 ? 'request' : 'requests'}` : 'No requests yet'}</p> : <button className="btn btn-ghost mt-3" onClick={() => back.mutate()}>Mark as returned</button>)
+        <p className="mt-4 flex items-center gap-2 border-t border-line pt-3 text-xs text-muted"><Avatar user={it.owner} size={22} /><span className="font-medium text-ink">{it.owner.name}</span>{it.mine && <span className="chip ml-auto">You</span>}</p>
+        {r?.status === 'accepted' && <p className="mt-3 flex items-center gap-2 rounded-md bg-success-soft p-3 text-sm text-success"><KeyRound size={15} />Accepted. Contact: <strong>{r.contact}</strong></p>}
+        {r?.status === 'pending' && <p className="mt-3 rounded-md border border-line bg-subtle p-3 text-sm text-muted">Waiting for the owner · {formatDay(r.from)} to {formatDay(r.to)}</p>}
+        {r?.status === 'declined' && <p className="mt-3 rounded-md bg-danger-soft p-3 text-sm text-danger">Your last request was declined.</p>}
+        {it.mine ? (it.available ? <p className="mt-3 text-xs text-muted">{it.pendingRequests ? `${it.pendingRequests} pending ${it.pendingRequests === 1 ? 'request' : 'requests'}` : 'No requests yet'}</p> : <button className="btn btn-ghost mt-3" onClick={() => back.mutate()}>Mark as returned</button>)
           : it.available && (!r || r.status === 'declined' || r.status === 'returned') && (ask ? (
             <form className="mt-3 grid gap-2" onSubmit={(e: FormEvent) => { e.preventDefault(); req.mutate() }}>
               <div className="grid grid-cols-2 gap-2"><input className="field" type="date" value={from} min={iso(Date.now())} onChange={(e) => setFrom(e.target.value)} aria-label="From" /><input className="field" type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} aria-label="To" /></div>
@@ -65,7 +64,7 @@ export default function Rentals() {
   const create = useMutation({ mutationFn: () => api.rentals.create(f), onSuccess: () => { qc.invalidateQueries({ queryKey: ['rentals'] }); setOpen(false); toast('Item listed.') }, onError: (e) => setErr(errMsg(e)) })
   const all = list.data ?? []
   const items = all.filter((i) => cat === 'all' || i.category === cat)
-  const pill = (on: boolean) => cn('flex h-9 shrink-0 items-center gap-2 rounded-full px-3.5 text-[13px] font-medium transition', on ? 'bg-ink text-paper' : 'bg-surface text-muted shadow-[var(--ring)] hover:text-ink')
+  const pill = (on: boolean) => cn('flex h-9 shrink-0 items-center gap-2 rounded-sm border px-4 text-sm font-medium transition-colors', on ? 'border-accent bg-accent-soft text-accent' : 'border-line bg-surface text-muted hover:text-ink')
   return (
     <div>
       <Banner tone="green" icon={<Handshake size={13} />} label="Rentals" title="Borrow it from a classmate" sub="Calculators, lab coats, books and chargers. You see the owner's contact once they accept."
@@ -75,12 +74,12 @@ export default function Rentals() {
       {open && (
         <form className="card rise mb-7 grid gap-4 p-6 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); setErr(''); create.mutate() }}>
           <div className="sm:col-span-2"><Field label="Item"><input className="field" required maxLength={80} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="Casio fx-991EX" /></Field></div>
-          <div className="sm:col-span-2"><span className="label">Category</span><div className="flex flex-wrap gap-2">{(Object.keys(CAT) as RentalCategory[]).map((k) => { const I = CAT[k].icon; return <button type="button" key={k} onClick={() => setF({ ...f, category: k })} className={cn('chip h-9 cursor-pointer gap-1.5 px-3 text-[12.5px] transition', f.category === k ? CAT[k].soft + ' ring-1 ring-current' : 'hover:text-ink')}><I size={14} />{RENTAL_LABEL[k]}</button> })}</div></div>
+          <div className="sm:col-span-2"><span className="label">Category</span><div className="flex flex-wrap gap-2">{(Object.keys(CAT) as RentalCategory[]).map((k) => { const I = CAT[k].icon; return <button type="button" key={k} onClick={() => setF({ ...f, category: k })} className={cn('chip h-9 cursor-pointer gap-2 px-3 text-xs transition', f.category === k ? CAT[k].soft + ' ring-1 ring-current' : 'hover:text-ink')}><I size={14} />{RENTAL_LABEL[k]}</button> })}</div></div>
           <Field label="Condition"><select className="field" value={f.condition} onChange={(e) => setF({ ...f, condition: e.target.value as typeof f.condition })}><option value="new">New</option><option value="good">Good</option><option value="worn">Worn</option></select></Field>
           <div className="grid grid-cols-2 gap-3"><Field label="TND per day"><input className="field" type="number" min={0} max={200} value={f.pricePerDay} onChange={(e) => setF({ ...f, pricePerDay: +e.target.value })} /></Field><Field label="Deposit"><input className="field" type="number" min={0} max={2000} value={f.deposit} onChange={(e) => setF({ ...f, deposit: +e.target.value })} /></Field></div>
           <div className="sm:col-span-2"><Field label="Description"><textarea className="field min-h-20" maxLength={400} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field></div>
           <div className="sm:col-span-2"><Field label="Private contact" hint="WhatsApp, Telegram or Instagram. Only shown to a renter once you accept."><input className="field" required maxLength={80} value={f.contact} onChange={(e) => setF({ ...f, contact: e.target.value })} /></Field></div>
-          {err && <p role="alert" className="rounded-[10px] bg-rose-soft px-3 py-2 text-[13px] text-rose sm:col-span-2">{err}</p>}
+          {err && <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger sm:col-span-2">{err}</p>}
           <div className="flex justify-end sm:col-span-2"><button className="btn btn-primary h-10 px-6" disabled={create.isPending}>{create.isPending ? <Spinner /> : 'Publish listing'}</button></div>
         </form>
       )}
@@ -88,29 +87,29 @@ export default function Rentals() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_290px]">
         <section className="min-w-0">
           <div className="-mx-1 mb-5 flex gap-2 overflow-x-auto px-1 pb-1">
-            <button className={pill(cat === 'all')} onClick={() => setCat('all')}>All<span className="num text-[11.5px] opacity-60">{all.length}</span></button>
-            {(Object.keys(CAT) as RentalCategory[]).map((k) => { const I = CAT[k].icon; return <button key={k} className={pill(cat === k)} onClick={() => setCat(k)}><span className={cn('grid size-5 place-items-center rounded-full', cat === k ? 'bg-white/20' : CAT[k].soft)}><I size={12} /></span>{RENTAL_LABEL[k]}<span className="num text-[11.5px] opacity-60">{all.filter((i) => i.category === k).length}</span></button> })}
+            <button className={pill(cat === 'all')} onClick={() => setCat('all')}>All<span className="num text-xs opacity-60">{all.length}</span></button>
+            {(Object.keys(CAT) as RentalCategory[]).map((k) => { const I = CAT[k].icon; return <button key={k} className={pill(cat === k)} onClick={() => setCat(k)}><span className={cn('grid size-5 place-items-center rounded-full', cat === k ? '' : CAT[k].soft)}><I size={12} /></span>{RENTAL_LABEL[k]}<span className="num text-xs opacity-60">{all.filter((i) => i.category === k).length}</span></button> })}
           </div>
           {list.isLoading ? <Skeleton rows={3} /> : list.error ? <ErrorBox error={list.error} /> : !items.length ? <Empty title="No items yet" hint="List something you do not need every day." /> : <div className="grid gap-4 stagger sm:grid-cols-2 2xl:grid-cols-3">{items.map((i) => <ItemCard key={i.id} it={i} />)}</div>}
         </section>
 
         <aside className="grid h-fit gap-4 xl:sticky xl:top-16">
           <div className="card p-5">
-            <p className="flex items-center justify-between text-[14px] font-semibold">Requests for your items{!!incoming.data?.length && <span className="num grid size-6 place-items-center rounded-full bg-moss text-[12px] text-white">{incoming.data.length}</span>}</p>
-            {!incoming.data?.length ? <p className="mt-2 text-[12.5px] text-muted">Nobody has asked yet. Requests show up here.</p> : (
+            <p className="flex items-center justify-between text-sm font-semibold">Requests for your items{!!incoming.data?.length && <span className="num grid size-6 place-items-center rounded-full bg-accent-fill text-xs text-on-accent">{incoming.data.length}</span>}</p>
+            {!incoming.data?.length ? <p className="mt-2 text-xs text-muted">Nobody has asked yet. Requests show up here.</p> : (
               <ul className="mt-3 grid gap-3">{incoming.data.map((q) => (
-                <li key={q.id} className="rounded-[12px] bg-hover p-3">
-                  <p className="flex items-center gap-2 text-[13px]"><Avatar user={q.renter} size={26} /><span className="min-w-0"><strong className="block truncate">{q.renter.name}</strong><span className="text-[11.5px] text-muted">{formatDay(q.from)} to {formatDay(q.to)}</span></span></p>
-                  {q.note && <p className="mt-2 text-[12px] text-muted">"{q.note}"</p>}
-                  <div className="mt-2.5 flex gap-2"><button className="btn btn-sm flex-1 bg-moss text-white hover:bg-moss/90" onClick={() => respond.mutate({ id: q.id, ok: true })}>Accept</button><button className="btn btn-ghost btn-sm flex-1" onClick={() => respond.mutate({ id: q.id, ok: false })}>Decline</button></div>
+                <li key={q.id} className="rounded-lg bg-hover p-3">
+                  <p className="flex items-center gap-2 text-sm"><Avatar user={q.renter} size={26} /><span className="min-w-0"><strong className="block truncate">{q.renter.name}</strong><span className="text-xs text-muted">{formatDay(q.from)} to {formatDay(q.to)}</span></span></p>
+                  {q.note && <p className="mt-2 text-xs text-muted">"{q.note}"</p>}
+                  <div className="mt-3 flex gap-2"><button className="btn btn-primary btn-sm flex-1" onClick={() => respond.mutate({ id: q.id, ok: true })}>Accept</button><button className="btn btn-ghost btn-sm flex-1" onClick={() => respond.mutate({ id: q.id, ok: false })}>Decline</button></div>
                 </li>))}</ul>
             )}
           </div>
           <div className="card p-5">
-            <p className="mb-3 text-[14px] font-semibold">How it works</p>
-            <ol className="grid gap-3 text-[12.5px] text-muted">{['Send a request with your dates.', 'The owner accepts and you get their contact.', 'Meet on campus and check the item together.', 'Bring it back. The owner marks it returned.'].map((s, i) => <li key={s} className="flex gap-3"><span className="num grid size-6 shrink-0 place-items-center rounded-full bg-moss-soft text-[11.5px] font-semibold text-moss">{i + 1}</span><span className="pt-0.5">{s}</span></li>)}</ol>
+            <p className="mb-3 text-sm font-semibold">How it works</p>
+            <ol className="grid gap-3 text-xs text-muted">{['Send a request with your dates.', 'The owner accepts and you get their contact.', 'Meet on campus and check the item together.', 'Bring it back. The owner marks it returned.'].map((s, i) => <li key={s} className="flex gap-3"><span className="num grid size-6 shrink-0 place-items-center rounded-full bg-subtle text-xs font-semibold text-muted">{i + 1}</span><span className="pt-1">{s}</span></li>)}</ol>
           </div>
-          <p className="flex gap-2 rounded-[14px] bg-gold-soft p-4 text-[12px] leading-relaxed text-gold"><ShieldAlert size={15} className="mt-0.5 shrink-0" />No money moves through SMUhub. Agree on the deposit in person and keep it simple.</p>
+          <p className="flex gap-2 rounded-md border border-line bg-surface p-4 text-xs leading-relaxed text-muted"><ShieldAlert size={15} className="mt-1 shrink-0" />No money moves through SMUhub. Agree on the deposit in person and keep it simple.</p>
         </aside>
       </div>
     </div>
