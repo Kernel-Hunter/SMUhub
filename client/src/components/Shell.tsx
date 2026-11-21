@@ -20,8 +20,10 @@ const TITLES: Record<string, string> = { '': 'Home', resources: 'Library', qa: '
 export function Logo({ className }: { className?: string }) {
   return (
     <Link to="/" aria-label="SMUhub home" className={cn('flex items-center gap-3', className)}>
-      <span className="grid size-7 place-items-center rounded-sm bg-accent-fill text-on-accent">
-        <svg viewBox="0 0 16 16" className="size-[15px]" aria-hidden><path d="M3 5.2 8 3l5 2.2L8 7.4z" fill="currentColor" /><path d="M5 6.6v2.6c0 .9 1.4 1.8 3 1.8s3-.9 3-1.8V6.6" fill="none" stroke="currentColor" strokeWidth="1.3" /><path d="M13 5.4v3.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>
+      {/* Official SMU mark, kept intact. Its background is transparent and blue on dark is hard to read,
+          so in dark mode it sits on a small white rounded tile. */}
+      <span className="grid size-8 shrink-0 place-items-center rounded-sm dark:bg-white dark:p-0.5">
+        <img src="/smu-mark.png" alt="Logo South Mediterranean University" width={32} height={32} className="size-full object-contain" />
       </span>
       <span className="text-base font-semibold text-heading">SMUhub</span>
     </Link>

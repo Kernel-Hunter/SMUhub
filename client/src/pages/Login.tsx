@@ -37,6 +37,10 @@ export default function Login() {
       <section className="flex flex-col justify-between px-6 py-8 sm:px-12">
         <Logo />
         <form onSubmit={submit} className="rise mx-auto w-full max-w-sm py-12">
+          {/* Full SMU logo; on dark backgrounds it sits on a white rounded tile so the blue stays readable. */}
+          <span className="mb-8 inline-block rounded-md dark:bg-white dark:px-3 dark:py-2">
+            <img src="/smu-logo.png" alt="Logo South Mediterranean University" width={153} height={64} className="h-16 w-auto object-contain" />
+          </span>
           <h1 className="text-2xl font-semibold">Welcome back</h1>
           <p className="mt-2 text-sm text-muted">Sign in with your SMU email.</p>
           <div className="mt-8 grid grid-cols-1 gap-4">
