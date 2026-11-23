@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose'
 
-/** An answer to a question. */
+/** An answer to a question, or a reply to a Campus Voice post (only those can be anonymous). */
 const replySchema = new Schema(
   {
     thread: { type: Schema.Types.ObjectId, ref: 'Thread', required: true, index: true },

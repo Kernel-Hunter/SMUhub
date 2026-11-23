@@ -4,8 +4,10 @@
  * reference implementation the real server must enforce. The client is never trusted.
  *
  * Exceptions, served by the real server: Q&A questions (threads of kind 'question', routes/questions.ts),
+ * Campus Voice posts (threads of kind 'voice', routes/voice.ts),
  * XP, the student's own profile, real students' profiles and the leaderboard (routes/me.ts, users.ts, leaderboard.ts),
- * events (routes/events.ts) and rentals (routes/rentals.ts), all under server/src. Campus Voice and resources still use this mock.
+ * events (routes/events.ts) and rentals (routes/rentals.ts), all under server/src. Resources still use this mock,
+ * and so do the demo questions on the profiles of the demo students who upload them.
  */
 import { RULES } from './rules'
 import * as S from './seed'
@@ -22,8 +24,10 @@ const fail = (code: string, msg: string): never => { throw new ApiError(code, ms
 
 // http.ts imports ApiError from this file, so it is loaded lazily to avoid a circular import.
 const realHttp = async () => (await import('./http')).http
-// Real questions have 24-character database ids; the demo ones in seed.ts do not.
+// Real questions and voice posts have 24-character database ids; the demo ones in seed.ts do not.
 const isRealId = (id: string) => /^[0-9a-f]{24}$/.test(id)
+// A real id does not say which kind of thread it is, so the caller passes the kind.
+const threadApi = (kind: ThreadKind) => (kind === 'voice' ? '/api/voice' : '/api/questions')
 
 /** Public profile, as returned by GET /api/users/:id (real students) or the mock (demo students). */
 export type Profile = {
@@ -315,14 +319,17 @@ export const api = {
         const { threads } = await (await realHttp())<{ threads: Thread[] }>(`/api/questions${qs ? `?${qs}` : ''}`)
         return threads
       }
-      const me = requireMe(); await sleep()
-      const term = (f.q ?? '').toLowerCase().trim()
-      return db.threads.filter((t) => t.kind === kind && (!f.course || t.courseCode === f.course) && (!f.category || t.category === f.category) && (!f.unsolved || !t.solved) &&
-        (!term || `${t.title} ${t.body}`.toLowerCase().includes(term)))
-        .sort((a, b) => (f.sort === 'top' ? b.votes - a.votes : b.createdAt - a.createdAt)).map((t) => toThread(t, me))
+      // Real server: GET /api/voice?q=&category=&sort=
+      const params = new URLSearchParams()
+      if (f.q?.trim()) params.set('q', f.q.trim())
+      if (f.category) params.set('category', f.category)
+      if (f.sort === 'top') params.set('sort', 'top')
+      const qs = params.toString()
+      const { threads } = await (await realHttp())<{ threads: Thread[] }>(`/api/voice${qs ? `?${qs}` : ''}`)
+      return threads
     },
-    async get(id: string): Promise<{ thread: Thread; replies: Reply[] }> {
-      if (isRealId(id)) return (await realHttp())<{ thread: Thread; replies: Reply[] }>(`/api/questions/${id}`)
+    async get(id: string, kind: ThreadKind = 'question'): Promise<{ thread: Thread; replies: Reply[] }> {
+      if (isRealId(id)) return (await realHttp())<{ thread: Thread; replies: Reply[] }>(`${threadApi(kind)}/${id}`)
       const me = requireMe(); await sleep(100)
       const t = db.threads.find((x) => x.id === id) ?? fail('not_found', 'This post no longer exists.')
       const replies = db.replies.filter((r) => r.threadId === id).sort((a, b) => Number(b.accepted) - Number(a.accepted) || b.votes - a.votes || a.createdAt - b.createdAt)
@@ -333,28 +340,20 @@ export const api = {
       if (title.length < 8) fail('bad_title', 'Title is too short (8+ characters).')
       if (body.length < 10) fail('bad_body', 'Add a little more detail (10+ characters).')
       if (i.kind === 'question' && !S.COURSES.some((c) => c[0] === i.courseCode)) fail('bad_course', 'Pick the course this question belongs to.')
-      if (i.kind === 'question') {
-        // Real server: POST /api/questions (it re-checks everything above)
-        const { thread } = await (await realHttp())<{ thread: Thread }>('/api/questions', { method: 'POST', body: { title, body, courseCode: i.courseCode } })
-        return thread
-      }
-      const me = requireMe(); await sleep(250)
-      const recent = db.threads.filter((t) => t.authorId === me && Date.now() - t.createdAt < 3600000).length
-      if (recent >= 5) fail('rate_limited', 'Slow down: you can post 5 times per hour.')
-      // Only Campus Voice posts reach this point; questions returned above.
-      const row: ThreadRow = { id: 't' + uid(), kind: 'voice', title, body, courseCode: undefined, category: i.category ?? 'academics', authorId: me, anonymous: !!i.anonymous, createdAt: Date.now(), votes: 0, solved: false }
-      db.threads.unshift(row); save(); simulatePeers('thread', row.id)
-      return toThread(row, me)
+      // Real server: POST /api/questions or POST /api/voice (it re-checks everything above)
+      const payload = i.kind === 'question' ? { title, body, courseCode: i.courseCode } : { title, body, category: i.category ?? 'academics', anonymous: !!i.anonymous }
+      const { thread } = await (await realHttp())<{ thread: Thread }>(threadApi(i.kind), { method: 'POST', body: payload })
+      return thread
     },
-    async vote(id: string): Promise<void> {
-      if (isRealId(id)) { await (await realHttp())(`/api/questions/${id}/vote`, { method: 'POST' }); return }
+    async vote(id: string, kind: ThreadKind = 'question'): Promise<void> {
+      if (isRealId(id)) { await (await realHttp())(`${threadApi(kind)}/${id}/vote`, { method: 'POST' }); return }
       const me = requireMe(); await sleep(100); castVote(me, 'thread', id)
     },
-    async reply(threadId: string, body: string, anonymous = false): Promise<Reply> {
+    async reply(threadId: string, body: string, anonymous = false, kind: ThreadKind = 'question'): Promise<Reply> {
       if (isRealId(threadId)) {
         const b = cleanBlock(body, 3000)
         if (b.length < 2) fail('bad_body', 'Write something first.')
-        const { reply } = await (await realHttp())<{ reply: Reply }>(`/api/questions/${threadId}/replies`, { method: 'POST', body: { body: b } })
+        const { reply } = await (await realHttp())<{ reply: Reply }>(`${threadApi(kind)}/${threadId}/replies`, { method: 'POST', body: kind === 'voice' ? { body: b, anonymous } : { body: b } })
         return reply
       }
       const me = requireMe(); await sleep(250)
@@ -363,12 +362,12 @@ export const api = {
       if (b.length < 2) fail('bad_body', 'Write something first.')
       const recent = db.replies.filter((r) => r.authorId === me && Date.now() - r.createdAt < 600000).length
       if (recent >= 8) fail('rate_limited', 'Too many replies in a short time. Take a breath.')
-      const row: ReplyRow = { id: 'p' + uid(), threadId, body: b, authorId: me, anonymous: t!.kind === 'voice' && anonymous, createdAt: Date.now(), votes: 0, accepted: false }
+      const row: ReplyRow = { id: 'p' + uid(), threadId: t!.id, body: b, authorId: me, anonymous: false, createdAt: Date.now(), votes: 0, accepted: false }
       db.replies.push(row); save()
       return toReply(row, me)
     },
-    async voteReply(id: string): Promise<void> {
-      if (isRealId(id)) { await (await realHttp())(`/api/questions/replies/${id}/vote`, { method: 'POST' }); return }
+    async voteReply(id: string, kind: ThreadKind = 'question'): Promise<void> {
+      if (isRealId(id)) { await (await realHttp())(`${threadApi(kind)}/replies/${id}/vote`, { method: 'POST' }); return }
       const me = requireMe(); await sleep(100); castVote(me, 'reply', id)
     },
     async accept(replyId: string): Promise<void> {

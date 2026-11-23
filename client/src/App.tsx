@@ -56,10 +56,10 @@ export default function App() {
           <Route path="/resources/:id" element={<ResourceDetail />} />
           <Route path="/qa" element={<Threads kind="question" />} />
           <Route path="/qa/new" element={<Compose kind="question" />} />
-          <Route path="/qa/:id" element={<ThreadDetail />} />
+          <Route path="/qa/:id" element={<ThreadDetail kind="question" />} />
           <Route path="/voice" element={<Threads kind="voice" />} />
           <Route path="/voice/new" element={<Compose kind="voice" />} />
-          <Route path="/voice/:id" element={<ThreadDetail />} />
+          <Route path="/voice/:id" element={<ThreadDetail kind="voice" />} />
           <Route path="/events" element={<Events />} />
           <Route path="/rentals" element={<Rentals />} />
           <Route path="/leaderboard" element={<Leaderboard />} />

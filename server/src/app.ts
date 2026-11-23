@@ -12,6 +12,7 @@ import { rentalsRouter } from './routes/rentals.js'
 import { meRouter } from './routes/me.js'
 import { leaderboardRouter } from './routes/leaderboard.js'
 import { usersRouter } from './routes/users.js'
+import { voiceRouter } from './routes/voice.js'
 
 /** Builds the Express app without starting it, so tests can drive it with supertest. */
 export function createApp(config: Config) {
@@ -32,6 +33,7 @@ export function createApp(config: Config) {
   app.use('/api/me', requireAuth, meRouter())
   app.use('/api/leaderboard', requireAuth, leaderboardRouter())
   app.use('/api/users', requireAuth, usersRouter())
+  app.use('/api/voice', requireAuth, voiceRouter())
   // Future protected routers: app.use('/api/resources', requireAuth, resourcesRouter(config))
 
   app.use(notFound)

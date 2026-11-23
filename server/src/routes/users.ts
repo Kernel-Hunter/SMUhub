@@ -5,7 +5,8 @@ import { rankOf, xpOf } from '../lib/xp.js'
 import { Reply } from '../models/Reply.js'
 import { Thread } from '../models/Thread.js'
 import { User, toClientUser } from '../models/User.js'
-import { loadAuthors, threadJson } from './questions.js'
+import { loadPeople } from '../lib/people.js'
+import { threadJson } from '../lib/threads.js'
 
 /**
  * Public student profiles, mounted at /api/users behind requireAuth (see app.ts).
@@ -27,10 +28,10 @@ export function usersRouter() {
     const xp = await xpOf(u._id)
     const [rank, threads, acceptedAnswers] = await Promise.all([
       rankOf(xp),
-      Thread.find({ author: u._id, kind: 'question', anonymous: { $ne: true } }).sort({ createdAt: -1 }).limit(50),
+      Thread.find({ author: u._id, kind: { $in: ['question', 'voice'] }, anonymous: { $ne: true } }).sort({ createdAt: -1 }).limit(50),
       Reply.countDocuments({ author: u._id, accepted: true, anonymous: { $ne: true } }),
     ])
-    const authors = await loadAuthors([u._id])
+    const authors = await loadPeople([u._id])
     res.json({
       user: { ...toClientUser(u), bio: u.bio ?? '', joinedAt: (u.createdAt ?? new Date()).getTime(), xp, rank },
       resources: [], // resources are not on the server yet

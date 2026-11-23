@@ -2,7 +2,7 @@
  * Adds test students so login can be tried before sign-up (US-01) exists.
  * Safe to run several times: users are matched by email (unique index) and updated in place,
  * so no duplicates are created; their password is reset to SEED_PASSWORD from server/.env.
- * The demo Q&A also pays XP through award() (real ledger rows, same rules as the app), so the leaderboard
+ * The demo Q&A and Campus Voice posts also pay XP through award() (real ledger rows, same rules as the app), so the leaderboard
  * is not empty. Their refKeys are stable, so re-running the seed never pays twice.
  *   npm run seed
  */
@@ -53,6 +53,37 @@ const DEMO_QUESTIONS = [
     author: Y, courseCode: 'CS324', hoursAgo: 5, solved: false,
     title: 'Is it fine to store the JWT in localStorage for the project?',
     body: 'The tutorial stores it in localStorage but someone said it is unsafe. What should we do for the CS324 project?',
+    replies: [],
+  },
+]
+
+/**
+ * Demo Campus Voice posts, two per student (the pair cap allows 3 paying upvotes a week, one is already used by a question).
+ * Matched by title, so re-running resets them. Anonymous ones never show on a profile.
+ */
+const DEMO_VOICE = [
+  {
+    author: Y, category: 'facilities' as const, anonymous: false, hoursAgo: 30,
+    title: 'The library closes at 6pm during exam weeks',
+    body: 'Exam season is exactly when we need study space the most. Could the library stay open until 10pm for the two weeks of finals?',
+    replies: [{ author: A, anonymous: false, hoursAgo: 28, body: 'Agreed. Block C is full by 5pm and there is nowhere else quiet to go.' }],
+  },
+  {
+    author: A, category: 'academics' as const, anonymous: true, hoursAgo: 50,
+    title: 'Midterm grades are still not published after five weeks',
+    body: 'Several courses, same story. We cannot adjust how we study without feedback. Please set a maximum turnaround for grading.',
+    replies: [{ author: Y, anonymous: true, hoursAgo: 45, body: 'Same in my program. A two-week rule would already change a lot.' }],
+  },
+  {
+    author: A, category: 'idea' as const, anonymous: false, hoursAgo: 12,
+    title: 'Idea: a shared booking board for quiet rooms',
+    body: 'A simple sign-up sheet per hour, run by students. The rooms exist, we only lack coordination during exam weeks.',
+    replies: [],
+  },
+  {
+    author: Y, category: 'campus-life' as const, anonymous: true, hoursAgo: 3,
+    title: 'Cafeteria prices went up again this semester',
+    body: 'A sandwich now costs more than the daily bus fare. Is there a student discount we do not know about?',
     replies: [],
   },
 ]
@@ -115,6 +146,26 @@ async function main() {
     }
   }
   console.log(`Seeded ${DEMO_QUESTIONS.length} demo questions (${xp} XP newly awarded).`)
+
+  xp = 0
+  for (const v of DEMO_VOICE) {
+    const author = ids.get(v.author)!
+    const other = ids.get(v.author === Y ? A : Y)!
+    const at = new Date(Date.now() - v.hoursAgo * HOUR)
+    const existing = await Thread.findOne({ kind: 'voice', title: v.title })
+    if (existing) await Reply.deleteMany({ thread: existing._id })
+    // The other student upvotes it, so nobody votes on their own post.
+    const fields = { kind: 'voice' as const, title: v.title, body: v.body, category: v.category, anonymous: v.anonymous, author, voters: [other], votes: 1, replyCount: v.replies.length, solved: false, createdAt: at }
+    const thread = existing
+      ? await Thread.findByIdAndUpdate(existing._id, fields, { new: true, timestamps: false })
+      : await Thread.create(fields)
+    for (const r of v.replies) {
+      await Reply.create({ thread: thread!._id, body: r.body, author: ids.get(r.author)!, anonymous: r.anonymous, createdAt: new Date(Date.now() - r.hoursAgo * HOUR) })
+    }
+    // Same refKey as a vote from the page (routes/voice.ts), keyed on the stable thread id.
+    xp += await award({ user: author, actor: other, kind: 'voice_upvoted', points: XP_RULES.points.voiceUp, refKey: `tv:${other}:${thread!._id}`, label: 'Post upvoted', at: new Date(at.getTime() + HOUR) })
+  }
+  console.log(`Seeded ${DEMO_VOICE.length} Campus Voice posts (${xp} XP newly awarded).`)
 
   for (const e of DEMO_EVENTS) {
     const startsAt = new Date(Date.now() + e.inDays * 24 * HOUR)

@@ -65,8 +65,8 @@ describe('asking and listing', () => {
     assert.equal((await ask(asker, { body: 'Too short' })).status, 400)
   })
 
-  it(`allows ${LIMITS.questionsPerHour} questions per hour, then answers 429`, async () => {
-    for (let i = 0; i < LIMITS.questionsPerHour; i++) assert.equal((await ask(asker, { title: `${QUESTION.title} ${i}` })).status, 201)
+  it(`allows ${LIMITS.threadsPerHour} questions per hour, then answers 429`, async () => {
+    for (let i = 0; i < LIMITS.threadsPerHour; i++) assert.equal((await ask(asker, { title: `${QUESTION.title} ${i}` })).status, 201)
     const res = await ask()
     assert.equal(res.status, 429)
     assert.equal(res.body.error.code, 'rate_limited')

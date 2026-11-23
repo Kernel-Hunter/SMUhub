@@ -68,12 +68,6 @@ export const THREADS: [string, 'question' | 'voice', string, string, string | ''
   ['t3', 'question', 'Does the Calculus I final allow a calculator?', 'The syllabus is silent about it. Did anyone ask the instructor last semester?', 'MATH101', '', 'u9', false, 0, 6, true],
   ['t4', 'question', 'useEffect runs twice in development, is that a bug?', 'My fetch fires two times in the CS324 project. Do I need to worry before deployment?', 'CS324', '', 'u10', false, 1, 7, true],
   ['t5', 'question', 'Journal entry for prepaid insurance?', 'I keep mixing up the debit and credit side when the policy covers 12 months.', 'ACC110', '', 'u3', false, 3, 4, false],
-  ['t6', 'voice', 'The library closes at 6pm during exam weeks. This makes no sense.', 'Exam season is exactly when we need study space the most. Other universities extend hours. Can student council push for 10pm?', '', 'facilities', 'u5', false, 1, 58, false],
-  ['t7', 'voice', 'Grades for the midterm are still not published after 5 weeks', 'Several courses, same story. We cannot adjust how we study without feedback. Please set a maximum turnaround for grading.', '', 'academics', 'u2', true, 2, 71, false],
-  ['t8', 'voice', 'Shoutout to the IT team for fixing the Wi-Fi in Block C', 'It actually works now. Credit where it is due.', '', 'praise', 'u4', false, 4, 33, false],
-  ['t9', 'voice', 'Idea: a shared exam-week quiet room booking board', 'Simple sign-up sheet per hour, run by students. We have the spaces, we just lack coordination.', '', 'idea', 'u1', false, 3, 41, false],
-  ['t10', 'voice', 'The cafeteria prices went up again', 'A sandwich is now more than the daily bus fare. Is there any student discount we do not know about?', '', 'campus-life', 'u8', true, 5, 49, false],
-  ['t11', 'voice', 'Registration portal crashes at 8am every enrollment day', 'We all log in at the same time because the slots are limited. Staggering by year would fix this.', '', 'admin', 'u7', false, 7, 62, false],
 ]
 
 // id, threadId, author, anonymous, body, daysAgo, votes, accepted
@@ -83,8 +77,6 @@ export const REPLIES: [string, string, string, boolean, string, number, number, 
   ['p3', 't2', 'u1', false, 'Template: assume an optimal solution differs from the greedy one at the first step, swap the greedy choice in, and show the result is no worse. Repeat by induction.', 1, 8, false],
   ['p4', 't3', 'u6', false, 'Basic scientific calculators were allowed last year. Graphing ones were not.', 0, 6, true],
   ['p5', 't4', 'u5', false, 'React StrictMode double-invokes effects in development only. Add a cleanup function and you are fine. Production runs it once.', 1, 11, true],
-  ['p6', 't6', 'u9', true, 'Same here. I walked to the library twice last week to find it closed.', 1, 12, false],
-  ['p7', 't7', 'u11', false, 'Asked the registrar about this. They said it depends on the instructor, which is exactly the problem.', 1, 17, false],
 ]
 
 // id, title, kind, daysFromNow, hour, location, course, author, going, desc

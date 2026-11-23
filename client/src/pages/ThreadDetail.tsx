@@ -5,17 +5,18 @@ import { ArrowLeft, CheckCircle2, EyeOff, MessageSquare, ThumbsUp } from 'lucide
 import { api } from '@/api/mock'
 import { Avatar, ErrorBox, Skeleton, Spinner, VoteButton, useToast } from '@/components/ui'
 import { VOICE_LABEL, VOICE_TONE, cn, errMsg, timeAgo } from '@/lib/utils'
+import type { ThreadKind } from '@/api/types'
 
-export default function ThreadDetail() {
+export default function ThreadDetail({ kind }: { kind: ThreadKind }) {
   const { id = '' } = useParams(); const qc = useQueryClient(); const toast = useToast()
-  const { data, error, isLoading } = useQuery({ queryKey: ['thread', id], queryFn: () => api.threads.get(id) })
+  const { data, error, isLoading } = useQuery({ queryKey: ['thread', id], queryFn: () => api.threads.get(id, kind) })
   const [body, setBody] = useState(''); const [anon, setAnon] = useState(false)
   const refresh = () => { qc.invalidateQueries({ queryKey: ['thread', id] }); qc.invalidateQueries({ queryKey: ['threads'] }) }
   const onError = (e: unknown) => toast(errMsg(e), 'err')
-  const vote = useMutation({ mutationFn: () => api.threads.vote(id), onSuccess: refresh, onError })
-  const voteReply = useMutation({ mutationFn: (rid: string) => api.threads.voteReply(rid), onSuccess: refresh, onError })
+  const vote = useMutation({ mutationFn: () => api.threads.vote(id, kind), onSuccess: refresh, onError })
+  const voteReply = useMutation({ mutationFn: (rid: string) => api.threads.voteReply(rid, kind), onSuccess: refresh, onError })
   const accept = useMutation({ mutationFn: (rid: string) => api.threads.accept(rid), onSuccess: () => { toast('Marked as the accepted answer.'); refresh() }, onError })
-  const reply = useMutation({ mutationFn: () => api.threads.reply(id, body, anon), onSuccess: () => { setBody(''); refresh() }, onError })
+  const reply = useMutation({ mutationFn: () => api.threads.reply(id, body, anon, kind), onSuccess: () => { setBody(''); refresh() }, onError })
   if (isLoading) return <Skeleton rows={3} />
   if (error || !data) return <ErrorBox error={error} />
   const { thread: t, replies } = data; const qa = t.kind === 'question'
