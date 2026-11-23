@@ -17,6 +17,10 @@ const schema = z.object({
   // Empty values in .env count as unset.
   SMTP_URL: z.string().trim().optional().transform((v) => v || undefined),
   MAIL_FROM: z.string().trim().optional().transform((v) => v || undefined),
+  // Number of reverse proxies in front of the API (1 on Render, Railway, Fly, Nginx). 0 when the API faces the internet.
+  TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
+  // Folder with the built web app (client/dist). Defaults to ../client/dist in production.
+  CLIENT_DIST: z.string().trim().optional().transform((v) => v || undefined),
 })
 
 export type Config = {
@@ -35,6 +39,10 @@ export type Config = {
   smtpUrl?: string
   /** Sender of the verification mails, e.g. "SMUhub <no-reply@smu.tn>". Required with SMTP_URL. */
   mailFrom?: string
+  /** Reverse proxies to trust for the client IP (rate limits, Secure cookies). 0 = none. */
+  trustProxy: number
+  /** Built web app to serve next to the API, from CLIENT_DIST. */
+  clientDist?: string
 }
 
 /** Reads and validates the environment. Throws with a readable message when something is missing. */
@@ -60,5 +68,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     authRateLimit: e.AUTH_RATE_LIMIT,
     smtpUrl: e.SMTP_URL,
     mailFrom: e.MAIL_FROM,
+    trustProxy: e.TRUST_PROXY,
+    clientDist: e.CLIENT_DIST,
   }
 }

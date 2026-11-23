@@ -1,0 +1,15 @@
+{
+  "name": "smuhub",
+  "private": true,
+  "description": "SMUhub: one build, one server. The API serves the built web app in production.",
+  "scripts": {
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "npx --yes pnpm@12.21.0 --dir client install --frozen-lockfile --prod=false && npx --yes pnpm@12.21.0 --dir client build",
+    "build:server": "npm --prefix server ci --include=dev && npm --prefix server run build",
+    "start": "cd server && node dist/index.js",
+    "test": "npm --prefix server test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
