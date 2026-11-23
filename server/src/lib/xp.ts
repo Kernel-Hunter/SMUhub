@@ -14,6 +14,17 @@ export const WEEK = 7 * DAY
 type Id = Types.ObjectId
 const isDuplicateKey = (err: unknown) => (err as { code?: number } | null)?.code === 11000
 
+// Awards for one student run one at a time, so parallel requests cannot all pass a cap check before any of them writes.
+// Holds for a single server process; several instances would need a transaction or a per-student counter document.
+const queues = new Map<string, Promise<unknown>>()
+function oneAtATime<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const run = (queues.get(key) ?? Promise.resolve()).then(fn, fn)
+  const tail = run.then(() => {}, () => {})
+  queues.set(key, tail)
+  void tail.then(() => { if (queues.get(key) === tail) queues.delete(key) })
+  return run
+}
+
 export type AwardInput = {
   user: Id
   /** Who caused the award. 'system' is for bonuses nobody gave (e.g. a verified resource); it skips the self and pair checks. */
@@ -32,7 +43,11 @@ export type AwardInput = {
  * from one actor to one student per 7 days, at most XP_RULES.dailyXpCap points per student per 24 h
  * (the last award is clamped). Returns the points actually written (0 when nothing was paid). Never throws on a repeat.
  */
-export async function award({ user, actor, kind, points, refKey, label, at = new Date() }: AwardInput): Promise<number> {
+export function award(input: AwardInput): Promise<number> {
+  return oneAtATime(input.user.toString(), () => awardNow(input))
+}
+
+async function awardNow({ user, actor, kind, points, refKey, label, at = new Date() }: AwardInput): Promise<number> {
   if (!(points > 0)) return 0
   const system = actor === 'system'
   if (!system && actor.equals(user)) return 0
@@ -62,7 +77,11 @@ export async function award({ user, actor, kind, points, refKey, label, at = new
  * matches `match` (e.g. /:<resourceId>$/), as one negative row. The ledger itself is never edited.
  * `refKey` (e.g. `remove:<id>`) makes it run once. Returns the (negative) points written, 0 when nothing was due.
  */
-export async function compensate({ user, match, refKey, label }: { user: Id; match: RegExp; refKey: string; label: string }): Promise<number> {
+export function compensate(input: { user: Id; match: RegExp; refKey: string; label: string }): Promise<number> {
+  return oneAtATime(input.user.toString(), () => compensateNow(input))
+}
+
+async function compensateNow({ user, match, refKey, label }: { user: Id; match: RegExp; refKey: string; label: string }): Promise<number> {
   if (await Ledger.exists({ refKey })) return 0
   const [earned] = await Ledger.aggregate<{ sum: number }>([
     { $match: { user, refKey: match, points: { $gt: 0 } } },

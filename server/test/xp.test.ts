@@ -92,6 +92,15 @@ describe('award()', () => {
     assert.equal(await give(omar, lina), 1, 'the cap is per direction')
   })
 
+  it('holds the pair and daily caps under parallel awards', async () => {
+    const pair = await Promise.all(Array.from({ length: 5 }, () => give(lina, omar)))
+    assert.equal(pair.reduce((s, p) => s + p, 0), XP_RULES.pairWeeklyCap)
+    await row(omar, sara, XP_RULES.dailyXpCap - 5)
+    const daily = await Promise.all([give(omar, lina, 5), give(omar, lina, 5)])
+    assert.equal(daily.reduce((s, p) => s + p, 0), 5)
+    assert.equal(await total(omar), XP_RULES.dailyXpCap)
+  })
+
   it('forgets pair interactions older than 7 days', async () => {
     for (let i = 0; i < XP_RULES.pairWeeklyCap; i++) await row(lina, omar, 1, 8 * DAY)
     assert.equal(await give(lina, omar), 1)
