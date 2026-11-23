@@ -13,7 +13,7 @@ const schema = z.object({
   ALLOWED_EMAIL_DOMAINS: z.string().min(1, 'ALLOWED_EMAIL_DOMAINS is required'),
   CLIENT_URL: z.url().default('http://localhost:5173'),
   LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(10),
-  AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(20),
+  AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(50),
   // Empty values in .env count as unset.
   SMTP_URL: z.string().trim().optional().transform((v) => v || undefined),
   MAIL_FROM: z.string().trim().optional().transform((v) => v || undefined),
