@@ -150,16 +150,21 @@ export function rentalsRouter() {
     if (!item) throw new HttpError(404, 'not_found', ITEM_NOT_FOUND)
     if (!item.owner.equals(me)) throw new HttpError(403, 'forbidden', 'Seul le propriétaire peut répondre.')
     const handled = () => new HttpError(409, 'bad_state', 'Cette demande a déjà été traitée.')
+    if (q.status !== 'pending') throw handled()
     // Conditional updates throughout: a request is answered once, and an item is lent to one renter at a time.
-    const claimed = await RentalRequest.updateOne({ _id: q._id, status: 'pending' }, { status: parsed.data.accept ? 'accepted' : 'declined' })
-    if (claimed.modifiedCount === 0) throw handled()
+    // On accept the item is claimed first, so a request is never "accepted" (contact visible) for an item already lent.
     if (parsed.data.accept) {
       const taken = await RentalItem.updateOne({ _id: item._id, owner: me, available: true }, { available: false })
-      if (taken.modifiedCount === 0) {
-        await RentalRequest.updateOne({ _id: q._id, status: 'accepted' }, { status: 'pending' })
-        throw new HttpError(409, 'unavailable', "Cet objet est déjà loué. Marque-le comme rendu avant d'accepter une autre demande.")
+      if (taken.modifiedCount === 0) throw new HttpError(409, 'unavailable', "Cet objet est déjà loué. Marque-le comme rendu avant d'accepter une autre demande.")
+      const claimed = await RentalRequest.updateOne({ _id: q._id, status: 'pending' }, { status: 'accepted' })
+      if (claimed.modifiedCount === 0) {
+        await RentalItem.updateOne({ _id: item._id }, { available: true })
+        throw handled()
       }
       await RentalRequest.updateMany({ item: item._id, status: 'pending', _id: { $ne: q._id } }, { status: 'declined' })
+    } else {
+      const claimed = await RentalRequest.updateOne({ _id: q._id, status: 'pending' }, { status: 'declined' })
+      if (claimed.modifiedCount === 0) throw handled()
     }
     const fresh = (await RentalRequest.findById(q._id))!
     res.json({ request: requestJson(fresh, await loadPeople([fresh.renter])) })
