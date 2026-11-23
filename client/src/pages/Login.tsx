@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
-import { ALLOWED_DOMAINS, checkSmuEmail } from '@/api/auth'
+import { ALLOWED_DOMAINS, checkSmuEmail, rememberPendingPassword } from '@/api/auth'
 import { ApiError } from '@/api/mock'
 import { AuthLayout, authLink } from '@/components/AuthLayout'
 import { Spinner } from '@/components/ui'
@@ -24,7 +24,7 @@ export default function Login() {
     // On success the app re-renders on the signed-in routes and this page unmounts.
     try { await login(email, p) } catch (x) {
       // Right password, email not confirmed yet: send a fresh code and ask for it.
-      if (x instanceof ApiError && x.code === 'email_not_verified') { navigate('/verify', { state: { email: email.trim().toLowerCase(), resend: true } }); return }
+      if (x instanceof ApiError && x.code === 'email_not_verified') { rememberPendingPassword(p); navigate('/verify', { state: { email: email.trim().toLowerCase(), resend: true } }); return }
       setErr(errMsg(x)); setP(''); setBusy(false)
     }
   }

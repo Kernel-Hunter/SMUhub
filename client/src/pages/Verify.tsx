@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthContext'
-import { authApi } from '@/api/auth'
+import { authApi, readPendingPassword } from '@/api/auth'
 import { AuthLayout, CodeInput, authLink, useCooldown } from '@/components/AuthLayout'
 import { Spinner } from '@/components/ui'
 import { errMsg } from '@/lib/utils'
@@ -19,6 +19,8 @@ export default function Verify() {
 function VerifyForm({ email, resendOnArrival }: { email: string; resendOnArrival: boolean }) {
   const { adopt } = useAuth()
   const [code, setCode] = useState('')
+  // Came straight from sign-up or login: the password is in memory. After a refresh it is gone, so ask for it.
+  const [password, setPassword] = useState(readPendingPassword); const [askPassword] = useState(() => !password)
   const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [note, setNote] = useState('')
   const [cooldown, restartCooldown] = useCooldown()
   const asked = useRef(false)
@@ -32,9 +34,10 @@ function VerifyForm({ email, resendOnArrival }: { email: string; resendOnArrival
 
   async function verify(value: string) {
     if (busy || value.length !== 6) return
+    if (!password) { setErr('Enter the password you chose when you signed up.'); return }
     setBusy(true); setErr(''); setNote('')
     // On success the app switches to the signed-in routes and lands on Home.
-    try { adopt(await authApi.verify(email, value)) } catch (x) { setErr(errMsg(x)); setCode(''); setBusy(false) }
+    try { adopt(await authApi.verify(email, value, password)) } catch (x) { setErr(errMsg(x)); setCode(''); setBusy(false) }
   }
   function onCode(v: string) {
     setCode(v); setErr('')
@@ -54,6 +57,13 @@ function VerifyForm({ email, resendOnArrival }: { email: string; resendOnArrival
         <fieldset disabled={busy} className="mt-8 grid min-w-0 grid-cols-1 gap-4">
           <label htmlFor="verify-code" className="label !mb-0">Code</label>
           <CodeInput id="verify-code" value={code} onChange={onCode} invalid={!!err} autoFocus />
+          {askPassword && (
+            <div>
+              <label htmlFor="verify-password" className="label">Password</label>
+              <input id="verify-password" className="field" type="password" autoComplete="current-password" value={password} onChange={(e) => { setPassword(e.target.value); setErr('') }} />
+              <p className="mt-1.5 text-xs text-muted">The one you chose when you signed up.</p>
+            </div>
+          )}
           {err && <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">{err}</p>}
           {note && <p role="status" className="text-sm text-muted">{note}</p>}
           <button className="btn btn-accent mt-1 !h-10 text-sm" disabled={busy || code.length !== 6} aria-busy={busy}>{busy ? <Spinner /> : 'Confirm'}</button>

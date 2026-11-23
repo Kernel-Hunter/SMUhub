@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ALLOWED_DOMAINS, authApi, checkNewPassword, checkSmuEmail } from '@/api/auth'
+import { ALLOWED_DOMAINS, authApi, checkNewPassword, checkSmuEmail, rememberPendingPassword } from '@/api/auth'
 import { AuthLayout, PasswordInput, authLink } from '@/components/AuthLayout'
 import { Spinner } from '@/components/ui'
 import { errMsg } from '@/lib/utils'
@@ -24,6 +24,7 @@ export default function Signup() {
     setBusy(true); setErr('')
     try {
       await authApi.register({ email, password, firstName: firstName.trim(), lastName: lastName.trim(), major: major.trim(), year: Number(year) })
+      rememberPendingPassword(password)
       navigate('/verify', { state: { email: email.trim().toLowerCase() } })
     } catch (x) { setErr(errMsg(x)); setBusy(false) }
   }

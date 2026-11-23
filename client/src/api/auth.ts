@@ -37,14 +37,23 @@ export function checkNewPassword(p: string): string | null {
 
 export type SignupInput = { email: string; password: string; firstName: string; lastName: string; major?: string; year?: number }
 
+/**
+ * The password typed on the sign-up or login page, kept in memory only (never in history state, storage or the URL)
+ * so the code screen can send it along without asking again. Lost on refresh; the code screen then asks for it.
+ */
+let pendingPassword = ''
+export const rememberPendingPassword = (p: string) => { pendingPassword = p }
+export const readPendingPassword = () => pendingPassword
+
 export const authApi = {
   /** Creates the account (or refreshes an unverified one) and mails a 6-digit code. Never says whether the email is taken. */
   async register(input: SignupInput): Promise<void> {
     await http('/api/auth/register', { method: 'POST', body: { ...input, email: input.email.trim() } })
   },
-  /** Confirms the email with the code and starts the session. */
-  async verify(email: string, code: string): Promise<AuthUser> {
-    const { user } = await http<{ user: AuthUser }>('/api/auth/verify', { method: 'POST', body: { email: email.trim(), code: code.trim() } })
+  /** Confirms the email with the code and the password chosen at sign-up, and starts the session. */
+  async verify(email: string, code: string, password: string): Promise<AuthUser> {
+    const { user } = await http<{ user: AuthUser }>('/api/auth/verify', { method: 'POST', body: { email: email.trim(), code: code.trim(), password } })
+    pendingPassword = ''
     return user
   },
   /** Mails a new sign-up code (at most one per minute; the server stays silent otherwise). */

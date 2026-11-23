@@ -34,7 +34,7 @@ const registerBody = z.object({
   year: z.coerce.number().int().min(1).max(6).optional(),
 })
 const emailBody = z.object({ email: emailField })
-const verifyBody = z.object({ email: emailField, code: codeField })
+const verifyBody = z.object({ email: emailField, code: codeField, password: z.string().min(1).max(PASSWORD_MAX) })
 const resetBody = z.object({ email: emailField, code: codeField, password: newPasswordField })
 
 const PENDING = { pending: true }
@@ -135,10 +135,19 @@ export function authRouter(config: Config) {
     if (!parsed.success) throw new HttpError(400, 'invalid_code', 'Code incorrect ou expiré.')
     const email = smuEmail(parsed.data.email)
 
+    // The code alone is not enough: re-registering an unconfirmed email replaces its password, so whoever confirms
+    // must also know the password that is on the account now. Otherwise a stranger could re-register, wait for the
+    // owner to type the mailed code, and keep an account carrying the stranger's password.
+    const pending = await User.findOne({ email, emailVerified: false }).select('+passwordHash')
+    if (!pending) {
+      await burnPasswordCheck(parsed.data.password)
+      throw new HttpError(400, 'invalid_code', 'Code ou mot de passe incorrect.')
+    }
+    if (!(await verifyPassword(parsed.data.password, pending.passwordHash))) throw new HttpError(400, 'invalid_code', 'Code ou mot de passe incorrect.')
     const result = await checkCode(config.jwtSecret, email, 'signup', parsed.data.code)
     if (result !== 'ok') throw codeError(result)
-    const user = await User.findOneAndUpdate({ email }, { $set: { emailVerified: true } }, { returnDocument: 'after' })
-    if (!user) throw new HttpError(400, 'invalid_code', 'Code incorrect ou expiré.')
+    const user = await User.findOneAndUpdate({ _id: pending._id, passwordHash: pending.passwordHash }, { $set: { emailVerified: true } }, { returnDocument: 'after' })
+    if (!user) throw new HttpError(400, 'invalid_code', 'Code ou mot de passe incorrect.')
 
     startSession(res, config, user._id.toString(), user.tokenVersion ?? 0)
     res.json({ user: toPublicUser(user) })

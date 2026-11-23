@@ -99,7 +99,7 @@ describe('POST /api/auth/register', () => {
   it('full sign-up: register, verify, then /me works', async () => {
     await register().expect(202)
     const agent = request.agent(app)
-    const res = await post('verify', { email: EMAIL, code: codeFor(EMAIL) }, agent)
+    const res = await post('verify', { email: EMAIL, code: codeFor(EMAIL), password: PASSWORD }, agent)
     assert.equal(res.status, 200)
     assert.equal(res.body.user.email, EMAIL)
     assert.equal(res.body.user.firstName, 'Nour')
@@ -113,7 +113,7 @@ describe('POST /api/auth/register', () => {
     assert.equal((await User.findOne({ email: EMAIL }))?.emailVerified, true)
 
     // The code is single use, and login now works.
-    assert.equal((await post('verify', { email: EMAIL, code: codeFor(EMAIL) })).status, 400)
+    assert.equal((await post('verify', { email: EMAIL, code: codeFor(EMAIL), password: PASSWORD })).status, 400)
     assert.equal((await post('login', { email: EMAIL, password: PASSWORD })).status, 200)
   })
 
@@ -145,8 +145,8 @@ describe('POST /api/auth/register', () => {
     assert.equal(await User.countDocuments(), 1)
     assert.equal(mailsTo(EMAIL).length, 2)
     const second = codeFor(EMAIL)
-    if (first !== second) assert.equal((await post('verify', { email: EMAIL, code: first })).status, 400, 'old code replaced')
-    assert.equal((await post('verify', { email: EMAIL, code: second })).status, 200)
+    if (first !== second) assert.equal((await post('verify', { email: EMAIL, code: first, password: 'AnotherPass77' })).status, 400, 'old code replaced')
+    assert.equal((await post('verify', { email: EMAIL, code: second, password: 'AnotherPass77' })).status, 200)
     assert.equal((await post('login', { email: EMAIL, password: 'AnotherPass77' })).body.user.firstName, 'Noor')
   })
 })
@@ -154,34 +154,51 @@ describe('POST /api/auth/register', () => {
 describe('POST /api/auth/verify', () => {
   it('refuses a wrong code with a generic 400', async () => {
     await register().expect(202)
-    const res = await post('verify', { email: EMAIL, code: wrong(codeFor(EMAIL)) })
+    const res = await post('verify', { email: EMAIL, code: wrong(codeFor(EMAIL)), password: PASSWORD })
     assert.equal(res.status, 400)
     assert.equal(res.body.error.code, 'invalid_code')
     assert.equal(cookieOf(res), '')
-    assert.equal((await post('verify', { email: EMAIL, code: 'abc' })).status, 400)
-    assert.equal((await post('verify', { email: 'ghost@medtech.tn', code: '123456' })).status, 400)
+    assert.equal((await post('verify', { email: EMAIL, code: 'abc', password: PASSWORD })).status, 400)
+    assert.equal((await post('verify', { email: 'ghost@medtech.tn', code: '123456', password: PASSWORD })).status, 400)
   })
 
   it('burns the code after 5 wrong attempts', async () => {
     await register().expect(202)
     const code = codeFor(EMAIL)
     const statuses = []
-    for (let i = 0; i < 5; i++) statuses.push((await post('verify', { email: EMAIL, code: wrong(code) })).status)
+    for (let i = 0; i < 5; i++) statuses.push((await post('verify', { email: EMAIL, code: wrong(code), password: PASSWORD })).status)
     assert.deepEqual(statuses, [400, 400, 400, 400, 429])
-    const res = await post('verify', { email: EMAIL, code })
+    const res = await post('verify', { email: EMAIL, code, password: PASSWORD })
     assert.equal(res.status, 429, 'even the right code is refused once burned')
     assert.equal(res.body.error.code, 'too_many_attempts')
 
     // A new code works again.
     await ageCode(EMAIL, 'signup')
     await post('resend', { email: EMAIL }).expect(202)
-    assert.equal((await post('verify', { email: EMAIL, code: codeFor(EMAIL) })).status, 200)
+    assert.equal((await post('verify', { email: EMAIL, code: codeFor(EMAIL), password: PASSWORD })).status, 200)
+  })
+
+  it('needs the password chosen at sign-up, so re-registering an unconfirmed email cannot take it over', async () => {
+    await register().expect(202)
+    const code = codeFor(EMAIL)
+    // Someone else re-registers the same unconfirmed email within the minute: no new mail goes out, the code stays the same.
+    await register({ password: 'Intruder-Pass99' }).expect(202)
+    assert.equal(mailsTo(EMAIL).length, 1)
+    const refused = await post('verify', { email: EMAIL, code, password: PASSWORD })
+    assert.equal(refused.status, 400)
+    assert.equal(cookieOf(refused), '')
+    // The intruder does not have the code from the inbox; the owner signs up again and confirms with their own password.
+    assert.equal((await post('verify', { email: EMAIL, code: wrong(code), password: 'Intruder-Pass99' })).status, 400)
+    await ageCode(EMAIL, 'signup')
+    await register().expect(202)
+    assert.equal((await post('verify', { email: EMAIL, code: codeFor(EMAIL), password: PASSWORD })).status, 200)
+    assert.equal((await post('login', { email: EMAIL, password: 'Intruder-Pass99' })).status, 401)
   })
 
   it('refuses an expired code', async () => {
     await register().expect(202)
     await VerificationCode.updateOne({ email: EMAIL, purpose: 'signup' }, { $set: { expiresAt: new Date(Date.now() - 1000) } })
-    const res = await post('verify', { email: EMAIL, code: codeFor(EMAIL) })
+    const res = await post('verify', { email: EMAIL, code: codeFor(EMAIL), password: PASSWORD })
     assert.equal(res.status, 400)
     assert.equal(res.body.error.code, 'invalid_code')
   })
@@ -198,7 +215,7 @@ describe('POST /api/auth/resend', () => {
     await ageCode(EMAIL, 'signup')
     assert.equal((await post('resend', { email: EMAIL })).status, 202)
     assert.equal(mailsTo(EMAIL).length, 2)
-    assert.equal((await post('verify', { email: EMAIL, code: codeFor(EMAIL) })).status, 200)
+    assert.equal((await post('verify', { email: EMAIL, code: codeFor(EMAIL), password: PASSWORD })).status, 200)
 
     // Verified now: nothing more is sent.
     await ageCode(EMAIL, 'signup')
@@ -278,7 +295,7 @@ describe('Forgot and reset password', () => {
   it('does not accept a sign-up code for a reset, and burns reset codes after 5 wrong attempts', async () => {
     await post('forgot', { email: EMAIL }).expect(202)
     const code = codeFor(EMAIL)
-    for (let i = 0; i < 4; i++) assert.equal((await post('verify', { email: EMAIL, code })).status, 400, 'reset code is not a sign-up code')
+    for (let i = 0; i < 4; i++) assert.equal((await post('verify', { email: EMAIL, code, password: PASSWORD })).status, 400, 'reset code is not a sign-up code')
     for (let i = 0; i < 5; i++) await post('reset', { email: EMAIL, code: wrong(code), password: 'BrandNewPass2026' })
     const res = await post('reset', { email: EMAIL, code, password: 'BrandNewPass2026' })
     assert.equal(res.status, 429)
