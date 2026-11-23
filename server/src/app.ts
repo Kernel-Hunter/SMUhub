@@ -4,7 +4,9 @@ import cors from 'cors'
 import helmet from 'helmet'
 import type { Config } from './config/env.js'
 import { errorHandler, notFound } from './lib/errors.js'
+import { requireAuth } from './middleware/requireAuth.js'
 import { authRouter } from './routes/auth.js'
+import { questionsRouter } from './routes/questions.js'
 
 /** Builds the Express app without starting it, so tests can drive it with supertest. */
 export function createApp(config: Config) {
@@ -19,6 +21,7 @@ export function createApp(config: Config) {
 
   app.get('/api/health', (_req, res) => { res.json({ ok: true }) })
   app.use('/api/auth', authRouter(config))
+  app.use('/api/questions', requireAuth, questionsRouter())
   // Future protected routers: app.use('/api/resources', requireAuth, resourcesRouter(config))
 
   app.use(notFound)

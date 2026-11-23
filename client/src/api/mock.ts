@@ -2,6 +2,9 @@
  * Mock backend. Mirrors the future REST API: same method shapes, same rules.
  * Every rule below (caps, dedupe, ledger idempotency, self-vote ban) is the
  * reference implementation the real server must enforce. The client is never trusted.
+ *
+ * Exception: Q&A questions (threads of kind 'question') go to the real server
+ * (server/src/routes/questions.ts). Campus Voice and everything else still use this mock.
  */
 import { RULES } from './rules'
 import * as S from './seed'
@@ -15,6 +18,11 @@ export class ApiError extends Error {
   constructor(code: string, message: string) { super(message); this.code = code }
 }
 const fail = (code: string, msg: string): never => { throw new ApiError(code, msg) }
+
+// http.ts imports ApiError from this file, so it is loaded lazily to avoid a circular import.
+const realHttp = async () => (await import('./http')).http
+// Real questions have 24-character database ids; the demo ones in seed.ts do not.
+const isRealId = (id: string) => /^[0-9a-f]{24}$/.test(id)
 
 type UserRow = { id: string; name: string; major: string; year: number; bio: string; joinedAt: number; role: 'student' | 'admin'; courses: string[] }
 type ResRow = { id: string; title: string; description: string; courseCode: string; kind: ResourceKind; semester: 'S1' | 'S2'; academicYear: string; fileName: string; fileSize: number; ext: string; uploaderId: string; createdAt: number; downloads: number; helpful: number; verified: boolean; hash: string }
@@ -232,7 +240,9 @@ export const api = {
   courses: {
     async list(): Promise<Course[]> {
       requireMe(); await sleep(80)
-      return S.COURSES.map(([code, name, dept]) => ({ code, name, dept, resources: db.resources.filter((r) => r.courseCode === code).length, questions: db.threads.filter((t) => t.courseCode === code).length }))
+      // Question counts come from the real server, like the questions themselves.
+      const { threads } = await (await realHttp())<{ threads: Thread[] }>('/api/questions')
+      return S.COURSES.map(([code, name, dept]) => ({ code, name, dept, resources: db.resources.filter((r) => r.courseCode === code).length, questions: threads.filter((t) => t.courseCode === code).length }))
     },
   },
 
@@ -303,6 +313,17 @@ export const api = {
 
   threads: {
     async list(kind: ThreadKind, f: { q?: string; course?: string; category?: string; sort?: 'new' | 'top'; unsolved?: boolean } = {}): Promise<Thread[]> {
+      if (kind === 'question') {
+        // Real server: GET /api/questions?q=&course=&sort=&unsolved=
+        const params = new URLSearchParams()
+        if (f.q?.trim()) params.set('q', f.q.trim())
+        if (f.course) params.set('course', f.course)
+        if (f.sort === 'top') params.set('sort', 'top')
+        if (f.unsolved) params.set('unsolved', '1')
+        const qs = params.toString()
+        const { threads } = await (await realHttp())<{ threads: Thread[] }>(`/api/questions${qs ? `?${qs}` : ''}`)
+        return threads
+      }
       const me = requireMe(); await sleep()
       const term = (f.q ?? '').toLowerCase().trim()
       return db.threads.filter((t) => t.kind === kind && (!f.course || t.courseCode === f.course) && (!f.category || t.category === f.category) && (!f.unsolved || !t.solved) &&
@@ -310,25 +331,41 @@ export const api = {
         .sort((a, b) => (f.sort === 'top' ? b.votes - a.votes : b.createdAt - a.createdAt)).map((t) => toThread(t, me))
     },
     async get(id: string): Promise<{ thread: Thread; replies: Reply[] }> {
+      if (isRealId(id)) return (await realHttp())<{ thread: Thread; replies: Reply[] }>(`/api/questions/${id}`)
       const me = requireMe(); await sleep(100)
       const t = db.threads.find((x) => x.id === id) ?? fail('not_found', 'This post no longer exists.')
       const replies = db.replies.filter((r) => r.threadId === id).sort((a, b) => Number(b.accepted) - Number(a.accepted) || b.votes - a.votes || a.createdAt - b.createdAt)
       return { thread: toThread(t!, me), replies: replies.map((r) => toReply(r, me)) }
     },
     async create(i: { kind: ThreadKind; title: string; body: string; courseCode?: string; category?: VoiceCategory; anonymous?: boolean }): Promise<Thread> {
-      const me = requireMe(); await sleep(250)
       const title = clean(i.title, 140), body = cleanBlock(i.body, 4000)
       if (title.length < 8) fail('bad_title', 'Title is too short (8+ characters).')
       if (body.length < 10) fail('bad_body', 'Add a little more detail (10+ characters).')
       if (i.kind === 'question' && !S.COURSES.some((c) => c[0] === i.courseCode)) fail('bad_course', 'Pick the course this question belongs to.')
+      if (i.kind === 'question') {
+        // Real server: POST /api/questions (it re-checks everything above)
+        const { thread } = await (await realHttp())<{ thread: Thread }>('/api/questions', { method: 'POST', body: { title, body, courseCode: i.courseCode } })
+        return thread
+      }
+      const me = requireMe(); await sleep(250)
       const recent = db.threads.filter((t) => t.authorId === me && Date.now() - t.createdAt < 3600000).length
       if (recent >= 5) fail('rate_limited', 'Slow down: you can post 5 times per hour.')
-      const row: ThreadRow = { id: 't' + uid(), kind: i.kind, title, body, courseCode: i.kind === 'question' ? i.courseCode : undefined, category: i.kind === 'voice' ? (i.category ?? 'academics') : undefined, authorId: me, anonymous: i.kind === 'voice' ? !!i.anonymous : false, createdAt: Date.now(), votes: 0, solved: false }
+      // Only Campus Voice posts reach this point; questions returned above.
+      const row: ThreadRow = { id: 't' + uid(), kind: 'voice', title, body, courseCode: undefined, category: i.category ?? 'academics', authorId: me, anonymous: !!i.anonymous, createdAt: Date.now(), votes: 0, solved: false }
       db.threads.unshift(row); save(); simulatePeers('thread', row.id)
       return toThread(row, me)
     },
-    async vote(id: string): Promise<void> { const me = requireMe(); await sleep(100); castVote(me, 'thread', id) },
+    async vote(id: string): Promise<void> {
+      if (isRealId(id)) { await (await realHttp())(`/api/questions/${id}/vote`, { method: 'POST' }); return }
+      const me = requireMe(); await sleep(100); castVote(me, 'thread', id)
+    },
     async reply(threadId: string, body: string, anonymous = false): Promise<Reply> {
+      if (isRealId(threadId)) {
+        const b = cleanBlock(body, 3000)
+        if (b.length < 2) fail('bad_body', 'Write something first.')
+        const { reply } = await (await realHttp())<{ reply: Reply }>(`/api/questions/${threadId}/replies`, { method: 'POST', body: { body: b } })
+        return reply
+      }
       const me = requireMe(); await sleep(250)
       const t = db.threads.find((x) => x.id === threadId) ?? fail('not_found', 'Post not found.')
       const b = cleanBlock(body, 3000)
@@ -339,8 +376,12 @@ export const api = {
       db.replies.push(row); save()
       return toReply(row, me)
     },
-    async voteReply(id: string): Promise<void> { const me = requireMe(); await sleep(100); castVote(me, 'reply', id) },
+    async voteReply(id: string): Promise<void> {
+      if (isRealId(id)) { await (await realHttp())(`/api/questions/replies/${id}/vote`, { method: 'POST' }); return }
+      const me = requireMe(); await sleep(100); castVote(me, 'reply', id)
+    },
     async accept(replyId: string): Promise<void> {
+      if (isRealId(replyId)) { await (await realHttp())(`/api/questions/replies/${replyId}/accept`, { method: 'POST' }); return }
       const me = requireMe(); await sleep(150)
       const r = db.replies.find((x) => x.id === replyId) ?? fail('not_found', 'Reply not found.')
       const t = db.threads.find((x) => x.id === r!.threadId)!
