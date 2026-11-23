@@ -28,13 +28,6 @@ export const RENTAL_LABEL: Record<RentalCategory, string> = { calculator: 'Calcu
 
 export function errMsg(e: unknown) { return e instanceof Error ? e.message : 'Something went wrong. Try again.' }
 
-export function saveBlob(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob)
-  const a = Object.assign(document.createElement('a'), { href: url, download: name })
-  document.body.appendChild(a); a.click(); a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 2000)
-}
-
 /** One muted colour per department, shown only as a small dot to tell courses apart. */
 export const DEPT: Record<string, { dot: string }> = {
   'Computer Science': { dot: '#4f86a6' },

@@ -3,9 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, BadgeCheck, Download, Info, ThumbsUp, Trash2 } from 'lucide-react'
 import { api } from '@/api/mock'
 import { RULES } from '@/api/rules'
+import type { Resource } from '@/api/types'
 import { FileBadge, ResourceCard } from '@/components/Cards'
 import { Avatar, ErrorBox, Skeleton, Spinner, useToast } from '@/components/ui'
-import { KIND_LABEL, KIND_TONE, cn, deptOf, errMsg, formatSize, saveBlob, timeAgo } from '@/lib/utils'
+import { KIND_LABEL, KIND_TONE, cn, deptOf, errMsg, formatSize, timeAgo } from '@/lib/utils'
 
 export default function ResourceDetail() {
   const { id = '' } = useParams(); const nav = useNavigate(); const qc = useQueryClient(); const toast = useToast()
@@ -13,7 +14,8 @@ export default function ResourceDetail() {
   const courses = useQuery({ queryKey: ['courses'], queryFn: api.courses.list })
   const more = useQuery({ queryKey: ['resources', 'course', r?.courseCode], queryFn: () => api.resources.list({ course: r!.courseCode, sort: 'top' }), enabled: !!r })
   const refresh = () => { qc.invalidateQueries({ queryKey: ['resource', id] }); qc.invalidateQueries({ queryKey: ['resources'] }) }
-  const dl = useMutation({ mutationFn: () => api.resources.download(id), onSuccess: (f) => { saveBlob(f.blob, f.fileName); refresh() }, onError: (e) => toast(errMsg(e), 'err') })
+  // The browser downloads the file itself; the server records it, so rating unlocks now and the counts catch up just after.
+  const dl = useMutation({ mutationFn: () => api.resources.download(id), onSuccess: () => { qc.setQueryData<Resource>(['resource', id], (old) => old && { ...old, iDownloaded: true }); setTimeout(refresh, 1500) }, onError: (e) => toast(errMsg(e), 'err') })
   const rate = useMutation({ mutationFn: () => api.resources.rate(id), onSuccess: () => { toast('Thanks. The uploader gets points for this.'); refresh() }, onError: (e) => toast(errMsg(e), 'err') })
   const del = useMutation({ mutationFn: () => api.resources.remove(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['resources'] }); toast('File deleted.'); nav('/resources') }, onError: (e) => toast(errMsg(e), 'err') })
   if (isLoading) return <Skeleton rows={3} />

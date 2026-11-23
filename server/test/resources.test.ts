@@ -1,0 +1,364 @@
+/**
+ * Resources library tests (uploads, downloads, ratings, removal). Need a running MongoDB; use their own throwaway
+ * database (smuhub_test_resources by default, override with MONGODB_URI_TEST_RESOURCES), dropped at the end.
+ *   npm test
+ */
+import { after, before, beforeEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+import jwt from 'jsonwebtoken'
+import mongoose, { type Types } from 'mongoose'
+import request from 'supertest'
+import { createApp } from '../src/app.js'
+import { loadConfig } from '../src/config/env.js'
+import { SESSION_COOKIE } from '../src/lib/session.js'
+import { FILE_RULES, safeFileName, zipEntries } from '../src/lib/files.js'
+import { XP_RULES } from '../src/lib/xp.js'
+import { Ledger } from '../src/models/Ledger.js'
+import { User } from '../src/models/User.js'
+import { Download, Rating, Resource } from '../src/models/Resource.js'
+import { makeOffice, makePdf, makePng } from '../src/scripts/sampleFiles.js'
+
+const MONGO = process.env.MONGODB_URI_TEST_RESOURCES ?? 'mongodb://127.0.0.1:27017/smuhub_test_resources'
+const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
+const app = createApp(loadConfig({ NODE_ENV: 'test', MONGODB_URI: MONGO, JWT_SECRET: SECRET, ALLOWED_EMAIL_DOMAINS: 'medtech.tn,msb.tn' }))
+
+type Id = Types.ObjectId
+let lina: Id, omar: Id, sara: Id, nour: Id, admin: Id
+const cookie = (id: Id) => `${SESSION_COOKIE}=${jwt.sign({}, SECRET, { subject: id.toString(), expiresIn: 60 })}`
+const as = (id: Id) => ({
+  get: (path: string) => request(app).get(path).set('Cookie', cookie(id)),
+  post: (path: string, body?: object) => request(app).post(path).set('Cookie', cookie(id)).send(body ?? {}),
+  del: (path: string) => request(app).delete(path).set('Cookie', cookie(id)),
+})
+const META = { title: 'Databases final 2025, solved', description: 'Full worked solution.', courseCode: 'CS224', kind: 'exam', semester: 'S1', academicYear: '2025/26' }
+let n = 0
+const pdf = () => makePdf([`Test document ${++n}`, 'SMUhub resources test'])
+const upload = (id: Id, file: Buffer, name: string, over: Record<string, string> = {}) => {
+  const req = request(app).post('/api/resources').set('Cookie', cookie(id))
+  for (const [k, v] of Object.entries({ ...META, ...over })) req.field(k, v)
+  return req.attach('file', file, name)
+}
+const created = async (id: Id, file = pdf(), name = 'final.pdf') => {
+  const res = await upload(id, file, name)
+  assert.equal(res.status, 201, JSON.stringify(res.body))
+  return res.body.resource as { id: string; fileName: string; ext: string; fileSize: number; helpful: number; verified: boolean; downloads: number; iDownloaded: boolean; iVoted: boolean; mine: boolean }
+}
+// Reads the body as raw bytes whatever the content type.
+const binary = (res: request.Response, cb: (err: Error | null, body: Buffer) => void) => {
+  const stream = res as unknown as NodeJS.ReadableStream, parts: Buffer[] = []
+  stream.on('data', (d: Buffer) => parts.push(d))
+  stream.on('end', () => cb(null, Buffer.concat(parts)))
+}
+const fetchFile = (id: Id, resourceId: string) => as(id).get(`/api/resources/${resourceId}/file`).buffer(true).parse(binary)
+const xp = async (user: Id) => (await Ledger.find({ user })).reduce((s, l) => s + l.points, 0)
+const noEmail = (body: unknown) => !/@(medtech|msb)\.tn/.test(JSON.stringify(body))
+
+before(async () => {
+  await mongoose.connect(MONGO, { serverSelectionTimeoutMS: 3000 })
+  await mongoose.connection.dropDatabase()
+  await Promise.all([User.syncIndexes(), Ledger.syncIndexes(), Resource.syncIndexes(), Download.syncIndexes(), Rating.syncIndexes()])
+})
+after(async () => {
+  await mongoose.connection.dropDatabase()
+  await mongoose.disconnect()
+})
+beforeEach(async () => {
+  const db = mongoose.connection.db!
+  // The ledger refuses deletes through the app, so tests clear it with the raw driver.
+  await Promise.all([
+    User.deleteMany({}), Resource.deleteMany({}), Download.deleteMany({}), Rating.deleteMany({}), Ledger.collection.deleteMany({}),
+    db.collection('resources.files').deleteMany({}), db.collection('resources.chunks').deleteMany({}),
+  ])
+  const base = { passwordHash: 'x', major: 'CS', year: 2 }
+  lina = (await User.create({ ...base, email: 'lina.haddad@medtech.tn', firstName: 'Lina', lastName: 'Haddad' }))._id
+  omar = (await User.create({ ...base, email: 'omar.jaziri@msb.tn', firstName: 'Omar', lastName: 'Jaziri' }))._id
+  sara = (await User.create({ ...base, email: 'sara.mejri@medtech.tn', firstName: 'Sara', lastName: 'Mejri' }))._id
+  nour = (await User.create({ ...base, email: 'nour.ayari@msb.tn', firstName: 'Nour', lastName: 'Ayari' }))._id
+  admin = (await User.create({ ...base, email: 'admin.smu@medtech.tn', firstName: 'Admin', lastName: 'SMU', role: 'admin' }))._id
+})
+
+describe('authentication', () => {
+  it('requires a session for every route', async () => {
+    const id = new mongoose.Types.ObjectId().toString()
+    for (const res of [
+      await request(app).get('/api/resources'),
+      await request(app).get(`/api/resources/${id}`),
+      await request(app).get(`/api/resources/${id}/file`),
+      await request(app).post(`/api/resources/${id}/rate`),
+      await request(app).delete(`/api/resources/${id}`),
+      await request(app).post('/api/resources').field('title', 'Some title here').attach('file', Buffer.from('%PDF-1.4'), 'a.pdf'),
+    ]) assert.equal(res.status, 401)
+    assert.equal(await Resource.countDocuments(), 0)
+  })
+})
+
+describe('upload', () => {
+  it('stores a valid PDF and returns the client shape, without hash or email', async () => {
+    const res = await upload(lina, pdf(), 'Final exam.pdf')
+    assert.equal(res.status, 201)
+    const r = res.body.resource
+    assert.equal(r.title, META.title); assert.equal(r.ext, 'pdf'); assert.equal(r.fileName, 'Final exam.pdf'); assert.equal(r.courseCode, 'CS224')
+    assert.equal(r.kind, 'exam'); assert.equal(r.semester, 'S1'); assert.equal(r.academicYear, '2025/26')
+    assert.equal(r.mine, true); assert.equal(r.downloads, 0); assert.equal(r.helpful, 0); assert.equal(r.verified, false)
+    assert.equal(r.uploader.name, 'Lina Haddad')
+    assert.ok(!('sha256' in r) && !('fileId' in r))
+    assert.ok(noEmail(res.body))
+    assert.equal((await as(lina).get('/api/me')).body.me.uploads, 1)
+    assert.equal((await as(omar).get('/api/resources')).body.resources.length, 1)
+  })
+
+  it('accepts PNG, JPEG and Office files whose bytes match their extension', async () => {
+    assert.equal((await upload(lina, makePng([30, 90, 160], 'test png'), 'diagram.png')).status, 201)
+    const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(11 * 1024, 7)])
+    assert.equal((await upload(lina, jpg, 'photo.JPEG')).body.resource.ext, 'jpg')
+    assert.equal((await upload(lina, makeOffice('word/', 'doc'), 'notes.docx')).status, 201)
+    assert.equal((await upload(omar, makeOffice('ppt/', 'deck'), 'slides.pptx')).status, 201)
+    assert.equal((await upload(omar, makeOffice('xl/', 'sheet'), 'grades.xlsx')).status, 201)
+  })
+
+  it('rejects a fake PDF (wrong magic bytes)', async () => {
+    const html = Buffer.from(`<html><script>alert(1)</script>${' '.repeat(12 * 1024)}</html>`)
+    const res = await upload(lina, html, 'notes.pdf')
+    assert.equal(res.status, 415); assert.equal(res.body.error.code, 'type_mismatch')
+    assert.equal((await upload(lina, Buffer.concat([Buffer.from('%PDX-1.4'), pdf().subarray(8)]), 'notes.pdf')).status, 415)
+    assert.equal(await Resource.countDocuments(), 0)
+  })
+
+  it('rejects a file that is too small', async () => {
+    const res = await upload(lina, makePdf(['tiny'], 0), 'tiny.pdf')
+    assert.equal(res.status, 400); assert.equal(res.body.error.code, 'too_small')
+  })
+
+  it('rejects a file over 25 MB', async () => {
+    const big = Buffer.concat([pdf(), Buffer.alloc(FILE_RULES.maxBytes)])
+    const res = await upload(lina, big, 'huge.pdf')
+    assert.equal(res.status, 413); assert.equal(res.body.error.code, 'too_large')
+    assert.equal(await Resource.countDocuments(), 0)
+    assert.equal(await mongoose.connection.db!.collection('resources.files').countDocuments(), 0)
+  })
+
+  it('rejects an extension that does not match the bytes', async () => {
+    for (const [file, name] of [
+      [makePng([1, 2, 3], 'png'), 'notes.pdf'],
+      [pdf(), 'notes.png'],
+      [makeOffice('word/', 'a docx'), 'sheet.xlsx'],
+      [makeOffice('word/', 'a docx'), 'notes.pdf'],
+      [pdf(), 'notes.docx'],
+    ] as const) {
+      const res = await upload(lina, file, name)
+      assert.equal(res.status, 415, name); assert.equal(res.body.error.code, 'type_mismatch')
+    }
+  })
+
+  it('rejects unknown types, even with valid bytes', async () => {
+    for (const name of ['page.html', 'logo.svg', 'archive.zip', 'run.exe', 'noext']) {
+      const res = await upload(lina, pdf(), name)
+      assert.equal(res.status, 415, name); assert.equal(res.body.error.code, 'bad_type')
+    }
+  })
+
+  it('rejects an Office file that carries macros', async () => {
+    const res = await upload(lina, makeOffice('word/', 'macro', [{ name: 'word/vbaProject.bin', data: 'x' }]), 'notes.docx')
+    assert.equal(res.status, 415)
+  })
+
+  it('rejects a duplicate (same bytes, different name or student) with 409', async () => {
+    const file = pdf()
+    await created(lina, file, 'first.pdf')
+    for (const res of [await upload(lina, file, 'renamed.pdf', { title: 'Another title' }), await upload(omar, file, 'mine.pdf')]) {
+      assert.equal(res.status, 409); assert.equal(res.body.error.code, 'duplicate')
+    }
+    assert.equal(await Resource.countDocuments(), 1)
+    assert.equal(await mongoose.connection.db!.collection('resources.files').countDocuments(), 1)
+  })
+
+  it('validates the metadata', async () => {
+    assert.equal((await upload(lina, pdf(), 'a.pdf', { title: 'abc' })).body.error.code, 'bad_title')
+    assert.equal((await upload(lina, pdf(), 'a.pdf', { courseCode: 'XX999' })).body.error.code, 'bad_course')
+    assert.equal((await upload(lina, pdf(), 'a.pdf', { kind: 'lab' })).status, 400)
+    assert.equal((await upload(lina, pdf(), 'a.pdf', { semester: 'S3' })).status, 400)
+    assert.equal((await upload(lina, pdf(), 'a.pdf', { academicYear: 'last year' })).body.error.code, 'bad_year')
+    assert.equal((await as(lina).post('/api/resources', META)).body.error.code, 'no_file') // JSON, no file
+    const two = request(app).post('/api/resources').set('Cookie', cookie(lina))
+    for (const [k, v] of Object.entries(META)) two.field(k, v)
+    assert.equal((await two.attach('file', pdf(), 'a.pdf').attach('file', pdf(), 'b.pdf')).status, 400)
+    assert.equal(await Resource.countDocuments(), 0)
+  })
+
+  it('stores a safe file name', async () => {
+    assert.equal((await created(lina, pdf(), 'Résumé du cours.pdf')).fileName, 'Résumé du cours.pdf')
+    const evil = await created(lina, pdf(), '..\\..\\evil‮fdp.exe"<x>.pdf')
+    assert.equal(evil.fileName, 'evilfdp.exe__x_.pdf')
+    assert.equal(safeFileName('../../etc/passwd\u0000.pdf', 'pdf', 'Fallback'), 'passwd.pdf')
+    assert.equal(safeFileName('....pdf', 'pdf', 'My notes'), 'My_notes.pdf')
+    assert.equal(safeFileName(`${'a'.repeat(300)}.pdf`, 'pdf', 'x').length, 104)
+  })
+
+  it(`allows ${FILE_RULES.uploadsPerDay} uploads per 24 hours, then answers 429`, async () => {
+    for (let i = 0; i < FILE_RULES.uploadsPerDay; i++) await created(lina)
+    const res = await upload(lina, pdf(), 'one-more.pdf')
+    assert.equal(res.status, 429); assert.equal(res.body.error.code, 'rate_limited')
+    await Resource.updateMany({ uploader: lina }, { createdAt: new Date(Date.now() - 25 * 3_600_000) }) // a day later
+    await created(lina)
+  })
+
+  it('keeps the daily limit with parallel uploads', async () => {
+    const res = await Promise.all(Array.from({ length: 8 }, () => upload(omar, pdf(), 'p.pdf')))
+    assert.equal(res.filter((r) => r.status === 201).length, FILE_RULES.uploadsPerDay)
+    assert.equal(res.filter((r) => r.status === 429).length, 8 - FILE_RULES.uploadsPerDay)
+  })
+})
+
+describe('download', () => {
+  it('serves the bytes as an attachment, with the detected type and nosniff', async () => {
+    const file = pdf()
+    const r = await created(lina, file, 'Final exam.pdf')
+    const res = await fetchFile(omar, r.id)
+    assert.equal(res.status, 200)
+    assert.equal(res.headers['content-type'], 'application/pdf')
+    assert.match(res.headers['content-disposition'], /^attachment; filename="Final exam\.pdf"/)
+    assert.equal(res.headers['x-content-type-options'], 'nosniff')
+    assert.match(res.headers['content-security-policy'], /sandbox/)
+    assert.ok(Buffer.compare(res.body as Buffer, file) === 0)
+    const png = makePng([200, 40, 40], 'red')
+    const p = await created(lina, png, 'red.png')
+    const pres = await fetchFile(omar, p.id)
+    assert.equal(pres.headers['content-type'], 'image/png'); assert.ok((pres.body as Buffer).equals(png))
+  })
+
+  it('counts each student once, and never the uploader', async () => {
+    const r = await created(lina)
+    await fetchFile(lina, r.id)
+    await Promise.all([fetchFile(omar, r.id), fetchFile(omar, r.id), fetchFile(omar, r.id)])
+    await fetchFile(sara, r.id)
+    const seen = (await as(omar).get(`/api/resources/${r.id}`)).body.resource
+    assert.equal(seen.downloads, 2); assert.equal(seen.iDownloaded, true)
+    assert.equal(await Download.countDocuments({ resource: r.id }), 3)
+    assert.equal((await as(nour).get(`/api/resources/${r.id}`)).body.resource.iDownloaded, false)
+  })
+
+  it('answers 404 for an unknown resource', async () => {
+    assert.equal((await as(omar).get(`/api/resources/${new mongoose.Types.ObjectId()}/file`)).status, 404)
+    assert.equal((await as(omar).get('/api/resources/not-an-id/file')).status, 404)
+  })
+})
+
+describe('rating', () => {
+  it('refuses a rating without a download', async () => {
+    const r = await created(lina)
+    const res = await as(omar).post(`/api/resources/${r.id}/rate`)
+    assert.equal(res.status, 403); assert.equal(res.body.error.code, 'download_first')
+    assert.equal(await xp(lina), 0)
+  })
+
+  it('refuses rating your own file', async () => {
+    const r = await created(lina)
+    await fetchFile(lina, r.id)
+    const res = await as(lina).post(`/api/resources/${r.id}/rate`)
+    assert.equal(res.status, 403); assert.equal(res.body.error.code, 'self_vote')
+  })
+
+  it('rates once, and pays the uploader once', async () => {
+    const r = await created(lina)
+    await fetchFile(omar, r.id)
+    const res = await as(omar).post(`/api/resources/${r.id}/rate`)
+    assert.equal(res.status, 200)
+    assert.equal(res.body.resource.helpful, 1); assert.equal(res.body.resource.iVoted, true)
+    assert.ok(noEmail(res.body))
+    const again = await Promise.all([as(omar).post(`/api/resources/${r.id}/rate`), as(omar).post(`/api/resources/${r.id}/rate`)])
+    for (const a of again) { assert.equal(a.status, 409); assert.equal(a.body.error.code, 'already_voted') }
+    assert.equal((await Resource.findById(r.id))!.helpful, 1)
+    assert.equal(await xp(lina), XP_RULES.points.helpful)
+    assert.equal(await Ledger.countDocuments({ refKey: `helpful:${omar}:${r.id}` }), 1)
+  })
+
+  it('verifies on the third rating, once, and pays the bonus once, even in parallel', async () => {
+    const r = await created(lina)
+    const raters = [omar, sara, nour, admin]
+    for (const u of raters) await fetchFile(u, r.id)
+    const res = await Promise.all(raters.map((u) => as(u).post(`/api/resources/${r.id}/rate`)))
+    assert.ok(res.every((x) => x.status === 200))
+    const doc = (await Resource.findById(r.id))!
+    assert.equal(doc.helpful, 4); assert.equal(doc.verified, true)
+    assert.equal(await Ledger.countDocuments({ kind: 'resource_verified' }), 1)
+    const bonus = (await Ledger.findOne({ kind: 'resource_verified' }))!
+    assert.equal(bonus.actor, null); assert.equal(bonus.refKey, `verify:${r.id}`)
+    assert.equal(await xp(lina), 4 * XP_RULES.points.helpful + XP_RULES.points.verified)
+  })
+
+  it('does not verify before the third rating', async () => {
+    const r = await created(lina)
+    for (const u of [omar, sara]) { await fetchFile(u, r.id); await as(u).post(`/api/resources/${r.id}/rate`) }
+    assert.equal((await Resource.findById(r.id))!.verified, false)
+    assert.equal(await xp(lina), 2 * XP_RULES.points.helpful)
+  })
+})
+
+describe('removal', () => {
+  it('refuses removal by someone else, allows the uploader and admins', async () => {
+    const r = await created(lina)
+    const res = await as(omar).del(`/api/resources/${r.id}`)
+    assert.equal(res.status, 403); assert.equal(res.body.error.code, 'forbidden')
+    assert.equal(await Resource.countDocuments(), 1)
+    assert.equal((await as(admin).del(`/api/resources/${r.id}`)).status, 204)
+    const mine = await created(lina)
+    assert.equal((await as(lina).del(`/api/resources/${mine.id}`)).status, 204)
+    assert.equal((await as(lina).del(`/api/resources/${mine.id}`)).status, 404)
+  })
+
+  it('takes back the XP the file earned and deletes the file and its records', async () => {
+    const r = await created(lina)
+    const other = await created(lina) // XP from another file stays
+    for (const u of [omar, sara, nour]) { await fetchFile(u, r.id); await as(u).post(`/api/resources/${r.id}/rate`) }
+    await fetchFile(omar, other.id); await as(omar).post(`/api/resources/${other.id}/rate`)
+    const earned = 3 * XP_RULES.points.helpful + XP_RULES.points.verified
+    assert.equal(await xp(lina), earned + XP_RULES.points.helpful)
+    assert.equal((await as(lina).del(`/api/resources/${r.id}`)).status, 204)
+    assert.equal(await xp(lina), XP_RULES.points.helpful)
+    const penalty = (await Ledger.findOne({ kind: 'removal_penalty' }))!
+    assert.equal(penalty.points, -earned); assert.equal(penalty.refKey, `remove:${r.id}`)
+    assert.equal(await Download.countDocuments({ resource: r.id }), 0)
+    assert.equal(await Rating.countDocuments({ resource: r.id }), 0)
+    assert.equal(await mongoose.connection.db!.collection('resources.files').countDocuments(), 1)
+    assert.equal((await fetchFile(omar, r.id)).status, 404)
+    assert.equal((await as(omar).post(`/api/resources/${r.id}/rate`)).status, 404)
+  })
+})
+
+describe('listing, profiles and leaderboard', () => {
+  it('filters and sorts like the mock', async () => {
+    const a = await created(lina, pdf(), 'a.pdf')
+    const b = (await upload(omar, pdf(), 'b.pdf', { title: 'Calculus cheat sheet', courseCode: 'MATH101', kind: 'summary', semester: 'S2', description: 'Limits and derivatives' })).body.resource
+    for (const u of [sara, nour]) { await fetchFile(u, b.id); await as(u).post(`/api/resources/${b.id}/rate`) }
+    await fetchFile(sara, a.id)
+    const ids = async (qs: string) => ((await as(sara).get(`/api/resources${qs}`)).body.resources as { id: string }[]).map((r) => r.id)
+    assert.deepEqual(await ids(''), [b.id, a.id])
+    assert.deepEqual(await ids('?course=MATH101'), [b.id])
+    assert.deepEqual(await ids('?kind=exam&semester=&sort=new'), [a.id])
+    assert.deepEqual(await ids('?semester=S2'), [b.id])
+    assert.deepEqual(await ids('?q=derivatives'), [b.id])
+    assert.deepEqual(await ids('?q=cs224'), [a.id])
+    assert.deepEqual(await ids('?q=.*'), [])
+    assert.deepEqual(await ids('?sort=top'), [b.id, a.id])
+    assert.equal((await as(sara).get('/api/resources?sort=bad')).status, 400)
+  })
+
+  it('lists a student\'s resources on their profile and counts uploads on the board, without emails', async () => {
+    const r = await created(lina)
+    await fetchFile(omar, r.id); await as(omar).post(`/api/resources/${r.id}/rate`)
+    const profile = await as(omar).get(`/api/users/${lina}`)
+    assert.equal(profile.body.resources.length, 1); assert.equal(profile.body.resources[0].iVoted, true)
+    const board = await as(omar).get('/api/leaderboard?period=all')
+    assert.equal(board.body.rows[0].uploads, 1)
+    for (const body of [profile.body, board.body, (await as(omar).get('/api/resources')).body, (await as(omar).get(`/api/resources/${r.id}`)).body]) assert.ok(noEmail(body))
+  })
+})
+
+describe('zip central directory', () => {
+  it('reads entry names and refuses malformed archives', () => {
+    assert.deepEqual(zipEntries(makeOffice('xl/', 'x')), ['[Content_Types].xml', 'xl/workbook.xml'])
+    const z = makeOffice('xl/', 'x')
+    assert.equal(zipEntries(z.subarray(0, z.length - 10)), null)
+    assert.equal(zipEntries(Buffer.from('PK\x03\x04 nothing else here at all')), null)
+  })
+})
