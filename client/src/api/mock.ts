@@ -3,8 +3,9 @@
  * Every rule below (caps, dedupe, ledger idempotency, self-vote ban) is the
  * reference implementation the real server must enforce. The client is never trusted.
  *
- * Exception: Q&A questions (threads of kind 'question') go to the real server
- * (server/src/routes/questions.ts). Campus Voice and everything else still use this mock.
+ * Exceptions, served by the real server: Q&A questions (threads of kind 'question',
+ * server/src/routes/questions.ts), events (server/src/routes/events.ts) and rentals
+ * (server/src/routes/rentals.ts). Campus Voice and everything else still use this mock.
  */
 import { RULES } from './rules'
 import * as S from './seed'
@@ -121,19 +122,6 @@ function toThread(t: ThreadRow, viewer: string): Thread {
 }
 function toReply(r: ReplyRow, viewer: string): Reply {
   return { id: r.id, threadId: r.threadId, body: r.body, author: hide(r.authorId, r.anonymous, viewer), mine: r.authorId === viewer, createdAt: r.createdAt, votes: r.votes, iVoted: db.votes.includes(`${viewer}|reply|${r.id}`), accepted: r.accepted }
-}
-function toRental(r: RentalRow, viewer: string): RentalItem {
-  const reqs = db.requests.filter((q) => q.itemId === r.id)
-  const mine = reqs.find((q) => q.renterId === viewer)
-  return {
-    id: r.id, title: r.title, category: r.category, pricePerDay: r.pricePerDay, deposit: r.deposit, condition: r.condition, description: r.description,
-    owner: pub(r.ownerId), mine: r.ownerId === viewer, available: r.available, createdAt: r.createdAt,
-    myRequest: mine ? toRequest(mine, r, viewer) : undefined, pendingRequests: r.ownerId === viewer ? reqs.filter((q) => q.status === 'pending').length : 0,
-  }
-}
-function toRequest(q: ReqRow, item: RentalRow, viewer: string): RentalRequest {
-  const reveal = q.status === 'accepted' && q.renterId === viewer
-  return { id: q.id, itemId: q.itemId, renter: pub(q.renterId), from: q.from, to: q.to, note: q.note, status: q.status, contact: reveal ? item.contact : undefined }
 }
 function toMe(): Me {
   const u = userRow(ME)
@@ -394,72 +382,29 @@ export const api = {
     },
   },
 
+  // Real server: server/src/routes/events.ts (it enforces every rule)
   events: {
-    async list(): Promise<CampusEvent[]> {
-      const me = requireMe(); await sleep()
-      return db.events.filter((e) => e.startsAt > Date.now() - 86400000).sort((a, b) => a.startsAt - b.startsAt)
-        .map((e) => ({ id: e.id, title: e.title, kind: e.kind, startsAt: e.startsAt, location: e.location, courseCode: e.courseCode, description: e.description, author: pub(e.authorId), going: e.going, iGo: db.going.includes(`${me}|${e.id}`) }))
-    },
+    async list(): Promise<CampusEvent[]> { return (await (await realHttp())<{ events: CampusEvent[] }>('/api/events')).events },
     async create(i: { title: string; kind: 'event' | 'deadline' | 'club'; startsAt: number; location: string; description: string; courseCode?: string }): Promise<void> {
-      const me = requireMe(); await sleep(250)
-      const title = clean(i.title, 100)
-      if (title.length < 5) fail('bad_title', 'Title is too short.')
-      if (!Number.isFinite(i.startsAt) || i.startsAt < Date.now() - 3600000) fail('bad_date', 'Pick a date in the future.')
-      if (db.events.filter((e) => e.authorId === me && e.startsAt > Date.now()).length >= 5) fail('rate_limited', 'You have 5 upcoming events already.')
-      const id = 'e' + uid()
-      db.events.push({ id, title, kind: i.kind, startsAt: i.startsAt, location: clean(i.location, 80) || 'TBA', courseCode: i.courseCode || undefined, description: cleanBlock(i.description, 500), authorId: me, going: 1 })
-      db.going.push(`${me}|${id}`); save()
+      await (await realHttp())('/api/events', { method: 'POST', body: i })
     },
-    async toggleGoing(id: string): Promise<void> {
-      const me = requireMe(); await sleep(80)
-      const e = db.events.find((x) => x.id === id) ?? fail('not_found', 'Event not found.')
-      const k = `${me}|${id}`, i = db.going.indexOf(k)
-      if (i >= 0) { db.going.splice(i, 1); e!.going = Math.max(0, e!.going - 1) } else { db.going.push(k); e!.going++ }
-      save()
-    },
+    async toggleGoing(id: string): Promise<void> { await (await realHttp())(`/api/events/${id}/going`, { method: 'POST' }) },
   },
 
+  // Real server: server/src/routes/rentals.ts. The owner's contact only comes back in myRequest.contact, once accepted.
   rentals: {
-    async list(): Promise<RentalItem[]> { const me = requireMe(); await sleep(); return [...db.rentals].sort((a, b) => Number(b.available) - Number(a.available) || b.createdAt - a.createdAt).map((r) => toRental(r, me)) },
+    async list(): Promise<RentalItem[]> { return (await (await realHttp())<{ items: RentalItem[] }>('/api/rentals')).items },
     async create(i: { title: string; category: RentalCategory; pricePerDay: number; deposit: number; condition: 'new' | 'good' | 'worn'; description: string; contact: string }): Promise<void> {
-      const me = requireMe(); await sleep(250)
-      const title = clean(i.title, 80)
-      if (title.length < 4) fail('bad_title', 'Give your item a clear name.')
-      if (!(i.pricePerDay >= 0 && i.pricePerDay <= 200 && i.deposit >= 0 && i.deposit <= 2000)) fail('bad_price', 'Check the price and deposit values.')
-      if (clean(i.contact, 80).length < 3) fail('bad_contact', 'Add a contact handle. It is only shown once you accept a request.')
-      if (db.rentals.filter((r) => r.ownerId === me).length >= 10) fail('rate_limited', 'You can list up to 10 items.')
-      db.rentals.unshift({ id: 'x' + uid(), title, category: i.category, pricePerDay: i.pricePerDay, deposit: i.deposit, condition: i.condition, description: cleanBlock(i.description, 400), ownerId: me, available: true, contact: clean(i.contact, 80), createdAt: Date.now() }); save()
+      await (await realHttp())('/api/rentals', { method: 'POST', body: i })
     },
     async request(itemId: string, from: number, to: number, note: string): Promise<void> {
-      const me = requireMe(); await sleep(250)
-      const it = db.rentals.find((x) => x.id === itemId) ?? fail('not_found', 'Item not found.')
-      if (it!.ownerId === me) fail('self_request', 'This is your own item.')
-      if (!it!.available) fail('unavailable', 'This item is currently rented out.')
-      if (!(to >= from) || from < Date.now() - 86400000 || to - from > 30 * 86400000) fail('bad_dates', 'Choose valid dates (30 days max).')
-      if (db.requests.some((q) => q.itemId === itemId && q.renterId === me && (q.status === 'pending' || q.status === 'accepted'))) fail('duplicate', 'You already have an open request for this item.')
-      db.requests.push({ id: 'q' + uid(), itemId, renterId: me, from, to, note: clean(note, 200), status: 'pending' }); save()
+      await (await realHttp())(`/api/rentals/${itemId}/requests`, { method: 'POST', body: { from, to, note } })
     },
-    async incoming(): Promise<RentalRequest[]> {
-      const me = requireMe(); await sleep(80)
-      return db.requests.filter((q) => { const it = db.rentals.find((r) => r.id === q.itemId); return it?.ownerId === me && q.status === 'pending' }).map((q) => toRequest(q, db.rentals.find((r) => r.id === q.itemId)!, me))
-    },
+    async incoming(): Promise<RentalRequest[]> { return (await (await realHttp())<{ requests: RentalRequest[] }>('/api/rentals/incoming')).requests },
     async respond(requestId: string, accept: boolean): Promise<void> {
-      const me = requireMe(); await sleep(150)
-      const q = db.requests.find((x) => x.id === requestId) ?? fail('not_found', 'Request not found.')
-      const it = db.rentals.find((r) => r.id === q!.itemId)!
-      if (it.ownerId !== me) fail('forbidden', 'Only the owner can respond.')
-      if (q!.status !== 'pending') fail('bad_state', 'This request was already handled.')
-      q!.status = accept ? 'accepted' : 'declined'
-      if (accept) { it.available = false; db.requests.filter((o) => o.itemId === it.id && o.status === 'pending' && o.id !== q!.id).forEach((o) => (o.status = 'declined')) }
-      save()
+      await (await realHttp())(`/api/rentals/requests/${requestId}/respond`, { method: 'POST', body: { accept } })
     },
-    async markReturned(itemId: string): Promise<void> {
-      const me = requireMe(); await sleep(120)
-      const it = db.rentals.find((x) => x.id === itemId) ?? fail('not_found', 'Item not found.')
-      if (it!.ownerId !== me) fail('forbidden', 'Only the owner can mark returns.')
-      db.requests.filter((q) => q.itemId === itemId && q.status === 'accepted').forEach((q) => (q.status = 'returned'))
-      it!.available = true; save()
-    },
+    async markReturned(itemId: string): Promise<void> { await (await realHttp())(`/api/rentals/${itemId}/returned`, { method: 'POST' }) },
   },
 
   leaderboard: {

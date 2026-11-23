@@ -12,6 +12,8 @@ import { hashPassword } from '../lib/password.js'
 import { isAllowedDomain } from '../lib/email.js'
 import { Thread } from '../models/Thread.js'
 import { Reply } from '../models/Reply.js'
+import { Event } from '../models/Event.js'
+import { RentalItem, RentalRequest } from '../models/Rental.js'
 
 /** Reads the test password from SEED_PASSWORD (server/.env). Never hard-coded in the repo. */
 function seedPassword(): string {
@@ -51,6 +53,22 @@ const DEMO_QUESTIONS = [
   },
 ]
 
+/** Demo calendar, always upcoming: dates are recomputed from today on every run. Matched by title. */
+const DEMO_EVENTS = [
+  { author: Y, title: 'CS324 project proposal deadline', kind: 'deadline' as const, inDays: 3, hour: 23, location: 'Moodle', courseCode: 'CS324', description: 'Submit the PDF proposal on Moodle before midnight. One file per team.' },
+  { author: A, title: 'Hackathon kickoff: 24 hours of building', kind: 'event' as const, inDays: 6, hour: 17, location: 'Block C · Innovation Lab', description: 'Teams of 3 to 4. Pizza is on the house, prizes for the top three projects.' },
+  { author: Y, title: 'Calculus I midterm', kind: 'deadline' as const, inDays: 9, hour: 9, location: 'Amphi A', courseCode: 'MATH101', description: 'Chapters 1 to 4. Bring your student card.' },
+  { author: A, title: 'Finance club: build your first budget', kind: 'club' as const, inDays: 4, hour: 16, location: 'Student Center, room 2', description: 'Open session, no experience needed. Bring a laptop if you have one.' },
+]
+
+/** Demo rental items. Matched by title; re-running resets them to available and clears their requests. Contacts are fake. */
+const DEMO_RENTALS = [
+  { owner: Y, title: 'Casio fx-991EX Classwiz', category: 'calculator' as const, pricePerDay: 2, deposit: 20, condition: 'good' as const, description: 'Exam-approved scientific calculator. Fresh batteries.', contact: 'Telegram @yasmine_demo' },
+  { owner: Y, title: 'Introduction to Algorithms (CLRS), 4th ed.', category: 'books' as const, pricePerDay: 3, deposit: 50, condition: 'worn' as const, description: 'Highlighted but readable. Pick up at the library.', contact: 'Telegram @yasmine_demo' },
+  { owner: A, title: 'Lab coat (size M)', category: 'lab' as const, pricePerDay: 1, deposit: 10, condition: 'good' as const, description: 'Required for the Physics and Chemistry labs. Washed after every loan.', contact: 'Instagram @ahmed.demo' },
+  { owner: A, title: 'Arduino Uno starter kit', category: 'tech' as const, pricePerDay: 5, deposit: 40, condition: 'good' as const, description: 'Board, breadboard, 40 jumpers, LEDs and a few sensors.', contact: 'Instagram @ahmed.demo' },
+]
+
 async function main() {
   const config = loadConfig()
   const password = seedPassword()
@@ -83,6 +101,23 @@ async function main() {
     }
   }
   console.log(`Seeded ${DEMO_QUESTIONS.length} demo questions.`)
+
+  for (const e of DEMO_EVENTS) {
+    const startsAt = new Date(Date.now() + e.inDays * 24 * HOUR)
+    startsAt.setHours(e.hour, 0, 0, 0)
+    const author = ids.get(e.author)!
+    // The author goes, like when an event is created from the page; the other student can join it.
+    await Event.updateOne({ title: e.title }, { $set: { title: e.title, kind: e.kind, startsAt, location: e.location, courseCode: e.courseCode, description: e.description, author, goers: [author], going: 1 } }, { upsert: true })
+  }
+  console.log(`Seeded ${DEMO_EVENTS.length} demo events.`)
+
+  for (const r of DEMO_RENTALS) {
+    const { owner, ...fields } = r
+    const existing = await RentalItem.findOne({ title: r.title })
+    if (existing) await RentalRequest.deleteMany({ item: existing._id })
+    await RentalItem.updateOne({ title: r.title }, { $set: { ...fields, owner: ids.get(owner)!, available: true } }, { upsert: true })
+  }
+  console.log(`Seeded ${DEMO_RENTALS.length} demo rental items.`)
   await disconnectDb()
 }
 
