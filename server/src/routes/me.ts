@@ -9,7 +9,7 @@ import { toClientUser, type UserDoc } from '../models/User.js'
 
 /**
  * The signed-in student's own profile, mounted at /api/me behind requireAuth (see app.ts).
- * Same shapes as api.me in client/src/api/mock.ts (Me and XpRow in client/src/api/types.ts).
+ * Same shapes as api.me in client/src/api/client.ts (Me and XpRow in client/src/api/types.ts).
  */
 
 const oneLine = (s: string) => s.replace(/\s+/g, ' ').trim()
@@ -50,7 +50,7 @@ export function meRouter() {
     }
     const p = parsed.data
     const u = req.user!
-    if (p.major) u.major = p.major // like the mock, an empty major keeps the current one
+    if (p.major) u.major = p.major // an empty major keeps the current one
     if (p.year !== undefined) u.year = p.year
     if (p.bio !== undefined) u.bio = p.bio
     if (p.courses) u.courses = [...new Set(p.courses)]

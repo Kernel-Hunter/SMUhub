@@ -8,7 +8,7 @@ import { Event } from '../models/Event.js'
 
 /**
  * Calendar API, mounted at /api/events behind requireAuth (see app.ts).
- * Same rules as the reference mock (client/src/api/mock.ts): anyone can add an event in the future,
+ * Same rules as docs/BACKEND.md: anyone can add an event in the future,
  * at most a few upcoming ones per student, and joining is a toggle that counts each student once.
  */
 

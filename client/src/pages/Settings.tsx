@@ -33,7 +33,7 @@ export default function Settings() {
   const total = (xp.data ?? []).reduce((s, x) => s + x.points, 0)
   return (
     <div>
-      <Banner tone="blue" icon={<Cog size={13} />} label="Settings" title="Your account" sub="Your name and photo come from Moodle. Everything else here is yours to change." />
+      <Banner tone="blue" icon={<Cog size={13} />} label="Settings" title="Your account" sub="Your name comes from your SMU account. Everything else here is yours to change." />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="grid content-start gap-6">
           <form onSubmit={submit} className="card grid gap-5 p-6">

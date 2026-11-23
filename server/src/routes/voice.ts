@@ -9,10 +9,10 @@ import { Reply } from '../models/Reply.js'
 
 /**
  * Campus Voice API, mounted at /api/voice behind requireAuth (see app.ts).
- * Same rules as the reference mock (client/src/api/mock.ts, docs/BACKEND.md): posts and replies can be anonymous,
+ * Same rules as docs/BACKEND.md: posts and replies can be anonymous,
  * one vote per student, votes are final, no voting on your own posts; posting is rate limited (budget shared with Q&A).
  * An upvoted named post pays its author voiceUp XP through award(). Anonymous posts pay nothing: a visible XP jump
- * right after an upvote would point at the author. Reply upvotes pay nothing, like the mock. No accepted answers.
+ * right after an upvote would point at the author. Reply upvotes pay nothing. No accepted answers.
  * Anonymous content never carries its author, not even for the author (who gets `mine: true`).
  */
 
@@ -96,7 +96,7 @@ export function voiceRouter() {
     res.status(201).json({ reply: replyJson(reply, me, await loadPeople([me])) })
   })
 
-  // Upvote a reply: POST /api/voice/replies/:replyId/vote. Same rules as posts; pays no XP (like the mock).
+  // Upvote a reply: POST /api/voice/replies/:replyId/vote. Same rules as posts; pays no XP.
   router.post('/replies/:replyId/vote', async (req, res) => {
     const me = req.user!._id
     const reply = await findReply(req.params.replyId, 'voice', REPLY_NOT_FOUND)

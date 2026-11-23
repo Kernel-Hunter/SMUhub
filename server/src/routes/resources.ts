@@ -12,7 +12,7 @@ import { Download, RESOURCE_KINDS, Rating, Resource } from '../models/Resource.j
 
 /**
  * Resources library, mounted at /api/resources behind requireAuth (see app.ts).
- * Same rules as the reference mock (client/src/api/mock.ts, docs/BACKEND.md): allowed types checked on the bytes,
+ * Same rules as docs/BACKEND.md: allowed types checked on the bytes,
  * 10 KB to 25 MB, SHA-256 duplicates refused, 5 uploads per student per 24 h; rate only what you downloaded,
  * never your own file, once. Each rating pays the uploader through award(); the third one verifies the file (bonus from 'system').
  * Removing a file takes back the XP it earned with a compensating ledger row (compensate()).

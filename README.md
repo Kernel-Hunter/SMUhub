@@ -13,10 +13,18 @@ One repository, two apps:
 
 | Area | State |
 | --- | --- |
-| Sign in / sign out (US-02) | Done. Real API, bcrypt-hashed passwords, session in an HttpOnly cookie. |
-| SMU-only access (US-03) | Done for auth: email domain checked at login and on every request, `requireAuth` middleware, client redirects to `/login`. Every new API route must use `requireAuth`. |
-| Sign-up (US-01) | Not built yet. Accounts come from `npm run seed`. |
-| Resources, Q&A, Campus Voice, events, rentals, leaderboard | UI done, still running on the in-browser mock (`client/src/api/mock.ts`). Each needs its API routes. |
+Every feature runs on the real API and the shared MongoDB database. The client keeps no data of its own.
+
+| Area | State |
+| --- | --- |
+| Sign-up, email code, password reset (US-01) | Done. SMU domains only, 6-digit code by mail (printed in the API console when no SMTP is set up in development). |
+| Sign in / sign out (US-02) | Done. bcrypt-hashed passwords, session in an HttpOnly cookie, a password reset ends every other session. |
+| SMU-only access (US-03) | Done. Email domain checked at login and on every request by `requireAuth`. |
+| Course library | Done. Uploads stored in MongoDB (GridFS), type checked on the bytes, duplicates rejected, 5 uploads a day, verified after 3 helpful ratings. |
+| Q&A and Campus Voice | Done. One vote per student, no self-votes, accepted answers, anonymous posts that never reveal their author. |
+| Calendar and rentals | Done. The owner's contact is shown only to the renter they accept. |
+| XP and leaderboard | Done. Append-only ledger, daily and per-classmate caps, all points computed on the server. |
+| Hosting | Ready. One build, one server: the API serves the web app in production (see [Deploying](#deploying)). |
 
 ## Prerequisites
 
@@ -69,6 +77,10 @@ Copy `server/.env.example` to `server/.env`. The server validates these values a
 | `PORT` | no | `4000` | API port |
 | `SESSION_DAYS` | no | `7` | How long a login lasts (max 30) |
 | `LOGIN_RATE_LIMIT` | no | `10` | Failed login attempts allowed per IP per 15 minutes |
+| `AUTH_RATE_LIMIT` | no | `50` | Sign-up, resend, forgot, verify and reset requests per IP per 15 minutes |
+| `SMTP_URL` and `MAIL_FROM` | in production | | Mail server for sign-up and reset codes, e.g. `smtp://user:pass@smtp.example.com:587` and `SMUhub <no-reply@smu.tn>`. Without them, development prints codes in the API console and production refuses sign-ups. |
+| `TRUST_PROXY` | behind a proxy | `0` | Number of proxies in front of the API (usually `1` on a hosting platform), so rate limits see real student IPs |
+| `CLIENT_DIST` | no | `../client/dist` in production | Built web app the API serves |
 | `SEED_PASSWORD` | for `npm run seed` | | Password given to the test students (8 to 128 characters). Only read by the seed script. |
 | `NODE_ENV` | no | `development` | `production` turns on the `Secure` cookie flag (HTTPS only) |
 
@@ -86,11 +98,17 @@ The defaults work for local development. Copy `client/.env.example` to `client/.
 
 MongoDB database `SMUhub` (the name comes from `MONGODB_URI`). You do not need to create anything by hand: the database, the `users` collection and the unique index on `email` are created by Mongoose and `npm run seed`.
 
-| Collection | Fields | Indexes |
-| --- | --- | --- |
-| `users` | `email` (lowercase, trimmed), `passwordHash` (bcrypt, never returned by the API), `firstName`, `lastName`, `major`, `year`, `createdAt` | `_id`, `email_1` (unique) |
+| Collection | What it holds |
+| --- | --- |
+| `users` | Students: email (unique), bcrypt `passwordHash` (never returned), names, major, year, bio, courses, role, `emailVerified`, `tokenVersion` |
+| `verificationcodes` | Sign-up and reset codes, stored as HMACs, deleted automatically when they expire |
+| `ledgers` | The XP ledger: append-only rows with a unique `refKey`, so one event pays once |
+| `resources`, `downloads`, `ratings` | Library files (metadata and SHA-256), who downloaded what, helpful ratings |
+| `resources.files`, `resources.chunks` | The uploaded files themselves (GridFS) |
+| `threads`, `replies` | Questions and Campus Voice posts, answers and replies |
+| `events`, `rentalitems`, `rentalrequests` | Calendar events, rental listings and requests |
 
-`npm run seed` can be run again at any time: it matches the two test students by email, updates them in place (no duplicates) and resets their password to `SEED_PASSWORD`.
+`npm run seed` can be run again at any time. It upserts two test students (password `SEED_PASSWORD`) and demo questions, Voice posts, events, rentals and library files, matched by email, title or file hash, so nothing is duplicated and no XP is paid twice. Never run it against the shared database without agreeing with the team first.
 
 MongoDB refuses two databases whose names differ only by case (`smuhub` and `SMUhub`). If the seed fails with "db already exists with different case", drop the old one in Compass or point `MONGODB_URI` at the existing name.
 
@@ -104,10 +122,24 @@ Base URL `http://localhost:4000` (or `/api` through the Vite proxy). Errors alwa
 | `POST` | `/api/auth/login` | no | `{ email, password }` | `200 { user }` and sets the session cookie. `400` invalid input, `403` email domain not allowed, `401` "Email ou mot de passe incorrect.", `429` too many failed attempts |
 | `POST` | `/api/auth/logout` | no | | `204`, clears the session cookie |
 | `GET` | `/api/auth/me` | yes | | `200 { user }` or `401` |
+| `POST` | `/api/auth/register`, `/verify`, `/resend`, `/forgot`, `/reset` | no | see `docs/BACKEND.md` | sign-up with an email code, password reset |
 
 `user` is `{ id, email, firstName, lastName, major, year, createdAt }`. The password hash is never sent.
 
-`client/src/api/client.ts` is the typed client for the endpoints outside auth, and `docs/BACKEND.md` lists the rules the server must enforce (ownership checks, rate limits, file checks, leaderboard integrity).
+Everything else needs a session. Each router lives in `server/src/routes/`:
+
+| Prefix | What it serves |
+| --- | --- |
+| `/api/me` | Your profile (`GET`, `PATCH`) and XP history (`GET /xp`) |
+| `/api/users/:id` | A classmate's public profile: no email, no anonymous content |
+| `/api/leaderboard?period=week\|all` | Top 50 by XP |
+| `/api/resources` | Library: list, upload (multipart), download (`/:id/file`), rate helpful, remove |
+| `/api/questions` | Q&A: ask, answer, vote, accept |
+| `/api/voice` | Campus Voice: post (optionally anonymous), reply, vote |
+| `/api/events` | Calendar: list, add, join or leave |
+| `/api/rentals` | List items, request, accept or decline, mark returned |
+
+`client/src/api/client.ts` is the typed client for these, and `docs/BACKEND.md` lists the rules the server enforces (ownership checks, rate limits, file checks, leaderboard integrity, privacy).
 
 ### How authentication works
 
@@ -115,7 +147,7 @@ Base URL `http://localhost:4000` (or `/api` through the Vite proxy). Errors alwa
 - On login the server sets `smuhub_session`: a signed JWT (HS256, `JWT_SECRET`) holding only the user id, in an `HttpOnly; SameSite=Lax` cookie, `Secure` in production, expiring after `SESSION_DAYS`. JavaScript in the page cannot read it.
 - `requireAuth` checks the token, reloads the user from the database and re-checks the email domain on every request. Removing a domain from `ALLOWED_EMAIL_DOMAINS` locks its users out immediately.
 - Also in place: `helmet` security headers, CORS limited to `CLIENT_URL`, JSON bodies capped at 10 KB, input validation with Zod.
-- Known limit: a JWT stays valid until it expires even after logout on another device.
+- Known limit: logging out clears the cookie on that device only. A password reset ends every session.
 
 ### Protecting a new route
 
@@ -145,7 +177,8 @@ app.use('/api/resources', resourcesRouter())
 | --- | --- | --- |
 | `server/` | `npm run dev` | Start the API with reload on change |
 | `server/` | `npm run seed` | Create or reset the test students |
-| `server/` | `npm test` | Run the API tests (needs MongoDB; uses a throwaway `smuhub_test` database) |
+| root | `npm run build` then `npm start` | Build both apps and run the production server (API and web app on one port) |
+| `server/` | `npm test` | Run the API tests (needs a local MongoDB; each test file uses its own throwaway `smuhub_test_*` database) |
 | `server/` | `npm run typecheck` | Type-check source and tests |
 | `server/` | `npm run build` then `npm start` | Compile to `dist/` and run the compiled API |
 | `client/` | `pnpm dev` | Start the web app on port 5173 |
@@ -172,14 +205,14 @@ client/
 server/
   src/
     config/env.ts         reads and validates .env
-    models/User.ts        user schema, public user shape
-    routes/auth.ts        login, logout, me
+    models/               Mongoose schemas (users, ledger, resources, threads, events, rentals, codes)
+    routes/               one router per area (auth, me, users, leaderboard, resources, questions, voice, events, rentals)
     middleware/requireAuth.ts
-    lib/                  password hashing, session cookie, email checks, errors
-    scripts/seed.ts       test students
-    app.ts                Express app (helmet, CORS, routes, error handler)
+    lib/                  XP awards, file checks, mailer, codes, sessions, passwords, errors
+    scripts/seed.ts       test students and demo content
+    app.ts                Express app (helmet, CORS, routes, web app in production, error handler)
     index.ts              connects to MongoDB and starts the server
-  test/auth.test.ts       API tests (node:test + supertest)
+  test/                   API tests (node:test + supertest), one file per area
 docs/BACKEND.md           rules the API must enforce
 ```
 
@@ -192,6 +225,17 @@ All colours, radii, type sizes and shadows are tokens in `client/src/index.css`.
 - No gradients, glows or decorative background patterns. Cards are separated by 1px borders; the only shadow is a light neutral one for menus, popovers and toasts.
 - Radius 6px (buttons, fields, chips), 8px (cards, menus), 10px (panels). Text sizes 12, 14, 16, 20 and 28px. Spacing on a 4px grid.
 - Font: IBM Plex Sans, IBM Plex Mono for course codes.
+
+## Deploying
+
+The API serves the built web app, so one Node service is enough (Render, Railway, Fly.io, a VPS). Use MongoDB Atlas for the database.
+
+1. Build command: `npm run build` (at the repository root). Start command: `npm start`.
+2. Set the environment variables: `NODE_ENV=production`, `MONGODB_URI` (Atlas, with a user that has `readWrite` on the `SMUhub` database only), a fresh `JWT_SECRET`, `ALLOWED_EMAIL_DOMAINS`, `CLIENT_URL` (the public `https://` address), `TRUST_PROXY=1`, and `SMTP_URL` plus `MAIL_FROM` so students receive their codes.
+3. Serve it over HTTPS only. Session cookies are `Secure` in production and the browser drops them on plain HTTP.
+4. Check `https://your-address/api/health` answers `{ "ok": true }`, then create an account with your SMU email.
+
+Limits to know before scaling past one instance: XP awards and upload limits are serialized per student inside one process, and rate limits are kept in memory. With several instances, move them to the database or Redis.
 
 ## Troubleshooting
 

@@ -12,7 +12,7 @@ import { resourcesJson } from './resources.js'
 
 /**
  * Public student profiles, mounted at /api/users behind requireAuth (see app.ts).
- * Same shape as api.users.profile in client/src/api/mock.ts. Never returns an email,
+ * Same shape as api.users.profile in client/src/api/client.ts. Never returns an email,
  * and never lists anonymous content (docs/BACKEND.md, Privacy).
  */
 

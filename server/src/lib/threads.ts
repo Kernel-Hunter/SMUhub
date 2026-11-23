@@ -9,7 +9,7 @@ import { Thread } from '../models/Thread.js'
  * Anonymous content never carries its author: `author` is null for everyone, the author included, who only gets `mine: true`.
  */
 
-// Per student, counted across both kinds (a question and a voice post share the same budget), like the mock.
+// Per student, counted across both kinds (a question and a voice post share the same budget).
 export const LIMITS = {
   threadsPerHour: 5,
   repliesPer10Min: 8,

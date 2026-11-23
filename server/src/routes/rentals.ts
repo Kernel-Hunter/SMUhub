@@ -7,7 +7,7 @@ import { RentalItem, RentalRequest } from '../models/Rental.js'
 
 /**
  * Rentals API, mounted at /api/rentals behind requireAuth (see app.ts).
- * Same rules as the reference mock (client/src/api/mock.ts, docs/BACKEND.md): 10 listings per student,
+ * Same rules as docs/BACKEND.md: 10 listings per student,
  * no requesting your own item, one open request per item, only the owner responds or marks a return.
  * The owner's contact is private: it is only ever sent in `myRequest.contact`, to the renter whose request was accepted.
  * No money moves through SMUhub.

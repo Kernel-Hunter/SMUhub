@@ -1,4 +1,4 @@
-// Course codes a question can belong to. Keep in sync with COURSES in client/src/api/seed.ts
+// Course codes a question can belong to. Keep in sync with COURSES in client/src/api/courses.ts
 // until courses get their own collection and API.
 export const COURSE_CODES = [
   'CS101', 'CS201', 'CS224', 'CS301', 'CS324',

@@ -17,7 +17,7 @@ Students sign in with their SMU email and a password. Code: `server/src/routes/a
 Code: `server/src/routes/auth.ts`, `server/src/lib/codes.ts`, `server/src/lib/mailer.ts`, `server/src/models/VerificationCode.ts`.
 
 - `POST /api/auth/register {email, password, firstName, lastName, major?, year?}` answers `202 {pending: true}` and mails a 6-digit code. Allowed domains only; password 10 to 128 characters, not only digits; names 1 to 50. An email that already has a verified account gets the same 202, no mail, and its account is not touched. An unverified account is updated (password, names) and gets a new code.
-- `POST /api/auth/verify {email, code}` marks the email verified, starts the session and returns `{user}`. Wrong or expired code: 400 `invalid_code`. After 5 wrong codes the code is burned: 429 `too_many_attempts`, even for the right one, until a new code is sent.
+- `POST /api/auth/verify {email, code, password}` marks the email verified, starts the session and returns `{user}`. The password must be the one currently on the account: re-registering an unconfirmed email replaces its password, so without this check a stranger could re-register and let the owner confirm an account that carries the stranger's password. Wrong or expired code: 400 `invalid_code`. After 5 wrong codes the code is burned: 429 `too_many_attempts`, even for the right one, until a new code is sent.
 - `POST /api/auth/resend {email}` always 202; mails a new sign-up code only to an unverified account.
 - `POST /api/auth/forgot {email}` always 202; mails a reset code only to a verified account.
 - `POST /api/auth/reset {email, code, password}` sets the password, ends every other session, starts a new one and returns `{user}`.
@@ -45,7 +45,8 @@ Constants live in `client/src/api/rules.ts`.
 
 ## Privacy
 
-- Anonymous posts and replies: the API must omit the author for everyone except the author. Moderators keep access to the real author for abuse handling.
+- Anonymous posts and replies: the API omits the author for everyone, the author included (they get `mine: true`). Moderators can look up the real author in the database for abuse handling.
+- Anonymous Voice posts earn no XP when upvoted: an XP jump right after an upvote would point at the author.
 - Profiles never list anonymous content.
 - Rental contact details are returned only to the renter after the owner accepts.
 

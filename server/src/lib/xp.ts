@@ -38,7 +38,7 @@ export type AwardInput = {
 }
 
 /**
- * Single choke point for points, same rules as award() in client/src/api/mock.ts:
+ * Single choke point for points, same rules as docs/BACKEND.md and client/src/api/rules.ts:
  * no self-award, one payment per refKey, at most XP_RULES.pairWeeklyCap paying interactions
  * from one actor to one student per 7 days, at most XP_RULES.dailyXpCap points per student per 24 h
  * (the last award is clamped). Returns the points actually written (0 when nothing was paid). Never throws on a repeat.

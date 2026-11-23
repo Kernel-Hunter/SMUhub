@@ -10,13 +10,13 @@ import { Reply } from '../models/Reply.js'
 
 /**
  * Q&A API, mounted at /api/questions behind requireAuth (see app.ts).
- * Same rules as the reference mock (client/src/api/mock.ts, docs/BACKEND.md):
+ * Same rules as docs/BACKEND.md:
  * one vote per student, votes are final, no voting on your own posts,
  * only the asker accepts, once, and not their own answer; posting is rate limited.
  * XP goes to the author through award() (lib/xp.ts): question upvoted, answer upvoted, answer accepted.
  */
 
-// Limits, per student, shared with Campus Voice (lib/threads.ts). Match the mock so the UI behaves the same with either backend.
+// Limits, per student, shared with Campus Voice (lib/threads.ts). The client shows the same limits (client/src/api/rules.ts).
 export { LIMITS }
 
 const newQuestion = z.object({
