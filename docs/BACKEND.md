@@ -12,7 +12,22 @@ Students sign in with their SMU email and a password. Code: `server/src/routes/a
 - `requireAuth` guards every protected route: valid token, user still exists, email domain still allowed. It sets `req.user`.
 - Passwords are stored as bcrypt hashes (12 rounds) in `users.passwordHash`, never returned by the API.
 
-Known limit: a JWT stays valid until it expires even after logout on another device. If instant revocation is needed, add a `tokenVersion` on the user and check it in `requireAuth`.
+### Sign-up and password reset
+
+Code: `server/src/routes/auth.ts`, `server/src/lib/codes.ts`, `server/src/lib/mailer.ts`, `server/src/models/VerificationCode.ts`.
+
+- `POST /api/auth/register {email, password, firstName, lastName, major?, year?}` answers `202 {pending: true}` and mails a 6-digit code. Allowed domains only; password 10 to 128 characters, not only digits; names 1 to 50. An email that already has a verified account gets the same 202, no mail, and its account is not touched. An unverified account is updated (password, names) and gets a new code.
+- `POST /api/auth/verify {email, code}` marks the email verified, starts the session and returns `{user}`. Wrong or expired code: 400 `invalid_code`. After 5 wrong codes the code is burned: 429 `too_many_attempts`, even for the right one, until a new code is sent.
+- `POST /api/auth/resend {email}` always 202; mails a new sign-up code only to an unverified account.
+- `POST /api/auth/forgot {email}` always 202; mails a reset code only to a verified account.
+- `POST /api/auth/reset {email, code, password}` sets the password, ends every other session, starts a new one and returns `{user}`.
+- Login refuses an unverified account with 403 `email_not_verified`, only after the password matched.
+- Codes: `crypto.randomInt`, stored as an HMAC-SHA256 (key `JWT_SECRET`, bound to purpose and email), valid 15 minutes, one active code per email and purpose, at most one mail per minute per email and purpose, single use.
+- Mail: `SMTP_URL` + `MAIL_FROM` send through nodemailer. Without them, development prints `[mail] code for x@medtech.tn: 123456` in the server console, and production answers 503 `mail_unavailable` on register, resend and forgot.
+- `AUTH_RATE_LIMIT` (default 50 per 15 minutes per IP, generous because a whole campus can share one IP) caps register/resend/forgot (every request) and verify/reset (failures only), each group separately.
+- `users.emailVerified` has no default: accounts created before sign-up existed have no field and count as verified. `npm run seed` sets it to true.
+
+Sessions: the JWT carries the user's `tokenVersion` (claim `tv`, missing = 0). `requireAuth` refuses a token whose version differs from the user's, and a password reset increments it, so every older session ends at once. Logout still only clears the cookie on the current device.
 
 ## Leaderboard integrity rules
 

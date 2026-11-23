@@ -20,16 +20,18 @@ declare global {
  *   router.get('/resources', requireAuth, handler)
  *   router.use(requireAuth)            // every route of this router
  * Responds 401 when the cookie is missing, invalid or expired, when the user no longer exists,
- * or when the user's email domain is no longer allowed. On success, req.user is the student.
+ * when the user's email domain is no longer allowed, or when the session predates a password reset. On success, req.user is the student.
  */
 export const requireAuth: RequestHandler = async (req, res, next) => {
   const config = req.app.locals.config as Config
-  const userId = readSession(req.cookies?.[SESSION_COOKIE], config)
-  if (!userId || !isValidObjectId(userId)) return next(unauthenticated(res, config, !!req.cookies?.[SESSION_COOKIE]))
+  const session = readSession(req.cookies?.[SESSION_COOKIE], config)
+  if (!session || !isValidObjectId(session.userId)) return next(unauthenticated(res, config, !!req.cookies?.[SESSION_COOKIE]))
 
-  const user = await User.findById(userId)
+  const user = await User.findById(session.userId)
   // Re-check the domain on every request: removing a domain from ALLOWED_EMAIL_DOMAINS locks those users out at once.
   if (!user || !isAllowedDomain(user.email, config.allowedDomains)) return next(unauthenticated(res, config, true))
+  // A password reset raises tokenVersion, which ends every session started before it.
+  if ((user.tokenVersion ?? 0) !== session.tokenVersion || user.emailVerified === false) return next(unauthenticated(res, config, true))
 
   req.user = user
   next()

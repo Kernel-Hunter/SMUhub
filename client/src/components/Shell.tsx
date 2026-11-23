@@ -66,7 +66,7 @@ function Sidebar({ onNav }: { onNav?: () => void }) {
         </Link>
         <div className="flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-hover">
           <Avatar user={me} size={28} />
-          <span className="min-w-0 flex-1 leading-tight"><span className="block truncate text-sm font-medium" title={me.name}>{me.name}</span><span className="block truncate text-xs text-muted" title={`${me.major}, year ${me.year}`}>{me.major}, year {me.year}</span></span>
+          <span className="min-w-0 flex-1 leading-tight"><span className="block truncate text-sm font-medium" title={me.name}>{me.name}</span><span className="block truncate text-xs text-muted" title={me.major ? `${me.major}, year ${me.year}` : `Year ${me.year}`}>{me.major ? `${me.major}, year ${me.year}` : `Year ${me.year}`}</span></span>
           <button type="button" aria-label="Sign out" title="Sign out" onClick={(e) => { e.stopPropagation(); logout() }} className="-mr-1 grid size-7 shrink-0 place-items-center rounded-sm text-faint hover:bg-surface hover:text-ink"><LogOut size={14} /></button>
         </div>
       </div>
