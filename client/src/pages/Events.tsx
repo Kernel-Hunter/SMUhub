@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Check, MapPin, Plus, Users, X } from 'lucide-react'
-import { api } from '@/api/mock'
+import { api } from '@/api/client'
 import Banner, { bannerBtn } from '@/components/Banner'
 import Calendar from '@/components/Calendar'
 import { Empty, ErrorBox, Field, Segmented, Skeleton, Spinner, useToast } from '@/components/ui'

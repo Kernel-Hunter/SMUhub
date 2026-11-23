@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, RotateCcw, Settings as Cog } from 'lucide-react'
-import { api } from '@/api/mock'
+import { Check, Settings as Cog } from 'lucide-react'
+import { api } from '@/api/client'
 import { useAuth } from '@/auth/AuthContext'
 import Banner from '@/components/Banner'
 import { Avatar, Field, Spinner, useToast } from '@/components/ui'
@@ -64,10 +64,6 @@ export default function Settings() {
               <p className="mb-3 text-sm font-semibold">Recent activity</p>
               {xp.data?.length ? <ul className="grid gap-3">{xp.data.slice(0, 12).map((x) => <li key={x.id} className="flex items-center gap-3 text-sm"><span className={cn('num grid h-6 w-11 shrink-0 place-items-center rounded-sm text-xs font-semibold', x.points < 0 ? 'bg-danger-soft text-danger' : 'bg-success-soft text-success')}>{x.points > 0 ? '+' : ''}{x.points}</span><span className="min-w-0 flex-1 truncate text-muted">{x.label}</span><span className="shrink-0 text-xs text-faint">{timeAgo(x.at)}</span></li>)}</ul> : <p className="text-sm text-muted">No points yet. Upload a file or answer a question.</p>}
             </div>
-          </section>
-          <section className="card p-5">
-            <p className="text-sm font-semibold">Demo data</p><p className="mt-1 text-xs text-muted">This preview keeps everything in your browser. Reset puts the sample content back.</p>
-            <button className="btn btn-secondary btn-sm mt-3 text-danger" onClick={() => confirm('Reset all demo data?') && api.dev.reset()}><RotateCcw size={13} />Reset demo data</button>
           </section>
         </aside>
       </div>

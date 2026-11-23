@@ -1,7 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, BadgeCheck, Download, Info, ThumbsUp, Trash2 } from 'lucide-react'
-import { api } from '@/api/mock'
+import { api } from '@/api/client'
 import { RULES } from '@/api/rules'
 import type { Resource } from '@/api/types'
 import { FileBadge, ResourceCard } from '@/components/Cards'

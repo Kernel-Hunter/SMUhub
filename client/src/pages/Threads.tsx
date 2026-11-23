@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { HelpCircle, Megaphone, Plus, Search, X } from 'lucide-react'
-import { api } from '@/api/mock'
+import { api } from '@/api/client'
 import { ThreadCard } from '@/components/Cards'
 import Banner, { bannerBtn } from '@/components/Banner'
 import { Empty, ErrorBox, Segmented, Skeleton } from '@/components/ui'

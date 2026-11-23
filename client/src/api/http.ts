@@ -3,9 +3,13 @@
  * Requests go to VITE_API_URL when set, otherwise to the same origin (/api), which the Vite dev
  * server proxies to the backend. The session lives in an HttpOnly cookie, hence credentials: 'include'.
  */
-import { ApiError } from './mock'
-
 const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
+
+/** Error with a stable code the UI can branch on (e.g. 'email_not_verified'). */
+export class ApiError extends Error {
+  code: string
+  constructor(code: string, message: string) { super(message); this.code = code }
+}
 
 export class HttpError extends ApiError {
   status: number
