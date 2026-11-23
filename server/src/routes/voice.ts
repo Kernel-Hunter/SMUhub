@@ -11,7 +11,8 @@ import { Reply } from '../models/Reply.js'
  * Campus Voice API, mounted at /api/voice behind requireAuth (see app.ts).
  * Same rules as the reference mock (client/src/api/mock.ts, docs/BACKEND.md): posts and replies can be anonymous,
  * one vote per student, votes are final, no voting on your own posts; posting is rate limited (budget shared with Q&A).
- * An upvoted post pays its author voiceUp XP through award(). Reply upvotes pay nothing, like the mock. No accepted answers.
+ * An upvoted named post pays its author voiceUp XP through award(). Anonymous posts pay nothing: a visible XP jump
+ * right after an upvote would point at the author. Reply upvotes pay nothing, like the mock. No accepted answers.
  * Anonymous content never carries its author, not even for the author (who gets `mine: true`).
  */
 
@@ -77,7 +78,7 @@ export function voiceRouter() {
     // Conditional update: two parallel clicks cannot both count.
     const done = await Thread.updateOne({ _id: thread._id, voters: { $ne: me } }, { $push: { voters: me }, $inc: { votes: 1 } })
     if (done.modifiedCount === 0) throw new HttpError(409, 'already_voted', 'Tu as déjà voté pour cette publication.')
-    await award({ user: thread.author, actor: me, kind: 'voice_upvoted', points: XP_RULES.points.voiceUp, refKey: `tv:${me}:${thread._id}`, label: 'Post upvoted' })
+    if (!thread.anonymous) await award({ user: thread.author, actor: me, kind: 'voice_upvoted', points: XP_RULES.points.voiceUp, refKey: `tv:${me}:${thread._id}`, label: 'Post upvoted' })
     const fresh = (await Thread.findById(thread._id))!
     res.json({ thread: threadJson(fresh, me, await loadPeople(fresh.anonymous ? [] : [fresh.author])) })
   })

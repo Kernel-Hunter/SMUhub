@@ -163,7 +163,7 @@ async function main() {
       await Reply.create({ thread: thread!._id, body: r.body, author: ids.get(r.author)!, anonymous: r.anonymous, createdAt: new Date(Date.now() - r.hoursAgo * HOUR) })
     }
     // Same refKey as a vote from the page (routes/voice.ts), keyed on the stable thread id.
-    xp += await award({ user: author, actor: other, kind: 'voice_upvoted', points: XP_RULES.points.voiceUp, refKey: `tv:${other}:${thread!._id}`, label: 'Post upvoted', at: new Date(at.getTime() + HOUR) })
+    if (!v.anonymous) xp += await award({ user: author, actor: other, kind: 'voice_upvoted', points: XP_RULES.points.voiceUp, refKey: `tv:${other}:${thread!._id}`, label: 'Post upvoted', at: new Date(at.getTime() + HOUR) })
   }
   console.log(`Seeded ${DEMO_VOICE.length} Campus Voice posts (${xp} XP newly awarded).`)
 

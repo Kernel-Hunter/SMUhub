@@ -201,12 +201,11 @@ describe('votes', () => {
     assert.equal(rows[0].refKey, `tv:${omar}:${t.id}`)
   })
 
-  it('pays an anonymous author too, without naming them', async () => {
+  it('pays no XP for an anonymous post, so XP changes cannot reveal its author', async () => {
     const t = (await publish(lina, { anonymous: true })).body.thread
-    await as(omar).post(`/api/voice/${t.id}/vote`)
-    const rows = await ledger()
-    assert.equal(rows.length, 1)
-    assert.equal(rows[0].user.toString(), lina)
+    assert.equal((await as(omar).post(`/api/voice/${t.id}/vote`)).status, 200)
+    assert.equal((await Thread.findById(t.id))!.votes, 1)
+    assert.equal((await ledger()).length, 0)
   })
 
   it('counts parallel votes from the same student once', async () => {

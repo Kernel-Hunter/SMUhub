@@ -29,7 +29,7 @@ export default function Compose({ kind }: { kind: ThreadKind }) {
           {!qa && (
             <button type="button" onClick={() => setF({ ...f, anonymous: !f.anonymous })} className={cn('flex items-center gap-3 rounded-md border p-4 text-left transition-colors', f.anonymous ? 'border-accent bg-accent-soft' : 'border-line bg-surface hover:bg-hover')}>
               <span className={cn('grid size-9 place-items-center rounded-md', f.anonymous ? 'bg-accent-fill text-on-accent' : 'bg-subtle text-muted')}><EyeOff size={16} /></span>
-              <span className="flex-1"><span className="block text-sm font-semibold">Post without my name</span><span className="text-xs text-muted">Classmates won't see who wrote it. Moderators can, if the post breaks the rules.</span></span>
+              <span className="flex-1"><span className="block text-sm font-semibold">Post without my name</span><span className="text-xs text-muted">Classmates won't see who wrote it. Moderators can, if the post breaks the rules. Anonymous posts earn no points, so upvotes can't give you away.</span></span>
               <span className={cn('relative h-5 w-9 rounded-full transition', f.anonymous ? 'bg-accent-fill' : 'bg-line-strong')}><span className={cn('absolute top-1 size-4 rounded-full bg-white ring-1 ring-black/10 transition-all', f.anonymous ? 'left-[18px]' : 'left-1')} /></span>
             </button>
           )}
