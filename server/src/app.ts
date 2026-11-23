@@ -9,6 +9,9 @@ import { authRouter } from './routes/auth.js'
 import { questionsRouter } from './routes/questions.js'
 import { eventsRouter } from './routes/events.js'
 import { rentalsRouter } from './routes/rentals.js'
+import { meRouter } from './routes/me.js'
+import { leaderboardRouter } from './routes/leaderboard.js'
+import { usersRouter } from './routes/users.js'
 
 /** Builds the Express app without starting it, so tests can drive it with supertest. */
 export function createApp(config: Config) {
@@ -26,6 +29,9 @@ export function createApp(config: Config) {
   app.use('/api/questions', requireAuth, questionsRouter())
   app.use('/api/events', requireAuth, eventsRouter())
   app.use('/api/rentals', requireAuth, rentalsRouter())
+  app.use('/api/me', requireAuth, meRouter())
+  app.use('/api/leaderboard', requireAuth, leaderboardRouter())
+  app.use('/api/users', requireAuth, usersRouter())
   // Future protected routers: app.use('/api/resources', requireAuth, resourcesRouter(config))
 
   app.use(notFound)

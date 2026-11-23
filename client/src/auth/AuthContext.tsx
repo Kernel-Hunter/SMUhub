@@ -8,7 +8,7 @@ import { useToast } from '@/components/ui'
 type Ctx = {
   /** Student from the real API (server/). null when signed out. */
   user: AuthUser | null
-  /** Profile with XP, rank and uploads, still served by the mock. null when signed out. */
+  /** Profile with XP, rank and courses, from GET /api/me. null when signed out. */
   me: Me | null
   /** True until we know whether a session exists, so the Login page never flashes. */
   loading: boolean
@@ -26,10 +26,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const auth = useQuery({ queryKey: ['auth'], queryFn: authApi.me, staleTime: 5 * 60_000, refetchOnWindowFocus: true })
   const user = auth.data ?? null
 
-  // Gamified profile from the mock, for the student the server says is signed in.
+  // Profile with XP from the server (GET /api/me), polled so XP earned from peers shows up.
+  // The bridge still tells the mock who is signed in, for the sections not on the server yet (resources, Voice, events, rentals).
   const profile = useQuery({
     queryKey: ['me'],
-    queryFn: () => { api.bridge.attach(user!); return api.auth.session() },
+    queryFn: () => { api.bridge.attach(user!); return api.me.get() },
     enabled: !!user,
     refetchInterval: 4000,
   })

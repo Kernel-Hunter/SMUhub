@@ -2,6 +2,8 @@
  * Adds test students so login can be tried before sign-up (US-01) exists.
  * Safe to run several times: users are matched by email (unique index) and updated in place,
  * so no duplicates are created; their password is reset to SEED_PASSWORD from server/.env.
+ * The demo Q&A also pays XP through award() (real ledger rows, same rules as the app), so the leaderboard
+ * is not empty. Their refKeys are stable, so re-running the seed never pays twice.
  *   npm run seed
  */
 import 'dotenv/config'
@@ -14,6 +16,8 @@ import { Thread } from '../models/Thread.js'
 import { Reply } from '../models/Reply.js'
 import { Event } from '../models/Event.js'
 import { RentalItem, RentalRequest } from '../models/Rental.js'
+import { XP_RULES, award } from '../lib/xp.js'
+import { Ledger } from '../models/Ledger.js'
 
 /** Reads the test password from SEED_PASSWORD (server/.env). Never hard-coded in the repo. */
 function seedPassword(): string {
@@ -34,10 +38,10 @@ const HOUR = 3_600_000
 /** Demo Q&A so the Questions page is not empty on a fresh database. Matched by title, so re-running resets them. */
 const DEMO_QUESTIONS = [
   {
-    author: Y, courseCode: 'CS224', hoursAgo: 30, solved: true,
+    author: Y, courseCode: 'CS224', hoursAgo: 240, solved: true, // older than a week: shows on the all-time board only
     title: 'When should I use a LEFT JOIN instead of an INNER JOIN?',
     body: 'In lab 4 both return the same rows for me, but the correction uses LEFT JOIN. What is the actual difference?',
-    replies: [{ author: A, accepted: true, hoursAgo: 28, body: 'INNER JOIN keeps only rows that match on both sides. LEFT JOIN keeps every row of the left table and fills the right side with NULL when nothing matches. You get the same result in lab 4 because every student has at least one enrolment. Add a student with no enrolment and you will see the difference.' }],
+    replies: [{ author: A, accepted: true, hoursAgo: 236, body: 'INNER JOIN keeps only rows that match on both sides. LEFT JOIN keeps every row of the left table and fills the right side with NULL when nothing matches. You get the same result in lab 4 because every student has at least one enrolment. Add a student with no enrolment and you will see the difference.' }],
   },
   {
     author: A, courseCode: 'MATH210', hoursAgo: 20, solved: false,
@@ -74,6 +78,7 @@ async function main() {
   const password = seedPassword()
   await connectDb(config.mongoUri)
   await User.syncIndexes() // makes sure the unique index on email exists
+  await Ledger.syncIndexes() // unique refKey: one event pays once
   const passwordHash = await hashPassword(password)
   for (const s of TEST_STUDENTS) {
     if (!isAllowedDomain(s.email, config.allowedDomains)) {
@@ -85,6 +90,7 @@ async function main() {
   console.log(`Seeded ${TEST_STUDENTS.length} students. Password for all: the SEED_PASSWORD value in server/.env`)
 
   const ids = new Map((await User.find({ email: { $in: [Y, A] } })).map((u) => [u.email, u._id]))
+  let xp = 0
   for (const q of DEMO_QUESTIONS) {
     const author = ids.get(q.author)!
     const other = ids.get(q.author === Y ? A : Y)!
@@ -99,8 +105,16 @@ async function main() {
     for (const r of q.replies) {
       await Reply.create({ thread: thread!._id, body: r.body, author: ids.get(r.author)!, accepted: r.accepted, createdAt: new Date(Date.now() - r.hoursAgo * HOUR) })
     }
+    // XP for what the seed just wrote: the other student's upvote, and the accepted answer.
+    // Keyed on the thread id (stable across runs); replies are recreated each run, so their ids are not used.
+    const tid = thread!._id
+    xp += await award({ user: author, actor: other, kind: 'question_upvoted', points: XP_RULES.points.questionUp, refKey: `tv:${other}:${tid}`, label: 'Question upvoted', at: new Date(at.getTime() + HOUR) })
+    const accepted = q.replies.find((r) => r.accepted)
+    if (accepted) {
+      xp += await award({ user: ids.get(accepted.author)!, actor: author, kind: 'answer_accepted', points: XP_RULES.points.accepted, refKey: `accept:${tid}`, label: `Answer accepted: ${q.title}`, at: new Date(Date.now() - (accepted.hoursAgo - 1) * HOUR) })
+    }
   }
-  console.log(`Seeded ${DEMO_QUESTIONS.length} demo questions.`)
+  console.log(`Seeded ${DEMO_QUESTIONS.length} demo questions (${xp} XP newly awarded).`)
 
   for (const e of DEMO_EVENTS) {
     const startsAt = new Date(Date.now() + e.inDays * 24 * HOUR)
