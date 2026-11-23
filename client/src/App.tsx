@@ -3,6 +3,9 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthContext'
 import Shell from '@/components/Shell'
 import Login from '@/pages/Login'
+import Signup from '@/pages/Signup'
+import Verify from '@/pages/Verify'
+import Forgot from '@/pages/Forgot'
 import { Skeleton } from '@/components/ui'
 
 const Home = lazy(() => import('@/pages/Home'))
@@ -41,6 +44,9 @@ export default function App() {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/verify" element={<Verify />} />
+        <Route path="/forgot" element={<Forgot />} />
         <Route path="*" element={<ToLogin />} />
       </Routes>
     )

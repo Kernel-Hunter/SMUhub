@@ -13,6 +13,8 @@ type Ctx = {
   /** True until we know whether a session exists, so the Login page never flashes. */
   loading: boolean
   login: (email: string, password: string) => Promise<void>
+  /** Takes over a session the server just started (after sign-up verification or a password reset). */
+  adopt: (user: AuthUser) => void
   logout: () => Promise<void>
 }
 const AuthCtx = createContext<Ctx>(null!)
@@ -47,16 +49,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     last.current = me.xp
   }, [me, toast, qc])
 
+  const adopt = (u: AuthUser) => {
+    api.bridge.attach(u)
+    qc.removeQueries({ queryKey: ['me'] })
+    qc.setQueryData(['auth'], u)
+  }
+
   const value: Ctx = {
     user,
     me,
     loading: auth.isPending || (!!user && profile.isPending),
-    login: async (email, password) => {
-      const u = await authApi.login(email, password)
-      api.bridge.attach(u)
-      qc.removeQueries({ queryKey: ['me'] })
-      qc.setQueryData(['auth'], u)
-    },
+    login: async (email, password) => { adopt(await authApi.login(email, password)) },
+    adopt,
     logout: async () => {
       try {
         await authApi.logout()
