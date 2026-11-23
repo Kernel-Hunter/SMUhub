@@ -7,6 +7,8 @@ import { Thread } from '../models/Thread.js'
 import { User, toClientUser } from '../models/User.js'
 import { loadPeople } from '../lib/people.js'
 import { threadJson } from '../lib/threads.js'
+import { Resource } from '../models/Resource.js'
+import { resourcesJson } from './resources.js'
 
 /**
  * Public student profiles, mounted at /api/users behind requireAuth (see app.ts).
@@ -34,7 +36,7 @@ export function usersRouter() {
     const authors = await loadPeople([u._id])
     res.json({
       user: { ...toClientUser(u), bio: u.bio ?? '', joinedAt: (u.createdAt ?? new Date()).getTime(), xp, rank },
-      resources: [], // resources are not on the server yet
+      resources: await resourcesJson(await Resource.find({ uploader: u._id }).sort({ createdAt: -1, _id: -1 }).limit(50), me),
       threads: threads.map((t) => threadJson(t, me, authors)),
       acceptedAnswers,
     })

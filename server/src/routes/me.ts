@@ -4,6 +4,7 @@ import { HttpError } from '../lib/errors.js'
 import { isCourseCode } from '../lib/courses.js'
 import { WEEK, rankOf, xpOf } from '../lib/xp.js'
 import { Ledger } from '../models/Ledger.js'
+import { Resource } from '../models/Resource.js'
 import { toClientUser, type UserDoc } from '../models/User.js'
 
 /**
@@ -24,11 +25,11 @@ const updateMe = z.object({
 
 /** The Me shape: public user + bio, joinedAt, role, XP (all time and last 7 days), all-time rank, uploads, courses. */
 export async function meJson(u: UserDoc) {
-  const [xp, weeklyXp] = await Promise.all([xpOf(u._id), xpOf(u._id, new Date(Date.now() - WEEK))])
+  const [xp, weeklyXp, uploads] = await Promise.all([xpOf(u._id), xpOf(u._id, new Date(Date.now() - WEEK)), Resource.countDocuments({ uploader: u._id })])
   return {
     ...toClientUser(u), bio: u.bio ?? '', joinedAt: (u.createdAt ?? new Date()).getTime(), role: u.role ?? 'student',
     xp, weeklyXp, rank: await rankOf(xp),
-    uploads: 0, // resources are not on the server yet
+    uploads,
     courses: [...(u.courses ?? [])],
   }
 }

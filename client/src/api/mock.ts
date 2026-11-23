@@ -6,8 +6,8 @@
  * Exceptions, served by the real server: Q&A questions (threads of kind 'question', routes/questions.ts),
  * Campus Voice posts (threads of kind 'voice', routes/voice.ts),
  * XP, the student's own profile, real students' profiles and the leaderboard (routes/me.ts, users.ts, leaderboard.ts),
- * events (routes/events.ts) and rentals (routes/rentals.ts), all under server/src. Resources still use this mock,
- * and so do the demo questions on the profiles of the demo students who upload them.
+ * events (routes/events.ts), rentals (routes/rentals.ts) and the resources library
+ * (routes/resources.ts: uploads, downloads, ratings), all under server/src. Only the demo data below still lives here.
  */
 import { RULES } from './rules'
 import * as S from './seed'
@@ -38,7 +38,6 @@ export type Profile = {
 }
 
 type UserRow = { id: string; name: string; major: string; year: number; bio: string; joinedAt: number; role: 'student' | 'admin'; courses: string[] }
-type ResRow = { id: string; title: string; description: string; courseCode: string; kind: ResourceKind; semester: 'S1' | 'S2'; academicYear: string; fileName: string; fileSize: number; ext: string; uploaderId: string; createdAt: number; downloads: number; helpful: number; verified: boolean; hash: string }
 type ThreadRow = { id: string; kind: ThreadKind; title: string; body: string; courseCode?: string; category?: VoiceCategory; authorId: string; anonymous: boolean; createdAt: number; votes: number; solved: boolean }
 type ReplyRow = { id: string; threadId: string; body: string; authorId: string; anonymous: boolean; createdAt: number; votes: number; accepted: boolean }
 type EventRow = { id: string; title: string; kind: 'event' | 'deadline' | 'club'; startsAt: number; location: string; courseCode?: string; description: string; authorId: string; going: number }
@@ -46,8 +45,8 @@ type RentalRow = { id: string; title: string; category: RentalCategory; pricePer
 type ReqRow = { id: string; itemId: string; renterId: string; from: number; to: number; note: string; status: RentalRequest['status'] }
 type Ledger = { id: string; userId: string; actorId: string; kind: XpKind | 'seed'; points: number; refKey: string; label: string; at: number }
 type DB = {
-  v: 1; users: UserRow[]; resources: ResRow[]; threads: ThreadRow[]; replies: ReplyRow[]; events: EventRow[]
-  rentals: RentalRow[]; requests: ReqRow[]; votes: string[]; downloads: string[]; going: string[]; ledger: Ledger[]
+  v: 1; users: UserRow[]; threads: ThreadRow[]; replies: ReplyRow[]; events: EventRow[]
+  rentals: RentalRow[]; requests: ReqRow[]; votes: string[]; going: string[]; ledger: Ledger[]
 }
 
 const KEY = 'smuhub.mock.v2'
@@ -56,13 +55,10 @@ const OWNER = 'smuhub.mock.owner' // id (from the real API) of the student the m
 const ME = 'me'
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
 const sleep = (ms = 160) => new Promise((r) => setTimeout(r, ms + Math.random() * 120))
-const files = new Map<string, Blob>() // uploaded blobs live only for this tab (mock)
 
 function seed(): DB {
-  const db: DB = { v: 1, users: [], resources: [], threads: [], replies: [], events: [], rentals: [], requests: [], votes: [], downloads: [], going: [], ledger: [] }
+  const db: DB = { v: 1, users: [], threads: [], replies: [], events: [], rentals: [], requests: [], votes: [], going: [], ledger: [] }
   S.USERS.forEach(([id, name, major, year, bio], i) => db.users.push({ id, name, major, year, bio, joinedAt: S.daysAgo(200 + i * 9), role: 'student', courses: [] }))
-  S.RESOURCES.forEach(([id, title, courseCode, kind, semester, academicYear, ext, kb, up, d, downloads, helpful, description]) =>
-    db.resources.push({ id, title, description, courseCode, kind, semester, academicYear, ext, fileName: `${title.replace(/[^\w]+/g, '_').slice(0, 48)}.${ext}`, fileSize: kb * 1024, uploaderId: up, createdAt: S.daysAgo(d), downloads, helpful, verified: helpful >= RULES.verifyThreshold, hash: `seed-${id}` }))
   S.THREADS.forEach(([id, kind, title, body, c, cat, a, anonymous, d, votes, solved]) =>
     db.threads.push({ id, kind, title, body, courseCode: c || undefined, category: cat || undefined, authorId: a, anonymous, createdAt: S.daysAgo(d, 2), votes, solved }))
   S.REPLIES.forEach(([id, threadId, a, anonymous, body, d, votes, accepted]) =>
@@ -117,14 +113,6 @@ function award(userId: string, actorId: string, kind: XpKind, points: number, re
   return pts
 }
 
-function toResource(r: ResRow, viewer: string): Resource {
-  return {
-    id: r.id, title: r.title, description: r.description, courseCode: r.courseCode, kind: r.kind, semester: r.semester,
-    academicYear: r.academicYear, fileName: r.fileName, fileSize: r.fileSize, ext: r.ext, uploader: pub(r.uploaderId),
-    createdAt: r.createdAt, downloads: r.downloads, helpful: r.helpful, verified: r.verified, mine: r.uploaderId === viewer,
-    iVoted: db.votes.includes(`${viewer}|resource|${r.id}`), iDownloaded: db.downloads.includes(`${viewer}|${r.id}`),
-  }
-}
 function toThread(t: ThreadRow, viewer: string): Thread {
   return {
     id: t.id, kind: t.kind, title: t.title, body: t.body, courseCode: t.courseCode, category: t.category,
@@ -136,32 +124,11 @@ function toReply(r: ReplyRow, viewer: string): Reply {
   return { id: r.id, threadId: r.threadId, body: r.body, author: hide(r.authorId, r.anonymous, viewer), mine: r.authorId === viewer, createdAt: r.createdAt, votes: r.votes, iVoted: db.votes.includes(`${viewer}|reply|${r.id}`), accepted: r.accepted }
 }
 
-/** DEMO ONLY: simulated classmates react to what the signed-in student posts so XP flow is visible. */
-function simulatePeers(type: 'resource' | 'thread', id: string) {
-  const peers = S.USERS.map((u) => u[0]).sort(() => Math.random() - 0.5).slice(0, 3)
-  peers.forEach((p, i) => setTimeout(() => {
-    try {
-      if (type === 'resource' && !db.downloads.includes(`${p}|${id}`)) { db.downloads.push(`${p}|${id}`); const r = db.resources.find((x) => x.id === id); if (r) r.downloads++ }
-      castVote(p, type, id)
-    } catch { /* ignore */ }
-  }, 5000 + i * 4500))
-}
-
-function castVote(actor: string, type: 'resource' | 'thread' | 'reply', id: string) {
+function castVote(actor: string, type: 'thread' | 'reply', id: string) {
   const key = `${actor}|${type}|${id}`
   if (db.votes.includes(key)) fail('already_voted', 'Votes are final. You already voted on this.')
   const P = RULES.points
-  if (type === 'resource') {
-    const r = db.resources.find((x) => x.id === id) ?? fail('not_found', 'Resource not found.')
-    if (r!.uploaderId === actor) fail('self_vote', 'You cannot rate your own upload.')
-    if (!db.downloads.includes(`${actor}|${id}`)) fail('download_first', 'Download the file before rating it.')
-    db.votes.push(key); r!.helpful++
-    award(r!.uploaderId, actor, 'resource_helpful', P.helpful, `helpful:${actor}:${id}`, `Helpful: ${r!.title}`)
-    if (!r!.verified && r!.helpful >= RULES.verifyThreshold) {
-      r!.verified = true
-      award(r!.uploaderId, 'system-verify', 'resource_verified', P.verified, `verify:${id}`, `Verified: ${r!.title}`)
-    }
-  } else if (type === 'thread') {
+  if (type === 'thread') {
     const t = db.threads.find((x) => x.id === id) ?? fail('not_found', 'Post not found.')
     if (t!.authorId === actor) fail('self_vote', 'You cannot vote on your own post.')
     db.votes.push(key); t!.votes++
@@ -179,11 +146,6 @@ function castVote(actor: string, type: 'resource' | 'thread' | 'reply', id: stri
 
 const clean = (s: string, max: number) => s.replace(/\s+/g, ' ').trim().slice(0, max)
 const cleanBlock = (s: string, max: number) => s.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, max)
-async function sha256(file: File) {
-  const buf = await file.arrayBuffer()
-  const h = await crypto.subtle.digest('SHA-256', buf)
-  return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, '0')).join('')
-}
 
 export const api = {
   rules: RULES,
@@ -235,74 +197,53 @@ export const api = {
   courses: {
     async list(): Promise<Course[]> {
       requireMe(); await sleep(80)
-      // Question counts come from the real server, like the questions themselves.
-      const { threads } = await (await realHttp())<{ threads: Thread[] }>('/api/questions')
-      return S.COURSES.map(([code, name, dept]) => ({ code, name, dept, resources: db.resources.filter((r) => r.courseCode === code).length, questions: threads.filter((t) => t.courseCode === code).length }))
+      // Question and resource counts come from the real server, like the questions and resources themselves.
+      const http = await realHttp()
+      const [{ threads }, { resources }] = await Promise.all([http<{ threads: Thread[] }>('/api/questions'), http<{ resources: Resource[] }>('/api/resources')])
+      return S.COURSES.map(([code, name, dept]) => ({ code, name, dept, resources: resources.filter((r) => r.courseCode === code).length, questions: threads.filter((t) => t.courseCode === code).length }))
     },
   },
 
+  // Real server: server/src/routes/resources.ts. It checks the file's type on its bytes, its size, its SHA-256 (duplicates),
+  // the daily upload limit, and every rating rule; XP is paid there too.
   resources: {
     async list(q: ResourceQuery = {}): Promise<Resource[]> {
-      const me = requireMe(); await sleep()
-      const term = (q.q ?? '').toLowerCase().trim()
-      let rows = db.resources.filter((r) =>
-        (!q.course || r.courseCode === q.course) && (!q.kind || r.kind === q.kind) && (!q.semester || r.semester === q.semester) &&
-        (!term || `${r.title} ${r.description} ${r.courseCode}`.toLowerCase().includes(term)))
-      const sort = q.sort ?? 'new'
-      rows = rows.sort((a, b) => sort === 'top' ? b.helpful - a.helpful : sort === 'downloads' ? b.downloads - a.downloads : b.createdAt - a.createdAt)
-      return rows.map((r) => toResource(r, me))
+      const params = new URLSearchParams()
+      if (q.q?.trim()) params.set('q', q.q.trim())
+      if (q.course) params.set('course', q.course)
+      if (q.kind) params.set('kind', q.kind)
+      if (q.semester) params.set('semester', q.semester)
+      if (q.sort && q.sort !== 'new') params.set('sort', q.sort)
+      const qs = params.toString()
+      return (await (await realHttp())<{ resources: Resource[] }>(`/api/resources${qs ? `?${qs}` : ''}`)).resources
     },
     async get(id: string): Promise<Resource> {
-      const me = requireMe(); await sleep(80)
-      const r = db.resources.find((x) => x.id === id) ?? fail('not_found', 'Resource not found.')
-      return toResource(r!, me)
+      return (await (await realHttp())<{ resource: Resource }>(`/api/resources/${encodeURIComponent(id)}`)).resource
     },
+    /** Sent as multipart/form-data: the file in the field `file`, the details as text fields. */
     async upload(input: { file: File; title: string; description: string; courseCode: string; kind: ResourceKind; semester: 'S1' | 'S2'; academicYear: string }): Promise<Resource> {
-      const me = requireMe(); await sleep(400)
-      const { file } = input
-      const ext = (file.name.split('.').pop() ?? '').toLowerCase()
-      if (!(RULES.allowedExt as readonly string[]).includes(ext)) fail('bad_type', `Only ${RULES.allowedExt.join(', ').toUpperCase()} files are accepted.`)
-      if (file.size > RULES.maxBytes) fail('too_large', 'File is larger than 25 MB.')
-      if (file.size < RULES.minBytes) fail('too_small', 'File is too small to be a real resource (min 10 KB).')
-      if (!S.COURSES.some((c) => c[0] === input.courseCode)) fail('bad_course', 'Choose a valid course.')
-      const title = clean(input.title, 120)
-      if (title.length < 6) fail('bad_title', 'Give the resource a descriptive title (6+ characters).')
-      const todayCount = db.resources.filter((r) => r.uploaderId === me && Date.now() - r.createdAt < 86400000).length
-      if (todayCount >= RULES.uploadsPerDay) fail('rate_limited', `Daily upload limit reached (${RULES.uploadsPerDay}). Come back tomorrow.`)
-      const hash = await sha256(file)
-      if (db.resources.some((r) => r.hash === hash)) fail('duplicate', 'Someone already uploaded this exact file. Duplicates don\'t earn XP.')
-      const row: ResRow = {
-        id: 'r' + uid(), title, description: cleanBlock(input.description, 600), courseCode: input.courseCode, kind: input.kind, semester: input.semester,
-        academicYear: input.academicYear, fileName: file.name.replace(/[^\w.\- ]+/g, '_').slice(0, 100), fileSize: file.size, ext, uploaderId: me,
-        createdAt: Date.now(), downloads: 0, helpful: 0, verified: false, hash,
-      }
-      db.resources.unshift(row); files.set(row.id, file); save()
-      simulatePeers('resource', row.id)
-      return toResource(row, me)
+      const { file, ...details } = input
+      const form = new FormData()
+      for (const [k, v] of Object.entries(details)) form.append(k, v)
+      form.append('file', file, file.name)
+      return (await (await realHttp())<{ resource: Resource }>('/api/resources', { method: 'POST', body: form })).resource
     },
-    async download(id: string): Promise<{ blob: Blob; fileName: string }> {
-      const me = requireMe(); await sleep(300)
-      const r = db.resources.find((x) => x.id === id) ?? fail('not_found', 'Resource not found.')
-      const key = `${me}|${id}`
-      if (!db.downloads.includes(key)) { db.downloads.push(key); if (r!.uploaderId !== me) r!.downloads++; save() }
-      const blob = files.get(id) ?? new Blob([`SMUhub demo file\n\n${r!.title}\n(${r!.courseCode})\n\nIn production this is the real uploaded file.`], { type: 'text/plain' })
-      return { blob, fileName: files.has(id) ? r!.fileName : r!.fileName.replace(/\.\w+$/, '') + '.demo.txt' }
+    /**
+     * Lets the browser download GET /api/resources/:id/file itself (attachment; the session cookie goes with it).
+     * The server records the download, which unlocks rating. Checked first so a missing file shows a message, not a broken download.
+     */
+    async download(id: string): Promise<void> {
+      const { http, apiUrl } = await import('./http')
+      const path = `/api/resources/${encodeURIComponent(id)}`
+      await http<{ resource: Resource }>(path)
+      const a = Object.assign(document.createElement('a'), { href: apiUrl(`${path}/file`), download: '' })
+      document.body.appendChild(a); a.click(); a.remove()
     },
     async rate(id: string): Promise<Resource> {
-      const me = requireMe(); await sleep(120)
-      castVote(me, 'resource', id)
-      return toResource(db.resources.find((x) => x.id === id)!, me)
+      return (await (await realHttp())<{ resource: Resource }>(`/api/resources/${encodeURIComponent(id)}/rate`, { method: 'POST' })).resource
     },
     async remove(id: string): Promise<void> {
-      const me = requireMe(); await sleep(150)
-      const i = db.resources.findIndex((x) => x.id === id)
-      if (i < 0) fail('not_found', 'Resource not found.')
-      const r = db.resources[i]
-      if (r.uploaderId !== me && userRow(me).role !== 'admin') fail('forbidden', 'You can only delete your own uploads.')
-      // Ledger is append-only: claw back earned points with a compensating row instead of editing history.
-      const earned = db.ledger.filter((l) => l.userId === r.uploaderId && (l.refKey.endsWith(`:${id}`) || l.refKey === `verify:${id}`) && l.points > 0).reduce((s, l) => s + l.points, 0)
-      if (earned > 0) db.ledger.push({ id: uid(), userId: r.uploaderId, actorId: 'system', kind: 'removal_penalty', points: -earned, refKey: `remove:${id}`, label: `Removed: ${r.title}`, at: Date.now() })
-      db.resources.splice(i, 1); files.delete(id); save()
+      await (await realHttp())(`/api/resources/${encodeURIComponent(id)}`, { method: 'DELETE' })
     },
   },
 
@@ -423,7 +364,7 @@ export const api = {
       const u = db.users.find((x) => x.id === id) ?? fail('not_found', 'Student not found.')
       return {
         user: { ...pub(id), bio: u!.bio, joinedAt: u!.joinedAt, xp: xpOf(id), rank: rankOf(id) },
-        resources: db.resources.filter((r) => r.uploaderId === id).map((r) => toResource(r, me)),
+        resources: [], // demo students have no files: the library lives on the server
         // anonymous posts are never listed on a profile
         threads: db.threads.filter((t) => t.authorId === id && !t.anonymous).map((t) => toThread(t, me)),
         acceptedAnswers: db.replies.filter((r) => r.authorId === id && r.accepted && !r.anonymous).length,

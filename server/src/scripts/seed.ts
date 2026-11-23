@@ -4,6 +4,8 @@
  * so no duplicates are created; their password is reset to SEED_PASSWORD from server/.env.
  * The demo Q&A and Campus Voice posts also pay XP through award() (real ledger rows, same rules as the app), so the leaderboard
  * is not empty. Their refKeys are stable, so re-running the seed never pays twice.
+ * Demo library files (small PDFs and PNGs built in code) go to GridFS like real uploads; each is downloaded and rated
+ * helpful by the other student, paid through award() as well. They are matched by SHA-256, so re-running adds nothing.
  *   npm run seed
  */
 import 'dotenv/config'
@@ -18,6 +20,9 @@ import { Event } from '../models/Event.js'
 import { RentalItem, RentalRequest } from '../models/Rental.js'
 import { XP_RULES, award } from '../lib/xp.js'
 import { Ledger } from '../models/Ledger.js'
+import { Download, Rating, Resource } from '../models/Resource.js'
+import { checkFile, safeFileName, saveFile, sha256 } from '../lib/files.js'
+import { makePdf, makePng } from './sampleFiles.js'
 
 /** Reads the test password from SEED_PASSWORD (server/.env). Never hard-coded in the repo. */
 function seedPassword(): string {
@@ -104,6 +109,25 @@ const DEMO_RENTALS = [
   { owner: A, title: 'Arduino Uno starter kit', category: 'tech' as const, pricePerDay: 5, deposit: 40, condition: 'good' as const, description: 'Board, breadboard, 40 jumpers, LEDs and a few sensors.', contact: 'Instagram @ahmed.demo' },
 ]
 
+/**
+ * Demo library files, two per student, rated by the other one. Dated more than a week ago so their ratings do not use up
+ * the weekly pair cap (3 paid interactions): Yasmine and Ahmed can still rate each other's new uploads right after seeding.
+ */
+const DEMO_RESOURCES = [
+  { uploader: Y, hoursAgo: 260, name: 'Databases final 2025 solved.pdf', title: 'Databases final 2025, solved', courseCode: 'CS224', kind: 'exam' as const, semester: 'S1' as const,
+    description: "Last year's final with a worked solution: SQL joins, normalization and a B-tree question.",
+    file: () => makePdf(['Databases final 2025, solved', 'CS224 - SMUhub demo file', '1. Write the LEFT JOIN that lists every student and their enrolments.', '2. Normalize the Orders table to 3NF.', '3. Insert 12 into the given B-tree of order 3.']) },
+  { uploader: Y, hoursAgo: 210, name: 'Normal forms cheat sheet.png', title: 'Normal forms cheat sheet (1NF to BCNF)', courseCode: 'CS224', kind: 'summary' as const, semester: 'S1' as const,
+    description: 'One picture to remember what each normal form forbids.',
+    file: () => makePng([47, 111, 159], 'SMUhub demo file: normal forms cheat sheet (1NF, 2NF, 3NF, BCNF).') },
+  { uploader: A, hoursAgo: 230, name: 'Probability formula sheet.pdf', title: 'Probability formula sheet', courseCode: 'MATH210', kind: 'summary' as const, semester: 'S2' as const,
+    description: 'Bayes, independence, expectation and variance on one page.',
+    file: () => makePdf(['Probability formula sheet', 'MATH210 - SMUhub demo file', 'P(A and B) = P(A) x P(B) when A and B are independent.', 'Bayes: P(A|B) = P(B|A) P(A) / P(B)', 'Var(X) = E[X^2] - E[X]^2']) },
+  { uploader: A, hoursAgo: 190, name: 'Marketing mix diagram.png', title: 'Marketing mix (4P) diagram', courseCode: 'MKT201', kind: 'slides' as const, semester: 'S2' as const,
+    description: 'Product, price, place, promotion: the slide from week 2, redrawn.',
+    file: () => makePng([107, 143, 94], 'SMUhub demo file: the marketing mix, product, price, place and promotion.') },
+]
+
 async function main() {
   const config = loadConfig()
   const password = seedPassword()
@@ -183,6 +207,30 @@ async function main() {
     await RentalItem.updateOne({ title: r.title }, { $set: { ...fields, owner: ids.get(owner)!, available: true } }, { upsert: true })
   }
   console.log(`Seeded ${DEMO_RENTALS.length} demo rental items.`)
+
+  await Promise.all([Resource.syncIndexes(), Download.syncIndexes(), Rating.syncIndexes()])
+  let fileXp = 0
+  for (const d of DEMO_RESOURCES) {
+    const buf = d.file()
+    const check = checkFile(buf, d.name)
+    if (!check.ok) throw new Error(`Demo file ${d.name} is invalid: ${check.error}`)
+    const uploader = ids.get(d.uploader)!, other = ids.get(d.uploader === Y ? A : Y)!
+    const hash = sha256(buf)
+    const at = new Date(Date.now() - d.hoursAgo * HOUR)
+    let r = await Resource.findOne({ sha256: hash })
+    if (!r) {
+      const fileName = safeFileName(d.name, check.ext, d.title)
+      const fileId = await saveFile(buf, fileName, { uploader, sha256: hash })
+      r = await Resource.create({ title: d.title, description: d.description, courseCode: d.courseCode, kind: d.kind, semester: d.semester, academicYear: '2025/26', fileName, ext: check.ext, size: buf.length, sha256: hash, fileId, uploader, createdAt: at })
+    }
+    // The other student downloads it and rates it helpful. Counters are recomputed from the records, so re-runs stay exact.
+    await Download.updateOne({ resource: r._id, user: other }, { $setOnInsert: { createdAt: new Date(at.getTime() + HOUR) } }, { upsert: true })
+    await Rating.updateOne({ resource: r._id, user: other }, { $setOnInsert: { createdAt: new Date(at.getTime() + 2 * HOUR) } }, { upsert: true })
+    const [downloads, helpful] = await Promise.all([Download.countDocuments({ resource: r._id, user: { $ne: r.uploader } }), Rating.countDocuments({ resource: r._id })])
+    await Resource.updateOne({ _id: r._id }, { downloads, helpful })
+    fileXp += await award({ user: r.uploader, actor: other, kind: 'resource_helpful', points: XP_RULES.points.helpful, refKey: `helpful:${other}:${r._id}`, label: `Helpful: ${r.title}`, at: new Date(at.getTime() + 2 * HOUR) })
+  }
+  console.log(`Seeded ${DEMO_RESOURCES.length} demo library files (${fileXp} XP newly awarded).`)
   await disconnectDb()
 }
 

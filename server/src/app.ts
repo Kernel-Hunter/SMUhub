@@ -13,6 +13,7 @@ import { meRouter } from './routes/me.js'
 import { leaderboardRouter } from './routes/leaderboard.js'
 import { usersRouter } from './routes/users.js'
 import { voiceRouter } from './routes/voice.js'
+import { resourcesRouter } from './routes/resources.js'
 
 /** Builds the Express app without starting it, so tests can drive it with supertest. */
 export function createApp(config: Config) {
@@ -34,7 +35,8 @@ export function createApp(config: Config) {
   app.use('/api/leaderboard', requireAuth, leaderboardRouter())
   app.use('/api/users', requireAuth, usersRouter())
   app.use('/api/voice', requireAuth, voiceRouter())
-  // Future protected routers: app.use('/api/resources', requireAuth, resourcesRouter(config))
+  // Multipart uploads are parsed inside this router (multer), after requireAuth: express.json's 10 kB limit does not apply to them.
+  app.use('/api/resources', requireAuth, resourcesRouter())
 
   app.use(notFound)
   app.use(errorHandler)

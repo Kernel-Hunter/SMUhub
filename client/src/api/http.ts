@@ -12,14 +12,19 @@ export class HttpError extends ApiError {
   constructor(status: number, code: string, message: string) { super(code, message); this.status = status }
 }
 
+/** Full URL of an API path, for links the browser follows itself (file downloads). */
+export const apiUrl = (path: string) => `${BASE}${path}`
+
+/** JSON by default. A FormData body is sent as multipart, untouched: the browser sets the Content-Type and boundary. */
 export async function http<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+  const form = init.body instanceof FormData
   let res: Response
   try {
-    res = await fetch(`${BASE}${path}`, {
+    res = await fetch(apiUrl(path), {
       method: init.method ?? 'GET',
       credentials: 'include',
-      headers: init.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
-      body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+      headers: init.body !== undefined && !form ? { 'Content-Type': 'application/json' } : undefined,
+      body: init.body === undefined ? undefined : form ? (init.body as FormData) : JSON.stringify(init.body),
     })
   } catch {
     throw new HttpError(0, 'network', 'Impossible de joindre le serveur. Vérifie que le backend est lancé.')
