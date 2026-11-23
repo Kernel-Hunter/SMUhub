@@ -13,8 +13,9 @@ function baseCookie(config: Config): CookieOptions {
   }
 }
 
-export function startSession(res: Response, config: Config, userId: string) {
-  const token = jwt.sign({}, config.jwtSecret, {
+/** tokenVersion: the user's current tokenVersion, so a later password reset can end this session. */
+export function startSession(res: Response, config: Config, userId: string, tokenVersion = 0) {
+  const token = jwt.sign({ tv: tokenVersion }, config.jwtSecret, {
     algorithm: 'HS256',
     subject: userId,
     expiresIn: Math.floor(config.sessionMs / 1000),
@@ -26,12 +27,16 @@ export function endSession(res: Response, config: Config) {
   res.clearCookie(SESSION_COOKIE, baseCookie(config))
 }
 
-/** Returns the user id stored in a valid token, or null if the token is missing, expired or forged. */
-export function readSession(token: unknown, config: Config): string | null {
+/**
+ * Returns the user id and token version stored in a valid token, or null if the token is missing, expired or forged.
+ * Tokens without a "tv" claim (issued before it existed) count as version 0.
+ */
+export function readSession(token: unknown, config: Config): { userId: string; tokenVersion: number } | null {
   if (typeof token !== 'string' || token.length === 0) return null
   try {
     const payload = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] })
-    return typeof payload === 'object' && typeof payload.sub === 'string' ? payload.sub : null
+    if (typeof payload !== 'object' || typeof payload.sub !== 'string') return null
+    return { userId: payload.sub, tokenVersion: typeof payload.tv === 'number' ? payload.tv : 0 }
   } catch {
     return null
   }

@@ -13,6 +13,10 @@ const schema = z.object({
   ALLOWED_EMAIL_DOMAINS: z.string().min(1, 'ALLOWED_EMAIL_DOMAINS is required'),
   CLIENT_URL: z.url().default('http://localhost:5173'),
   LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(10),
+  AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(20),
+  // Empty values in .env count as unset.
+  SMTP_URL: z.string().trim().optional().transform((v) => v || undefined),
+  MAIL_FROM: z.string().trim().optional().transform((v) => v || undefined),
 })
 
 export type Config = {
@@ -25,6 +29,12 @@ export type Config = {
   clientUrl: string
   /** Max login attempts per IP per 15 minutes. */
   loginRateLimit: number
+  /** Max sign-up, resend, forgot, verify and reset requests per IP per 15 minutes, per group. */
+  authRateLimit: number
+  /** SMTP connection string for nodemailer (smtp://user:pass@host:587). Unset: codes are logged in development. */
+  smtpUrl?: string
+  /** Sender of the verification mails, e.g. "SMUhub <no-reply@smu.tn>". Required with SMTP_URL. */
+  mailFrom?: string
 }
 
 /** Reads and validates the environment. Throws with a readable message when something is missing. */
@@ -37,6 +47,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const e = parsed.data
   const allowedDomains = e.ALLOWED_EMAIL_DOMAINS.split(',').map((d) => d.trim().toLowerCase().replace(/^@/, '')).filter(Boolean)
   if (allowedDomains.length === 0) throw new Error('ALLOWED_EMAIL_DOMAINS must list at least one domain')
+  if (e.SMTP_URL && !e.MAIL_FROM) throw new Error('MAIL_FROM is required when SMTP_URL is set')
   return {
     env: e.NODE_ENV,
     port: e.PORT,
@@ -46,5 +57,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     allowedDomains,
     clientUrl: e.CLIENT_URL.replace(/\/$/, ''),
     loginRateLimit: e.LOGIN_RATE_LIMIT,
+    authRateLimit: e.AUTH_RATE_LIMIT,
+    smtpUrl: e.SMTP_URL,
+    mailFrom: e.MAIL_FROM,
   }
 }

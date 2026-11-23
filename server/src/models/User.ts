@@ -17,6 +17,11 @@ const userSchema = new Schema(
       validate: { validator: (v: string[]) => v.length <= 12 && v.every(isCourseCode), message: 'Unknown course code or more than 12 courses' },
     },
     role: { type: String, enum: ['student', 'admin'], default: 'student' },
+    // No default on purpose: accounts created before sign-up existed have no field and count as verified.
+    // Only POST /api/auth/register writes false; only `emailVerified === false` blocks a login.
+    emailVerified: { type: Boolean },
+    // Copied into the session token (claim "tv"). Raising it ends every session issued before (password reset).
+    tokenVersion: { type: Number, min: 0, default: 0 },
   },
   { timestamps: { createdAt: true, updatedAt: false }, versionKey: false },
 )

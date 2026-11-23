@@ -115,7 +115,7 @@ async function main() {
     if (!isAllowedDomain(s.email, config.allowedDomains)) {
       console.warn(`! ${s.email} is not in ALLOWED_EMAIL_DOMAINS, it will be refused at login`)
     }
-    const res = await User.updateOne({ email: s.email }, { $set: { ...s, passwordHash } }, { upsert: true })
+    const res = await User.updateOne({ email: s.email }, { $set: { ...s, passwordHash, emailVerified: true } }, { upsert: true })
     console.log(`${res.upsertedCount ? '+ created' : '✓ updated'} ${s.email}`)
   }
   console.log(`Seeded ${TEST_STUDENTS.length} students. Password for all: the SEED_PASSWORD value in server/.env`)
