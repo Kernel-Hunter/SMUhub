@@ -1,6 +1,6 @@
 # Backend contract
 
-`client/src/api/mock.ts` is the reference implementation. Every method there maps to one REST endpoint. Swap the object for `fetch` calls with the same signatures and the UI needs no other change. The client is never trusted: every rule below must be enforced on the server.
+`client/src/api/client.ts` is the typed client for this API (auth calls are in `auth.ts`). The client is never trusted: every rule below must be enforced on the server.
 
 ## Authentication (implemented)
 
@@ -52,7 +52,7 @@ Constants live in `client/src/api/rules.ts`.
 ## Other rules
 
 - Escape or render all user text as plain text. No raw HTML or Markdown from users.
-- Validate all input with a schema on the server. Mirror the length limits in `mock.ts`.
+- Validate all input with a schema on the server. `client.ts` mirrors some length limits only to show a message sooner.
 - Check ownership on every edit and delete.
 - Rate limits: 5 threads per hour, 8 replies per 10 minutes, 10 rental listings per student.
 - No money moves through the platform. Rentals only connect students.

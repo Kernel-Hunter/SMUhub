@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { BadgeCheck, ThumbsUp, Download, FileText, Eye, EyeOff } from 'lucide-react'
 import { Logo } from '@/components/Shell'
+import { RULES } from '@/api/rules'
 
 function Preview() {
   return (
@@ -8,13 +9,13 @@ function Preview() {
     // Depth comes from a neutral popover shadow only; no gradient, glow or coloured shadow.
     <div className="relative mx-auto h-80 w-full max-w-md" aria-hidden>
       <div className="card absolute left-0 top-4 w-[88%] -rotate-3 p-4 shadow-popover">
-        <div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-md bg-subtle text-muted"><FileText size={18} /></span><div className="flex-1"><p className="text-xs text-muted"><span className="mono font-medium text-ink">CS224</span> · Past exam</p><p className="mt-1 text-sm font-semibold">Databases final 2025, solved</p><p className="mt-2 flex gap-3 text-xs text-muted"><span className="flex items-center gap-1"><ThumbsUp size={11} />24</span><span className="flex items-center gap-1"><Download size={11} />188</span></p></div><span className="flex items-center gap-1 text-xs font-medium text-success"><BadgeCheck size={13} />Verified</span></div>
+        <div className="flex items-start gap-3"><span className="grid size-10 place-items-center rounded-md bg-subtle text-muted"><FileText size={18} /></span><div className="flex-1"><p className="text-xs text-muted"><span className="mono font-medium text-ink">CS224</span> · Past exam</p><p className="mt-1 text-sm font-semibold">Databases final 2025, solved</p><p className="mt-2 flex gap-3 text-xs text-muted"><span className="flex items-center gap-1"><ThumbsUp size={11} />Rated helpful</span><span className="flex items-center gap-1"><Download size={11} />PDF</span></p></div><span className="flex items-center gap-1 text-xs font-medium text-success"><BadgeCheck size={13} />Verified</span></div>
       </div>
       <div className="card absolute right-0 top-32 w-[84%] rotate-2 p-4 shadow-popover">
-        <p className="text-xs text-muted">Campus Voice · anonymous</p><p className="mt-1 text-sm font-semibold">The library closes at 6pm during exam weeks</p><p className="mt-2 text-xs text-muted">58 votes · 12 replies</p>
+        <p className="text-xs text-muted">Campus Voice · anonymous</p><p className="mt-1 text-sm font-semibold">The library closes at 6pm during exam weeks</p><p className="mt-2 text-xs text-muted">Upvote or reply, no names shown</p>
       </div>
       <div className="card absolute left-6 top-52 flex w-[80%] -rotate-1 items-center gap-3 p-4 shadow-popover">
-        <span className="grid size-9 place-items-center rounded-full bg-accent-soft text-sm font-semibold text-accent">IG</span><div className="flex-1"><p className="text-sm font-semibold">Ines Gharbi</p><p className="text-xs text-muted">Rank #1 this week</p></div><span className="num text-sm font-medium">236 XP</span>
+        <span className="grid size-9 place-items-center rounded-full bg-accent-soft text-xs font-semibold text-accent">You</span><div className="flex-1"><p className="text-sm font-semibold">Your answer was accepted</p><p className="text-xs text-muted">Points go to the leaderboard</p></div><span className="num text-sm font-medium">+{RULES.points.accepted} XP</span>
       </div>
     </div>
   )

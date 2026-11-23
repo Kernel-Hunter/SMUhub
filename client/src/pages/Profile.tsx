@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, EyeOff, FileUp, MessageSquareQuote, Pencil, Trophy, Zap } from 'lucide-react'
-import { api } from '@/api/mock'
+import { api } from '@/api/client'
 import { useAuth } from '@/auth/AuthContext'
 import { ResourceCard, ThreadCard } from '@/components/Cards'
 import { Avatar, CountUp, ErrorBox, Skeleton } from '@/components/ui'

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from '@/api/mock'
+import { api } from '@/api/client'
 import { authApi, type AuthUser } from '@/api/auth'
 import type { Me } from '@/api/types'
 import { useToast } from '@/components/ui'
@@ -29,10 +29,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const user = auth.data ?? null
 
   // Profile with XP from the server (GET /api/me), polled so XP earned from peers shows up.
-  // The bridge still tells the mock who is signed in, for the sections not on the server yet (resources, Voice, events, rentals).
   const profile = useQuery({
     queryKey: ['me'],
-    queryFn: () => { api.bridge.attach(user!); return api.me.get() },
+    queryFn: api.me.get,
     enabled: !!user,
     refetchInterval: 4000,
   })
@@ -50,7 +49,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [me, toast, qc])
 
   const adopt = (u: AuthUser) => {
-    api.bridge.attach(u)
     qc.removeQueries({ queryKey: ['me'] })
     qc.setQueryData(['auth'], u)
   }
@@ -67,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         toast('Déconnexion locale : le serveur ne répond pas.', 'err')
       } finally {
-        api.bridge.detach()
         qc.clear()
         qc.setQueryData(['auth'], null)
       }

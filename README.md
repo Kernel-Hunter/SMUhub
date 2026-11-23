@@ -107,7 +107,7 @@ Base URL `http://localhost:4000` (or `/api` through the Vite proxy). Errors alwa
 
 `user` is `{ id, email, firstName, lastName, major, year, createdAt }`. The password hash is never sent.
 
-`client/src/api/mock.ts` is the reference for every endpoint that still has to be built, and `docs/BACKEND.md` lists the rules the server must enforce (ownership checks, rate limits, file checks, leaderboard integrity).
+`client/src/api/client.ts` is the typed client for the endpoints outside auth, and `docs/BACKEND.md` lists the rules the server must enforce (ownership checks, rate limits, file checks, leaderboard integrity).
 
 ### How authentication works
 
@@ -162,8 +162,8 @@ client/
     api/
       http.ts             fetch wrapper for the real API (cookies included)
       auth.ts             login, logout, current user, SMU email check
-      mock.ts             in-browser mock for the features not on the API yet
-      types.ts rules.ts seed.ts
+      client.ts           typed client for every other endpoint (resources, Q&A, events...)
+      types.ts rules.ts courses.ts
     auth/AuthContext.tsx  session state, waits for /api/auth/me before rendering
     components/           Shell (sidebar, top bar), Banner, Cards, UI primitives
     pages/                one file per screen

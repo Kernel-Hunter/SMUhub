@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, ArrowUpRight, FileText, Handshake, HelpCircle, Megaphone, Trophy, Upload, type LucideIcon } from 'lucide-react'
-import { api } from '@/api/mock'
+import { api } from '@/api/client'
 import { useAuth } from '@/auth/AuthContext'
 import { ResourceCard, ThreadCard } from '@/components/Cards'
 import { Avatar, CountUp, Skeleton } from '@/components/ui'

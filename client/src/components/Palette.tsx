@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { BookOpen, CornerDownLeft, HelpCircle, Megaphone, Search, CalendarDays, PackageOpen, Trophy, Home, Upload, Plus } from 'lucide-react'
-import { api } from '@/api/mock'
+import { api } from '@/api/client'
 
 type Item = { id: string; label: string; hint: string; to: string; icon: typeof Search }
 const PAGES: Item[] = [

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BookOpen, Calculator, FlaskConical, Handshake, KeyRound, Laptop, Package, Plus, ShieldAlert, X } from 'lucide-react'
-import { api } from '@/api/mock'
+import { api } from '@/api/client'
 import Banner, { bannerBtn } from '@/components/Banner'
 import { Avatar, Empty, ErrorBox, Field, Skeleton, Spinner, useToast } from '@/components/ui'
 import { RENTAL_LABEL, cn, errMsg, formatDay } from '@/lib/utils'
