@@ -2,16 +2,18 @@ import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, EyeOff, FileUp, MessageSquareQuote, Pencil, Trophy, Zap } from 'lucide-react'
 import { api } from '@/api/mock'
+import { useAuth } from '@/auth/AuthContext'
 import { ResourceCard, ThreadCard } from '@/components/Cards'
 import { Avatar, CountUp, ErrorBox, Skeleton } from '@/components/ui'
 import { cn } from '@/lib/utils'
 
 export default function Profile() {
   const { id = '' } = useParams()
+  const { me } = useAuth()
   const { data, error, isLoading } = useQuery({ queryKey: ['profile', id], queryFn: () => api.users.profile(id) })
   if (isLoading) return <Skeleton rows={3} />
   if (error || !data) return <ErrorBox error={error} />
-  const { user: u } = data; const self = u.id === 'me'
+  const { user: u } = data; const self = u.id === 'me' || u.id === me?.id
   const stats: [string, React.ReactNode, typeof Zap, string][] = [
     ['XP', <CountUp value={u.xp} />, Zap, ''],
     ['Rank', u.rank ? `#${u.rank}` : '-', Trophy, ''],

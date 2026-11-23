@@ -4,7 +4,8 @@
  * reference implementation the real server must enforce. The client is never trusted.
  *
  * Exception: Q&A questions (threads of kind 'question') go to the real server
- * (server/src/routes/questions.ts). Campus Voice and everything else still use this mock.
+ * (server/src/routes/questions.ts), and so do XP, the student's own profile, real students' profiles
+ * and the leaderboard (server/src/routes/me.ts, users.ts, leaderboard.ts). Campus Voice and everything else still use this mock.
  */
 import { RULES } from './rules'
 import * as S from './seed'
@@ -23,6 +24,14 @@ const fail = (code: string, msg: string): never => { throw new ApiError(code, ms
 const realHttp = async () => (await import('./http')).http
 // Real questions have 24-character database ids; the demo ones in seed.ts do not.
 const isRealId = (id: string) => /^[0-9a-f]{24}$/.test(id)
+
+/** Public profile, as returned by GET /api/users/:id (real students) or the mock (demo students). */
+export type Profile = {
+  user: PublicUser & { bio: string; joinedAt: number; xp: number; rank: number }
+  resources: Resource[]
+  threads: Thread[]
+  acceptedAnswers: number
+}
 
 type UserRow = { id: string; name: string; major: string; year: number; bio: string; joinedAt: number; role: 'student' | 'admin'; courses: string[] }
 type ResRow = { id: string; title: string; description: string; courseCode: string; kind: ResourceKind; semester: 'S1' | 'S2'; academicYear: string; fileName: string; fileSize: number; ext: string; uploaderId: string; createdAt: number; downloads: number; helpful: number; verified: boolean; hash: string }
@@ -135,10 +144,6 @@ function toRequest(q: ReqRow, item: RentalRow, viewer: string): RentalRequest {
   const reveal = q.status === 'accepted' && q.renterId === viewer
   return { id: q.id, itemId: q.itemId, renter: pub(q.renterId), from: q.from, to: q.to, note: q.note, status: q.status, contact: reveal ? item.contact : undefined }
 }
-function toMe(): Me {
-  const u = userRow(ME)
-  return { ...pub(ME), bio: u.bio, joinedAt: u.joinedAt, role: u.role, courses: u.courses, xp: xpOf(ME), weeklyXp: xpOf(ME, Date.now() - WEEK), rank: rankOf(ME), uploads: db.resources.filter((r) => r.uploaderId === ME).length }
-}
 
 /** DEMO ONLY: simulated classmates react to what the signed-in student posts so XP flow is visible. */
 function simulatePeers(type: 'resource' | 'thread', id: string) {
@@ -193,8 +198,15 @@ export const api = {
   rules: RULES,
 
   auth: {
-    /** Mock profile (XP, rank, uploads) of the student signed in through the real API. */
-    async session(): Promise<Me | null> { await sleep(60); return sessionId() ? toMe() : null },
+    /** Profile (XP, rank, courses) of the signed-in student, from GET /api/me. null when there is no valid session. */
+    async session(): Promise<Me | null> {
+      try {
+        return (await (await realHttp())<{ me: Me }>('/api/me')).me
+      } catch (e) {
+        if ((e as { status?: number }).status === 401) return null
+        throw e
+      }
+    },
   },
 
   /**
@@ -218,23 +230,15 @@ export const api = {
     detach() { try { localStorage.removeItem(SESSION) } catch { /* ignore */ } },
   },
 
+  // Real server: GET /api/me, PATCH /api/me, GET /api/me/xp (server/src/routes/me.ts).
   me: {
-    async get(): Promise<Me> { requireMe(); await sleep(80); return toMe() },
+    async get(): Promise<Me> { return (await (await realHttp())<{ me: Me }>('/api/me')).me },
+    /** The name comes from the account and cannot be changed here, so it is not sent. */
     async update(p: { name?: string; major?: string; year?: number; bio?: string; courses?: string[] }): Promise<Me> {
-      requireMe(); await sleep()
-      const u = userRow(ME)
-      if (p.name !== undefined) u.name = clean(p.name, 50) || u.name
-      if (p.major !== undefined) u.major = clean(p.major, 40) || u.major
-      if (p.year !== undefined) u.year = Math.min(6, Math.max(1, Math.round(p.year)))
-      if (p.bio !== undefined) u.bio = cleanBlock(p.bio, 240)
-      if (p.courses) u.courses = p.courses.slice(0, 12)
-      save(); return toMe()
+      const body = { major: p.major === undefined ? undefined : clean(p.major, 40), year: p.year, bio: p.bio === undefined ? undefined : cleanBlock(p.bio, 240), courses: p.courses }
+      return (await (await realHttp())<{ me: Me }>('/api/me', { method: 'PATCH', body })).me
     },
-    async xp(): Promise<XpRow[]> {
-      requireMe(); await sleep(80)
-      return db.ledger.filter((l) => l.userId === ME && l.kind !== 'seed').sort((a, b) => b.at - a.at).slice(0, 20)
-        .map((l) => ({ id: l.id, points: l.points, kind: l.kind as XpKind, label: l.label, at: l.at }))
-    },
+    async xp(): Promise<XpRow[]> { return (await (await realHttp())<{ rows: XpRow[] }>('/api/me/xp')).rows },
   },
 
   courses: {
@@ -463,15 +467,15 @@ export const api = {
   },
 
   leaderboard: {
+    // Real server: GET /api/leaderboard?period=week|all, built from the XP ledger.
     async get(period: 'week' | 'all'): Promise<LeaderRow[]> {
-      const me = requireMe(); await sleep()
-      const since = period === 'week' ? Date.now() - WEEK : 0
-      return standings(since).slice(0, 50).map((r, i) => ({ user: pub(r.id), xp: r.xp, rank: i + 1, uploads: db.resources.filter((x) => x.uploaderId === r.id).length, isMe: r.id === me }))
+      return (await (await realHttp())<{ rows: LeaderRow[] }>(`/api/leaderboard?period=${period}`)).rows
     },
   },
 
   users: {
-    async profile(id: string) {
+    async profile(id: string): Promise<Profile> {
+      if (isRealId(id)) return (await realHttp())<Profile>(`/api/users/${id}`) // real student: GET /api/users/:id
       const me = requireMe(); await sleep(100)
       const u = db.users.find((x) => x.id === id) ?? fail('not_found', 'Student not found.')
       return {

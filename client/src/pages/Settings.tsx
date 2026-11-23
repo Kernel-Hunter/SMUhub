@@ -38,7 +38,7 @@ export default function Settings() {
         <div className="grid content-start gap-6">
           <form onSubmit={submit} className="card grid gap-5 p-6">
             <div className="flex items-center gap-4"><Avatar user={me ?? null} size={52} /><div><p className="text-base font-semibold">Profile</p><p className="text-xs text-muted">Shown on your uploads, answers and public posts.</p></div></div>
-            <Field label="Display name" hint="Synced from Moodle on sign-in in production."><input className="field" maxLength={50} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
+            <Field label="Display name" hint="Comes from your SMU account. It cannot be changed here."><input className="field" readOnly value={f.name} /></Field>
             <div className="grid gap-4 sm:grid-cols-2"><Field label="Major"><input className="field" maxLength={40} value={f.major} onChange={(e) => setF({ ...f, major: e.target.value })} /></Field><Field label="Year"><select className="field" value={f.year} onChange={(e) => setF({ ...f, year: +e.target.value })}>{[1, 2, 3, 4, 5, 6].map((y) => <option key={y} value={y}>Year {y}</option>)}</select></Field></div>
             <Field label="Bio"><textarea className="field min-h-24" maxLength={240} value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value })} placeholder="What you study, what you can help with" /></Field>
             <div className="flex justify-end border-t border-line pt-5"><button className="btn btn-primary h-10 px-6" disabled={save.isPending}>{save.isPending ? <Spinner /> : 'Save changes'}</button></div>

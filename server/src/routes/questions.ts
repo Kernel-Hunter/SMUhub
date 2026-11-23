@@ -3,15 +3,17 @@ import { isValidObjectId, type Types } from 'mongoose'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { isCourseCode } from '../lib/courses.js'
+import { XP_RULES, award } from '../lib/xp.js'
 import { Thread } from '../models/Thread.js'
 import { Reply } from '../models/Reply.js'
-import { User } from '../models/User.js'
+import { User, toClientUser, type ClientUser } from '../models/User.js'
 
 /**
  * Q&A API, mounted at /api/questions behind requireAuth (see app.ts).
  * Same rules as the reference mock (client/src/api/mock.ts, docs/BACKEND.md):
  * one vote per student, votes are final, no voting on your own posts,
  * only the asker accepts, once, and not their own answer; posting is rate limited.
+ * XP goes to the author through award() (lib/xp.ts): question upvoted, answer upvoted, answer accepted.
  */
 
 // Limits, per student. Match the mock so the UI behaves the same with either backend.
@@ -31,23 +33,21 @@ const QUESTION_NOT_FOUND = 'Question introuvable.'
 const REPLY_NOT_FOUND = 'Réponse introuvable.'
 
 type Id = Types.ObjectId
-type ClientAuthor = { id: string; name: string; handle: string; major: string; year: number }
+type ClientAuthor = ClientUser
 
 const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /** The author shape the client expects (client/src/api/types.ts PublicUser). The email is never sent. */
-async function loadAuthors(ids: Id[]) {
+export async function loadAuthors(ids: Id[]) {
   const unique = [...new Set(ids.map((i) => i.toString()))]
   const users = await User.find({ _id: { $in: unique } })
-  return new Map<string, ClientAuthor>(users.map((u) => [u._id.toString(), {
-    id: u._id.toString(), name: `${u.firstName} ${u.lastName}`, handle: u.email.split('@')[0], major: u.major ?? '', year: u.year ?? 1,
-  }]))
+  return new Map<string, ClientAuthor>(users.map((u) => [u._id.toString(), toClientUser(u)]))
 }
 
-type ThreadDoc = { _id: Id; kind: string; title: string; body: string; courseCode?: string | null; author: Id; anonymous: boolean; voters: Id[]; votes: number; replyCount: number; solved: boolean; createdAt: Date }
+export type ThreadDoc = { _id: Id; kind: string; title: string; body: string; courseCode?: string | null; author: Id; anonymous: boolean; voters: Id[]; votes: number; replyCount: number; solved: boolean; createdAt: Date }
 type ReplyDoc = { _id: Id; thread: Id; body: string; author: Id; anonymous: boolean; voters: Id[]; votes: number; accepted: boolean; createdAt: Date }
 
-function threadJson(t: ThreadDoc, me: Id, authors: Map<string, ClientAuthor>) {
+export function threadJson(t: ThreadDoc, me: Id, authors: Map<string, ClientAuthor>) {
   return {
     id: t._id.toString(), kind: t.kind, title: t.title, body: t.body, courseCode: t.courseCode ?? undefined,
     author: t.anonymous ? null : (authors.get(t.author.toString()) ?? null),
@@ -131,6 +131,7 @@ export function questionsRouter() {
     // Conditional update: two parallel clicks cannot both count.
     const done = await Thread.updateOne({ _id: thread._id, voters: { $ne: me } }, { $push: { voters: me }, $inc: { votes: 1 } })
     if (done.modifiedCount === 0) throw new HttpError(409, 'already_voted', 'Tu as déjà voté pour cette question.')
+    await award({ user: thread.author, actor: me, kind: 'question_upvoted', points: XP_RULES.points.questionUp, refKey: `tv:${me}:${thread._id}`, label: 'Question upvoted' })
     const fresh = (await Thread.findById(thread._id))!
     res.json({ thread: threadJson(fresh, me, await loadAuthors([fresh.author])) })
   })
@@ -155,6 +156,7 @@ export function questionsRouter() {
     if (reply.author.equals(me)) throw new HttpError(403, 'self_vote', 'Tu ne peux pas voter pour ta propre réponse.')
     const done = await Reply.updateOne({ _id: reply._id, voters: { $ne: me } }, { $push: { voters: me }, $inc: { votes: 1 } })
     if (done.modifiedCount === 0) throw new HttpError(409, 'already_voted', 'Tu as déjà voté pour cette réponse.')
+    await award({ user: reply.author, actor: me, kind: 'answer_upvoted', points: XP_RULES.points.answerUp, refKey: `rv:${me}:${reply._id}`, label: 'Answer upvoted' })
     const fresh = (await Reply.findById(reply._id))!
     res.json({ reply: replyJson(fresh, me, await loadAuthors([fresh.author])) })
   })
@@ -171,6 +173,7 @@ export function questionsRouter() {
     const done = await Thread.updateOne({ _id: thread._id, solved: false }, { solved: true })
     if (done.modifiedCount === 0) throw new HttpError(409, 'already_solved', 'Cette question a déjà une réponse acceptée.')
     await Reply.updateOne({ _id: reply._id }, { accepted: true })
+    await award({ user: reply.author, actor: me, kind: 'answer_accepted', points: XP_RULES.points.accepted, refKey: `accept:${thread._id}`, label: `Answer accepted: ${thread.title}` })
     const fresh = (await Reply.findById(reply._id))!
     res.json({ reply: replyJson(fresh, me, await loadAuthors([fresh.author])), solved: true })
   })
