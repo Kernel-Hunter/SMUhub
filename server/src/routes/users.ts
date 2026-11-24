@@ -16,7 +16,7 @@ import { resourcesJson } from './resources.js'
  * and never lists anonymous content (docs/BACKEND.md, Privacy).
  */
 
-const NOT_FOUND = 'Étudiant introuvable.'
+const NOT_FOUND = 'Student not found.'
 
 export function usersRouter() {
   const router = Router()

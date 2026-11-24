@@ -24,7 +24,7 @@ const newEvent = z.object({
   courseCode: z.string().trim().toUpperCase().optional().transform((c) => c || undefined).refine((c) => c === undefined || isCourseCode(c)),
 })
 
-const EVENT_NOT_FOUND = 'Événement introuvable.'
+const EVENT_NOT_FOUND = 'Event not found.'
 
 type Id = Types.ObjectId
 type EventDoc = { _id: Id; title: string; kind: string; startsAt: Date; location?: string | null; courseCode?: string | null; description?: string | null; author: Id; goers: Id[]; going: number }
@@ -52,13 +52,13 @@ export function eventsRouter() {
   router.post('/', async (req, res) => {
     const me = req.user!._id
     const parsed = newEvent.safeParse(req.body)
-    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Ajoute un titre (5 caractères min.), un type et une date valides.')
+    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Add a title (at least 5 characters), a type and a valid date.')
     const { startsAt, location, ...rest } = parsed.data
     const now = Date.now()
-    if (startsAt < now - 3_600_000) throw new HttpError(400, 'bad_date', 'Choisis une date à venir.')
-    if (startsAt > now + 365 * DAY) throw new HttpError(400, 'bad_date', 'Choisis une date dans les 12 prochains mois.')
+    if (startsAt < now - 3_600_000) throw new HttpError(400, 'bad_date', 'Pick a date in the future.')
+    if (startsAt > now + 365 * DAY) throw new HttpError(400, 'bad_date', 'Pick a date within the next 12 months.')
     const upcoming = await Event.countDocuments({ author: me, startsAt: { $gt: new Date(now) } })
-    if (upcoming >= LIMITS.upcomingPerStudent) throw new HttpError(429, 'rate_limited', `Tu as déjà ${LIMITS.upcomingPerStudent} événements à venir.`)
+    if (upcoming >= LIMITS.upcomingPerStudent) throw new HttpError(429, 'rate_limited', `You already have ${LIMITS.upcomingPerStudent} upcoming events.`)
     const event = await Event.create({ ...rest, startsAt: new Date(startsAt), location: location || 'TBA', author: me, goers: [me], going: 1 })
     res.status(201).json({ event: eventJson(event, me, personOr(await loadPeople([me]), me)) })
   })

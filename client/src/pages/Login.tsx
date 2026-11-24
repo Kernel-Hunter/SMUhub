@@ -19,7 +19,7 @@ export default function Login() {
     if (busy) return
     const invalid = checkSmuEmail(email)
     if (invalid) { setErr(invalid); return }
-    if (!p) { setErr('Entre ton mot de passe.'); return }
+    if (!p) { setErr('Enter your password.'); return }
     setBusy(true); setErr(''); setShowPw(false)
     // On success the app re-renders on the signed-in routes and this page unmounts.
     try { await login(email, p) } catch (x) {
@@ -40,7 +40,7 @@ export default function Login() {
               <div className="relative">
                 <input id="login-password" className="field !h-10 !pr-10" type={showPw ? 'text' : 'password'} autoComplete="current-password" value={p} onChange={(e) => { setP(e.target.value); setErr('') }} aria-invalid={!!err} required />
                 {/* Native button: reachable with Tab, toggled with Enter or Space. type="button" so it never submits the form. */}
-                <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} aria-pressed={showPw} aria-controls="login-password" title={showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? 'Hide password' : 'Show password'} aria-pressed={showPw} aria-controls="login-password" title={showPw ? 'Hide password' : 'Show password'}
                   className="absolute right-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-sm text-muted transition-colors hover:bg-hover hover:text-ink">
                   {showPw ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
                 </button>

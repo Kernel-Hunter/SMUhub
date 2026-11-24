@@ -6,7 +6,7 @@
 
 Students sign in with their SMU email and a password. Code: `server/src/routes/auth.ts`, `server/src/middleware/requireAuth.ts`.
 
-- `POST /api/auth/login {email, password}`: email is trimmed and lowercased; its domain must be in `ALLOWED_EMAIL_DOMAINS` (403 otherwise). Bad email or password both answer 401 "Email ou mot de passe incorrect." Failed attempts are rate limited per IP.
+- `POST /api/auth/login {email, password}`: email is trimmed and lowercased; its domain must be in `ALLOWED_EMAIL_DOMAINS` (403 otherwise). Bad email or password both answer 401 "Wrong email or password." Failed attempts are rate limited per IP.
 - On success the server sets `smuhub_session`: a JWT (HS256, `JWT_SECRET`) holding only the user id, in an `HttpOnly; SameSite=Lax` cookie, `Secure` in production, expiring after `SESSION_DAYS`.
 - `POST /api/auth/logout` clears the cookie (204). `GET /api/auth/me` returns `{ user }` or 401.
 - `requireAuth` guards every protected route: valid token, user still exists, email domain still allowed. It sets `req.user`.

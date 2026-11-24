@@ -20,14 +20,14 @@ function compose(to: string, purpose: CodePurpose, code: string): Mail {
   if (purpose === 'signup') {
     return {
       to,
-      subject: 'Ton code de confirmation SMUhub',
-      text: `Bonjour,\n\nTon code de confirmation SMUhub : ${code}\n\nIl est valable ${minutes} minutes. Si tu n'as pas créé de compte SMUhub, ignore ce message.\n\nSMUhub`,
+      subject: 'Your SMUhub confirmation code',
+      text: `Hello,\n\nYour SMUhub confirmation code: ${code}\n\nIt is valid for ${minutes} minutes. If you did not create an SMUhub account, you can ignore this email.\n\nSMUhub`,
     }
   }
   return {
     to,
-    subject: 'Réinitialisation de ton mot de passe SMUhub',
-    text: `Bonjour,\n\nTon code pour choisir un nouveau mot de passe SMUhub : ${code}\n\nIl est valable ${minutes} minutes. Si tu n'as rien demandé, ignore ce message : ton mot de passe actuel reste valable.\n\nSMUhub`,
+    subject: 'Reset your SMUhub password',
+    text: `Hello,\n\nYour code to choose a new SMUhub password: ${code}\n\nIt is valid for ${minutes} minutes. If you did not ask for this, you can ignore this email: your current password still works.\n\nSMUhub`,
   }
 }
 

@@ -17,7 +17,7 @@ const loginBody = z.object({
   password: z.string().min(1).max(128),
 })
 
-const BAD_CREDENTIALS = 'Email ou mot de passe incorrect.'
+const BAD_CREDENTIALS = 'Wrong email or password.'
 
 const emailField = z.string().trim().min(1).max(254)
 const nameField = z.string().trim().min(1).max(50)
@@ -50,7 +50,7 @@ export function authRouter(config: Config) {
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     handler: (_req, res) => {
-      res.status(429).json({ error: { code: 'rate_limited', message: 'Trop de tentatives de connexion. Réessaie dans 15 minutes.' } })
+      res.status(429).json({ error: { code: 'rate_limited', message: 'Too many sign-in attempts. Try again in 15 minutes.' } })
     },
   })
 
@@ -63,7 +63,7 @@ export function authRouter(config: Config) {
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     handler: (_req, res) => {
-      res.status(429).json({ error: { code: 'rate_limited', message: 'Trop de demandes. Réessaie dans 15 minutes.' } })
+      res.status(429).json({ error: { code: 'rate_limited', message: 'Too many requests. Try again in 15 minutes.' } })
     },
   })
   const mailLimiter = authLimiter(false)
@@ -72,14 +72,14 @@ export function authRouter(config: Config) {
   /** Normalised SMU email, or a 400/403 like login. */
   const smuEmail = (raw: string) => {
     const email = normalizeEmail(raw)
-    if (!isEmail(email)) throw new HttpError(400, 'invalid_email', 'Adresse email invalide.')
+    if (!isEmail(email)) throw new HttpError(400, 'invalid_email', 'Enter a valid email address.')
     if (!isAllowedDomain(email, config.allowedDomains)) {
-      throw new HttpError(403, 'domain_not_allowed', `SMUhub est réservé aux étudiants SMU. Utilise ton adresse ${config.allowedDomains.map((d) => '@' + d).join(', ')}.`)
+      throw new HttpError(403, 'domain_not_allowed', `SMUhub is only for SMU students. Use your SMU address (${config.allowedDomains.map((d) => '@' + d).join(', ')}).`)
     }
     return email
   }
   const requireMailer = () => {
-    if (!mailer.available) throw new HttpError(503, 'mail_unavailable', "L'envoi des emails n'est pas configuré. Réessaie plus tard.")
+    if (!mailer.available) throw new HttpError(503, 'mail_unavailable', 'Email sending is not set up yet. Try again later.')
   }
   const weakPassword = (password: string) => {
     const problem = checkPasswordPolicy(password)
@@ -93,14 +93,14 @@ export function authRouter(config: Config) {
   }
   const codeError = (result: 'invalid' | 'locked') =>
     result === 'locked'
-      ? new HttpError(429, 'too_many_attempts', 'Trop de codes incorrects. Demande un nouveau code.')
-      : new HttpError(400, 'invalid_code', 'Code incorrect ou expiré.')
+      ? new HttpError(429, 'too_many_attempts', 'Too many wrong codes. Ask for a new code.')
+      : new HttpError(400, 'invalid_code', 'Wrong or expired code.')
 
   // 202 { pending } in every case: a verified account with this email gets no mail and is left untouched,
   // so the answer never tells whether the address is already registered.
   router.post('/register', mailLimiter, async (req, res) => {
     const parsed = registerBody.safeParse(req.body)
-    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Email, mot de passe, prénom et nom sont obligatoires (50 caractères max).')
+    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Email, password, first name and last name are required (50 characters max).')
     const { password, firstName, lastName, major, year } = parsed.data
     const email = smuEmail(parsed.data.email)
     weakPassword(password)
@@ -132,7 +132,7 @@ export function authRouter(config: Config) {
 
   router.post('/verify', codeLimiter, async (req, res) => {
     const parsed = verifyBody.safeParse(req.body)
-    if (!parsed.success) throw new HttpError(400, 'invalid_code', 'Code incorrect ou expiré.')
+    if (!parsed.success) throw new HttpError(400, 'invalid_code', 'Wrong or expired code.')
     const email = smuEmail(parsed.data.email)
 
     // The code alone is not enough: re-registering an unconfirmed email replaces its password, so whoever confirms
@@ -141,13 +141,13 @@ export function authRouter(config: Config) {
     const pending = await User.findOne({ email, emailVerified: false }).select('+passwordHash')
     if (!pending) {
       await burnPasswordCheck(parsed.data.password)
-      throw new HttpError(400, 'invalid_code', 'Code ou mot de passe incorrect.')
+      throw new HttpError(400, 'invalid_code', 'Wrong code or password.')
     }
-    if (!(await verifyPassword(parsed.data.password, pending.passwordHash))) throw new HttpError(400, 'invalid_code', 'Code ou mot de passe incorrect.')
+    if (!(await verifyPassword(parsed.data.password, pending.passwordHash))) throw new HttpError(400, 'invalid_code', 'Wrong code or password.')
     const result = await checkCode(config.jwtSecret, email, 'signup', parsed.data.code)
     if (result !== 'ok') throw codeError(result)
     const user = await User.findOneAndUpdate({ _id: pending._id, passwordHash: pending.passwordHash }, { $set: { emailVerified: true } }, { returnDocument: 'after' })
-    if (!user) throw new HttpError(400, 'invalid_code', 'Code ou mot de passe incorrect.')
+    if (!user) throw new HttpError(400, 'invalid_code', 'Wrong code or password.')
 
     startSession(res, config, user._id.toString(), user.tokenVersion ?? 0)
     res.json({ user: toPublicUser(user) })
@@ -156,7 +156,7 @@ export function authRouter(config: Config) {
   // Always 202. Mails a new sign-up code only to an account still waiting for verification.
   router.post('/resend', mailLimiter, async (req, res) => {
     const parsed = emailBody.safeParse(req.body)
-    if (!parsed.success) throw new HttpError(400, 'invalid_email', 'Adresse email invalide.')
+    if (!parsed.success) throw new HttpError(400, 'invalid_email', 'Enter a valid email address.')
     const email = smuEmail(parsed.data.email)
     requireMailer()
 
@@ -168,7 +168,7 @@ export function authRouter(config: Config) {
   // Always 202, whether or not the account exists. Only verified accounts get a reset code.
   router.post('/forgot', mailLimiter, async (req, res) => {
     const parsed = emailBody.safeParse(req.body)
-    if (!parsed.success) throw new HttpError(400, 'invalid_email', 'Adresse email invalide.')
+    if (!parsed.success) throw new HttpError(400, 'invalid_email', 'Enter a valid email address.')
     const email = smuEmail(parsed.data.email)
     requireMailer()
 
@@ -180,7 +180,7 @@ export function authRouter(config: Config) {
   // Sets the new password, ends every other session (tokenVersion + 1) and signs the student in.
   router.post('/reset', codeLimiter, async (req, res) => {
     const parsed = resetBody.safeParse(req.body)
-    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Email, code et nouveau mot de passe sont obligatoires.')
+    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Email, code and new password are required.')
     const email = smuEmail(parsed.data.email)
     weakPassword(parsed.data.password) // before the code check, so a weak password does not use up the code
 
@@ -188,7 +188,7 @@ export function authRouter(config: Config) {
     if (result !== 'ok') throw codeError(result)
     const passwordHash = await hashPassword(parsed.data.password)
     const user = await User.findOneAndUpdate({ email }, { $set: { passwordHash }, $inc: { tokenVersion: 1 } }, { returnDocument: 'after' })
-    if (!user) throw new HttpError(400, 'invalid_code', 'Code incorrect ou expiré.')
+    if (!user) throw new HttpError(400, 'invalid_code', 'Wrong or expired code.')
 
     startSession(res, config, user._id.toString(), user.tokenVersion ?? 0)
     res.json({ user: toPublicUser(user) })
@@ -196,13 +196,13 @@ export function authRouter(config: Config) {
 
   router.post('/login', loginLimiter, async (req, res) => {
     const parsed = loginBody.safeParse(req.body)
-    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Email et mot de passe sont obligatoires.')
+    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Email and password are required.')
     const email = normalizeEmail(parsed.data.email)
     const { password } = parsed.data
 
-    if (!isEmail(email)) throw new HttpError(400, 'invalid_email', 'Adresse email invalide.')
+    if (!isEmail(email)) throw new HttpError(400, 'invalid_email', 'Enter a valid email address.')
     if (!isAllowedDomain(email, config.allowedDomains)) {
-      throw new HttpError(403, 'domain_not_allowed', `SMUhub est réservé aux étudiants SMU. Utilise ton adresse ${config.allowedDomains.map((d) => '@' + d).join(', ')}.`)
+      throw new HttpError(403, 'domain_not_allowed', `SMUhub is only for SMU students. Use your SMU address (${config.allowedDomains.map((d) => '@' + d).join(', ')}).`)
     }
 
     const user = await User.findOne({ email }).select('+passwordHash')
@@ -212,7 +212,7 @@ export function authRouter(config: Config) {
     }
     if (!(await verifyPassword(password, user.passwordHash))) throw new HttpError(401, 'invalid_credentials', BAD_CREDENTIALS)
     // Only after the password check, so this answer does not reveal which emails have an account.
-    if (user.emailVerified === false) throw new HttpError(403, 'email_not_verified', 'Confirme ton adresse email avec le code reçu pour te connecter.')
+    if (user.emailVerified === false) throw new HttpError(403, 'email_not_verified', 'Confirm your email address with the code we sent you, then sign in.')
 
     startSession(res, config, user._id.toString(), user.tokenVersion ?? 0)
     res.json({ user: toPublicUser(user) })

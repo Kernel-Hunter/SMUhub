@@ -26,8 +26,8 @@ const newQuestion = z.object({
 })
 const newReply = z.object({ body: z.string().trim().min(2).max(3000) })
 
-const QUESTION_NOT_FOUND = 'Question introuvable.'
-const REPLY_NOT_FOUND = 'Réponse introuvable.'
+const QUESTION_NOT_FOUND = 'Question not found.'
+const REPLY_NOT_FOUND = 'Answer not found.'
 
 const findQuestion = (id: string) => findThread(id, 'question', QUESTION_NOT_FOUND)
 const findAnswer = (id: string) => findReply(id, 'question', REPLY_NOT_FOUND)
@@ -57,10 +57,10 @@ export function questionsRouter() {
     const me = req.user!._id
     const parsed = newQuestion.safeParse(req.body)
     if (!parsed.success) {
-      throw new HttpError(400, 'invalid_input', 'Choisis un cours, un titre (8 caractères min.) et une description (10 caractères min.).')
+      throw new HttpError(400, 'invalid_input', 'Pick a course, a title (at least 8 characters) and a description (at least 10 characters).')
     }
     const recent = await Thread.countDocuments({ author: me, createdAt: { $gte: ago(3_600_000) } })
-    if (recent >= LIMITS.threadsPerHour) throw new HttpError(429, 'rate_limited', `Doucement : ${LIMITS.threadsPerHour} questions par heure au maximum.`)
+    if (recent >= LIMITS.threadsPerHour) throw new HttpError(429, 'rate_limited', `Slow down: at most ${LIMITS.threadsPerHour} questions per hour.`)
     const thread = await Thread.create({ ...parsed.data, kind: 'question', author: me })
     res.status(201).json({ thread: threadJson(thread, me, await loadPeople([me])) })
   })
@@ -78,10 +78,10 @@ export function questionsRouter() {
   router.post('/:id/vote', async (req, res) => {
     const me = req.user!._id
     const thread = await findQuestion(req.params.id)
-    if (thread.author.equals(me)) throw new HttpError(403, 'self_vote', 'Tu ne peux pas voter pour ta propre question.')
+    if (thread.author.equals(me)) throw new HttpError(403, 'self_vote', 'You cannot vote on your own question.')
     // Conditional update: two parallel clicks cannot both count.
     const done = await Thread.updateOne({ _id: thread._id, voters: { $ne: me } }, { $push: { voters: me }, $inc: { votes: 1 } })
-    if (done.modifiedCount === 0) throw new HttpError(409, 'already_voted', 'Tu as déjà voté pour cette question.')
+    if (done.modifiedCount === 0) throw new HttpError(409, 'already_voted', 'You already voted on this question.')
     await award({ user: thread.author, actor: me, kind: 'question_upvoted', points: XP_RULES.points.questionUp, refKey: `tv:${me}:${thread._id}`, label: 'Question upvoted' })
     const fresh = (await Thread.findById(thread._id))!
     res.json({ thread: threadJson(fresh, me, await loadPeople([fresh.author])) })
@@ -91,10 +91,10 @@ export function questionsRouter() {
   router.post('/:id/replies', async (req, res) => {
     const me = req.user!._id
     const parsed = newReply.safeParse(req.body)
-    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'La réponse est trop courte.')
+    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Your answer is too short.')
     const thread = await findQuestion(req.params.id)
     const recent = await Reply.countDocuments({ author: me, createdAt: { $gte: ago(600_000) } })
-    if (recent >= LIMITS.repliesPer10Min) throw new HttpError(429, 'rate_limited', 'Trop de réponses en peu de temps. Fais une pause.')
+    if (recent >= LIMITS.repliesPer10Min) throw new HttpError(429, 'rate_limited', 'Too many answers in a short time. Take a break.')
     const reply = await Reply.create({ ...parsed.data, thread: thread._id, author: me })
     await Thread.updateOne({ _id: thread._id }, { $inc: { replyCount: 1 } })
     res.status(201).json({ reply: replyJson(reply, me, await loadPeople([me])) })
@@ -104,9 +104,9 @@ export function questionsRouter() {
   router.post('/replies/:replyId/vote', async (req, res) => {
     const me = req.user!._id
     const reply = await findAnswer(req.params.replyId)
-    if (reply.author.equals(me)) throw new HttpError(403, 'self_vote', 'Tu ne peux pas voter pour ta propre réponse.')
+    if (reply.author.equals(me)) throw new HttpError(403, 'self_vote', 'You cannot vote on your own answer.')
     const done = await Reply.updateOne({ _id: reply._id, voters: { $ne: me } }, { $push: { voters: me }, $inc: { votes: 1 } })
-    if (done.modifiedCount === 0) throw new HttpError(409, 'already_voted', 'Tu as déjà voté pour cette réponse.')
+    if (done.modifiedCount === 0) throw new HttpError(409, 'already_voted', 'You already voted on this answer.')
     await award({ user: reply.author, actor: me, kind: 'answer_upvoted', points: XP_RULES.points.answerUp, refKey: `rv:${me}:${reply._id}`, label: 'Answer upvoted' })
     const fresh = (await Reply.findById(reply._id))!
     res.json({ reply: replyJson(fresh, me, await loadPeople([fresh.author])) })
@@ -118,11 +118,11 @@ export function questionsRouter() {
     const reply = await findAnswer(req.params.replyId)
     const thread = await Thread.findOne({ _id: reply.thread, kind: 'question' })
     if (!thread) throw new HttpError(404, 'not_found', QUESTION_NOT_FOUND)
-    if (!thread.author.equals(me)) throw new HttpError(403, 'forbidden', "Seul l'auteur de la question peut accepter une réponse.")
-    if (reply.author.equals(me)) throw new HttpError(403, 'own_answer', 'Tu ne peux pas accepter ta propre réponse.')
+    if (!thread.author.equals(me)) throw new HttpError(403, 'forbidden', 'Only the author of the question can accept an answer.')
+    if (reply.author.equals(me)) throw new HttpError(403, 'own_answer', 'You cannot accept your own answer.')
     // Conditional update: a question can only be solved once, even with parallel requests.
     const done = await Thread.updateOne({ _id: thread._id, solved: false }, { solved: true })
-    if (done.modifiedCount === 0) throw new HttpError(409, 'already_solved', 'Cette question a déjà une réponse acceptée.')
+    if (done.modifiedCount === 0) throw new HttpError(409, 'already_solved', 'This question already has an accepted answer.')
     await Reply.updateOne({ _id: reply._id }, { accepted: true })
     await award({ user: reply.author, actor: me, kind: 'answer_accepted', points: XP_RULES.points.accepted, refKey: `accept:${thread._id}`, label: `Answer accepted: ${thread.title}` })
     const fresh = (await Reply.findById(reply._id))!

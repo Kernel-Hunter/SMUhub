@@ -119,7 +119,7 @@ Base URL `http://localhost:4000` (or `/api` through the Vite proxy). Errors alwa
 | Method | Path | Auth | Body | Response |
 | --- | --- | --- | --- | --- |
 | `GET` | `/api/health` | no | | `200 { ok: true }` |
-| `POST` | `/api/auth/login` | no | `{ email, password }` | `200 { user }` and sets the session cookie. `400` invalid input, `403` email domain not allowed, `401` "Email ou mot de passe incorrect.", `429` too many failed attempts |
+| `POST` | `/api/auth/login` | no | `{ email, password }` | `200 { user }` and sets the session cookie. `400` invalid input, `403` email domain not allowed, `401` "Wrong email or password.", `429` too many failed attempts |
 | `POST` | `/api/auth/logout` | no | | `204`, clears the session cookie |
 | `GET` | `/api/auth/me` | yes | | `200 { user }` or `401` |
 | `POST` | `/api/auth/register`, `/verify`, `/resend`, `/forgot`, `/reset` | no | see `docs/BACKEND.md` | sign-up with an email code, password reset |
@@ -244,7 +244,7 @@ Limits to know before scaling past one instance: XP awards and upload limits are
 | Vite shows `http proxy error ... ECONNREFUSED` | The API is not running. Start it with `npm run dev` in `server/`. |
 | `Can't resolve '@fontsource-variable/ibm-plex-sans'` (or another package) after `git pull` | Dependencies changed. Run `pnpm install` in `client/` (or `npm install` in `server/`). |
 | The API stops with `Invalid server configuration` | A variable in `server/.env` is missing or wrong; the message names it. |
-| Login always says "Email ou mot de passe incorrect." | Run `npm run seed`, and check that the API's `MONGODB_URI` points at the database you seeded. Restart `npm run dev` after editing `.env`. |
+| Login always says "Wrong email or password." | Run `npm run seed`, and check that the API's `MONGODB_URI` points at the database you seeded. Restart `npm run dev` after editing `.env`. |
 | `Port 4000 (or 5173) is already in use` | Another copy is still running. Stop it or change `PORT` / the Vite port. |
 | `db already exists with different case` | See the note in [Database](#database). |
 

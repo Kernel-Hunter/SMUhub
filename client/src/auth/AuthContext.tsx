@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         await authApi.logout()
       } catch {
-        toast('Déconnexion locale : le serveur ne répond pas.', 'err')
+        toast('Signed out on this device only: the server is not responding.', 'err')
       } finally {
         qc.clear()
         qc.setQueryData(['auth'], null)

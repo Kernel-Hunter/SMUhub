@@ -28,13 +28,13 @@ const newItem = z.object({
 const newRequest = z.object({ from: z.number(), to: z.number(), note: z.string().trim().max(200).default('') })
 const answer = z.object({ accept: z.boolean() })
 
-const ITEM_NOT_FOUND = 'Objet introuvable.'
-const REQUEST_NOT_FOUND = 'Demande introuvable.'
+const ITEM_NOT_FOUND = 'Item not found.'
+const REQUEST_NOT_FOUND = 'Request not found.'
 const ITEM_ERRORS: Record<string, [string, string]> = {
-  title: ['bad_title', 'Donne un nom clair à ton objet (4 caractères min.).'],
-  pricePerDay: ['bad_price', 'Vérifie le prix (0 à 200 TND par jour) et la caution (0 à 2000 TND).'],
-  deposit: ['bad_price', 'Vérifie le prix (0 à 200 TND par jour) et la caution (0 à 2000 TND).'],
-  contact: ['bad_contact', "Ajoute un contact (3 caractères min.). Il n'est montré qu'au locataire que tu acceptes."],
+  title: ['bad_title', 'Give your item a clear name (at least 4 characters).'],
+  pricePerDay: ['bad_price', 'Check the price (0 to 200 TND per day) and the deposit (0 to 2000 TND).'],
+  deposit: ['bad_price', 'Check the price (0 to 200 TND per day) and the deposit (0 to 2000 TND).'],
+  contact: ['bad_contact', 'Add a contact (at least 3 characters). Only the student you accept will see it.'],
 }
 
 type Id = Types.ObjectId
@@ -94,11 +94,11 @@ export function rentalsRouter() {
     const me = req.user!._id
     const parsed = newItem.safeParse(req.body)
     if (!parsed.success) {
-      const [code, message] = ITEM_ERRORS[String(parsed.error.issues[0]?.path[0])] ?? ['invalid_input', 'Vérifie les informations de ton annonce.']
+      const [code, message] = ITEM_ERRORS[String(parsed.error.issues[0]?.path[0])] ?? ['invalid_input', 'Check the details of your listing.']
       throw new HttpError(400, code, message)
     }
     const count = await RentalItem.countDocuments({ owner: me })
-    if (count >= LIMITS.listingsPerStudent) throw new HttpError(429, 'rate_limited', `Tu peux proposer ${LIMITS.listingsPerStudent} objets au maximum.`)
+    if (count >= LIMITS.listingsPerStudent) throw new HttpError(429, 'rate_limited', `You can list at most ${LIMITS.listingsPerStudent} items.`)
     const item = await RentalItem.create({ ...parsed.data, owner: me })
     res.status(201).json({ item: (await itemsJson([item], me))[0] })
   })
@@ -114,25 +114,25 @@ export function rentalsRouter() {
   router.post('/:id/requests', async (req, res) => {
     const me = req.user!._id
     const parsed = newRequest.safeParse(req.body)
-    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Choisis des dates valides.')
+    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Pick valid dates.')
     const item = await findItem(req.params.id)
-    if (item.owner.equals(me)) throw new HttpError(403, 'self_request', "C'est ton propre objet.")
-    if (!item.available) throw new HttpError(409, 'unavailable', 'Cet objet est déjà loué.')
+    if (item.owner.equals(me)) throw new HttpError(403, 'self_request', 'This is your own item.')
+    if (!item.available) throw new HttpError(409, 'unavailable', 'This item is already rented.')
     const { from, to, note } = parsed.data
     // `from` may be today's midnight (date picker), hence one day of slack. Same-day rentals (to === from) are allowed.
     const now = Date.now()
     if (to < from || from < now - DAY || from > now + 365 * DAY || to - from > LIMITS.maxRentalDays * DAY) {
-      throw new HttpError(400, 'bad_dates', `Choisis des dates valides (${LIMITS.maxRentalDays} jours max.).`)
+      throw new HttpError(400, 'bad_dates', `Pick valid dates (${LIMITS.maxRentalDays} days max).`)
     }
     if (await RentalRequest.exists({ item: item._id, renter: me, status: { $in: ['pending', 'accepted'] } })) {
-      throw new HttpError(409, 'duplicate', 'Tu as déjà une demande en cours pour cet objet.')
+      throw new HttpError(409, 'duplicate', 'You already have a pending request for this item.')
     }
     try {
       const q = await RentalRequest.create({ item: item._id, owner: item.owner, renter: me, from: new Date(from), to: new Date(to), note })
       res.status(201).json({ request: requestJson(q, await loadPeople([me])) })
     } catch (err) {
       // The partial unique index catches parallel duplicates that slipped past the check above.
-      if ((err as { code?: number }).code === 11000) throw new HttpError(409, 'duplicate', 'Tu as déjà une demande en cours pour cet objet.')
+      if ((err as { code?: number }).code === 11000) throw new HttpError(409, 'duplicate', 'You already have a pending request for this item.')
       throw err
     }
   })
@@ -141,21 +141,21 @@ export function rentalsRouter() {
   router.post('/requests/:id/respond', async (req, res) => {
     const me = req.user!._id
     const parsed = answer.safeParse(req.body)
-    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Réponse invalide.')
+    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Invalid response.')
     const id = req.params.id
     if (!isValidObjectId(id)) throw new HttpError(404, 'not_found', REQUEST_NOT_FOUND)
     const q = await RentalRequest.findById(id)
     if (!q) throw new HttpError(404, 'not_found', REQUEST_NOT_FOUND)
     const item = await RentalItem.findById(q.item)
     if (!item) throw new HttpError(404, 'not_found', ITEM_NOT_FOUND)
-    if (!item.owner.equals(me)) throw new HttpError(403, 'forbidden', 'Seul le propriétaire peut répondre.')
-    const handled = () => new HttpError(409, 'bad_state', 'Cette demande a déjà été traitée.')
+    if (!item.owner.equals(me)) throw new HttpError(403, 'forbidden', 'Only the owner can answer this request.')
+    const handled = () => new HttpError(409, 'bad_state', 'This request was already handled.')
     if (q.status !== 'pending') throw handled()
     // Conditional updates throughout: a request is answered once, and an item is lent to one renter at a time.
     // On accept the item is claimed first, so a request is never "accepted" (contact visible) for an item already lent.
     if (parsed.data.accept) {
       const taken = await RentalItem.updateOne({ _id: item._id, owner: me, available: true }, { available: false })
-      if (taken.modifiedCount === 0) throw new HttpError(409, 'unavailable', "Cet objet est déjà loué. Marque-le comme rendu avant d'accepter une autre demande.")
+      if (taken.modifiedCount === 0) throw new HttpError(409, 'unavailable', 'This item is already rented. Mark it as returned before you accept another request.')
       const claimed = await RentalRequest.updateOne({ _id: q._id, status: 'pending' }, { status: 'accepted' })
       if (claimed.modifiedCount === 0) {
         await RentalItem.updateOne({ _id: item._id }, { available: true })
@@ -174,7 +174,7 @@ export function rentalsRouter() {
   router.post('/:id/returned', async (req, res) => {
     const me = req.user!._id
     const item = await findItem(req.params.id)
-    if (!item.owner.equals(me)) throw new HttpError(403, 'forbidden', 'Seul le propriétaire peut marquer un retour.')
+    if (!item.owner.equals(me)) throw new HttpError(403, 'forbidden', 'Only the owner can mark the item as returned.')
     await RentalRequest.updateMany({ item: item._id, status: 'accepted' }, { status: 'returned' })
     await RentalItem.updateOne({ _id: item._id, owner: me }, { available: true })
     res.json({ item: (await itemsJson([(await RentalItem.findById(item._id))!], me))[0] })

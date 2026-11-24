@@ -31,13 +31,13 @@ export async function http<T>(path: string, init: { method?: string; body?: unkn
       body: init.body === undefined ? undefined : form ? (init.body as FormData) : JSON.stringify(init.body),
     })
   } catch {
-    throw new HttpError(0, 'network', 'Impossible de joindre le serveur. Vérifie que le backend est lancé.')
+    throw new HttpError(0, 'network', 'Cannot reach the server. Check that the backend is running.')
   }
   if (res.status === 204) return undefined as T
   const data = await res.json().catch(() => null)
   if (!res.ok) {
     const err = data?.error
-    throw new HttpError(res.status, err?.code ?? 'http_error', err?.message ?? `Erreur ${res.status}. Réessaie.`)
+    throw new HttpError(res.status, err?.code ?? 'http_error', err?.message ?? `Error ${res.status}. Try again.`)
   }
   return data as T
 }

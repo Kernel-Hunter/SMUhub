@@ -7,9 +7,9 @@ export const PASSWORD_MAX = 128
 
 /** Sign-up and reset policy. Returns a message for the student, or null when the password is acceptable. */
 export function checkPasswordPolicy(plain: string): string | null {
-  if (plain.length < PASSWORD_MIN) return `Le mot de passe doit contenir au moins ${PASSWORD_MIN} caractères.`
-  if (plain.length > PASSWORD_MAX) return `Le mot de passe ne doit pas dépasser ${PASSWORD_MAX} caractères.`
-  if (/^\d+$/.test(plain)) return 'Le mot de passe ne peut pas contenir que des chiffres.'
+  if (plain.length < PASSWORD_MIN) return `Use at least ${PASSWORD_MIN} characters.`
+  if (plain.length > PASSWORD_MAX) return `Use ${PASSWORD_MAX} characters at most.`
+  if (/^\d+$/.test(plain)) return 'Add some letters or symbols, not only digits.'
   return null
 }
 

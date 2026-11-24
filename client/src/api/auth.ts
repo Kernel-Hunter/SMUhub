@@ -20,10 +20,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 /** Returns an error message, or null when the email looks like an SMU address. */
 export function checkSmuEmail(raw: string): string | null {
   const email = raw.trim().toLowerCase()
-  if (!email) return 'Entre ton adresse email.'
-  if (!EMAIL_RE.test(email)) return 'Adresse email invalide.'
+  if (!email) return 'Enter your email address.'
+  if (!EMAIL_RE.test(email)) return 'Enter a valid email address.'
   const domain = email.split('@').pop()!
-  if (!ALLOWED_DOMAINS.includes(domain)) return `Utilise ton adresse SMU (${ALLOWED_DOMAINS.map((d) => '@' + d).join(', ')}).`
+  if (!ALLOWED_DOMAINS.includes(domain)) return `Use your SMU address (${ALLOWED_DOMAINS.map((d) => '@' + d).join(', ')}).`
   return null
 }
 

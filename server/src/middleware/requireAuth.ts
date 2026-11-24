@@ -39,5 +39,5 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
 
 function unauthenticated(res: Response, config: Config, clear: boolean) {
   if (clear) endSession(res, config)
-  return new HttpError(401, 'unauthenticated', 'Connecte-toi pour continuer.')
+  return new HttpError(401, 'unauthenticated', 'Sign in to continue.')
 }

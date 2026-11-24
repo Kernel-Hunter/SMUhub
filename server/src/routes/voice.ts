@@ -24,8 +24,8 @@ const newPost = z.object({
 })
 const newReply = z.object({ body: z.string().trim().min(2).max(3000), anonymous: z.boolean().default(false) })
 
-const POST_NOT_FOUND = 'Publication introuvable.'
-const REPLY_NOT_FOUND = 'Réponse introuvable.'
+const POST_NOT_FOUND = 'Post not found.'
+const REPLY_NOT_FOUND = 'Reply not found.'
 
 const findPost = (id: string) => findThread(id, 'voice', POST_NOT_FOUND)
 
@@ -53,10 +53,10 @@ export function voiceRouter() {
     const me = req.user!._id
     const parsed = newPost.safeParse(req.body)
     if (!parsed.success) {
-      throw new HttpError(400, 'invalid_input', 'Choisis un sujet, un titre (8 caractères min.) et une description (10 caractères min.).')
+      throw new HttpError(400, 'invalid_input', 'Pick a topic, a title (at least 8 characters) and a description (at least 10 characters).')
     }
     const recent = await Thread.countDocuments({ author: me, createdAt: { $gte: ago(3_600_000) } })
-    if (recent >= LIMITS.threadsPerHour) throw new HttpError(429, 'rate_limited', `Doucement : ${LIMITS.threadsPerHour} publications par heure au maximum.`)
+    if (recent >= LIMITS.threadsPerHour) throw new HttpError(429, 'rate_limited', `Slow down: at most ${LIMITS.threadsPerHour} posts per hour.`)
     const thread = await Thread.create({ ...parsed.data, kind: 'voice', author: me })
     res.status(201).json({ thread: threadJson(thread, me, await loadPeople([me])) })
   })
@@ -74,10 +74,10 @@ export function voiceRouter() {
   router.post('/:id/vote', async (req, res) => {
     const me = req.user!._id
     const thread = await findPost(req.params.id)
-    if (thread.author.equals(me)) throw new HttpError(403, 'self_vote', 'Tu ne peux pas voter pour ta propre publication.')
+    if (thread.author.equals(me)) throw new HttpError(403, 'self_vote', 'You cannot vote on your own post.')
     // Conditional update: two parallel clicks cannot both count.
     const done = await Thread.updateOne({ _id: thread._id, voters: { $ne: me } }, { $push: { voters: me }, $inc: { votes: 1 } })
-    if (done.modifiedCount === 0) throw new HttpError(409, 'already_voted', 'Tu as déjà voté pour cette publication.')
+    if (done.modifiedCount === 0) throw new HttpError(409, 'already_voted', 'You already voted on this post.')
     if (!thread.anonymous) await award({ user: thread.author, actor: me, kind: 'voice_upvoted', points: XP_RULES.points.voiceUp, refKey: `tv:${me}:${thread._id}`, label: 'Post upvoted' })
     const fresh = (await Thread.findById(thread._id))!
     res.json({ thread: threadJson(fresh, me, await loadPeople(fresh.anonymous ? [] : [fresh.author])) })
@@ -87,10 +87,10 @@ export function voiceRouter() {
   router.post('/:id/replies', async (req, res) => {
     const me = req.user!._id
     const parsed = newReply.safeParse(req.body)
-    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'La réponse est trop courte.')
+    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Your reply is too short.')
     const thread = await findPost(req.params.id)
     const recent = await Reply.countDocuments({ author: me, createdAt: { $gte: ago(600_000) } })
-    if (recent >= LIMITS.repliesPer10Min) throw new HttpError(429, 'rate_limited', 'Trop de réponses en peu de temps. Fais une pause.')
+    if (recent >= LIMITS.repliesPer10Min) throw new HttpError(429, 'rate_limited', 'Too many replies in a short time. Take a break.')
     const reply = await Reply.create({ ...parsed.data, thread: thread._id, author: me })
     await Thread.updateOne({ _id: thread._id }, { $inc: { replyCount: 1 } })
     res.status(201).json({ reply: replyJson(reply, me, await loadPeople([me])) })
@@ -100,9 +100,9 @@ export function voiceRouter() {
   router.post('/replies/:replyId/vote', async (req, res) => {
     const me = req.user!._id
     const reply = await findReply(req.params.replyId, 'voice', REPLY_NOT_FOUND)
-    if (reply.author.equals(me)) throw new HttpError(403, 'self_vote', 'Tu ne peux pas voter pour ta propre réponse.')
+    if (reply.author.equals(me)) throw new HttpError(403, 'self_vote', 'You cannot vote on your own reply.')
     const done = await Reply.updateOne({ _id: reply._id, voters: { $ne: me } }, { $push: { voters: me }, $inc: { votes: 1 } })
-    if (done.modifiedCount === 0) throw new HttpError(409, 'already_voted', 'Tu as déjà voté pour cette réponse.')
+    if (done.modifiedCount === 0) throw new HttpError(409, 'already_voted', 'You already voted on this reply.')
     const fresh = (await Reply.findById(reply._id))!
     res.json({ reply: replyJson(fresh, me, await loadPeople(fresh.anonymous ? [] : [fresh.author])) })
   })

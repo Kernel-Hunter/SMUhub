@@ -16,7 +16,7 @@ export function leaderboardRouter() {
   // GET /api/leaderboard?period=week|all -> { rows: LeaderRow[] }, top 50 by XP over the period
   router.get('/', async (req, res) => {
     const parsed = query.safeParse(req.query)
-    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Période invalide : week ou all.')
+    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Invalid period: use week or all.')
     const me = req.user!._id
     const since = parsed.data.period === 'week' ? new Date(Date.now() - WEEK) : undefined
     const top = await standings(since, 50)

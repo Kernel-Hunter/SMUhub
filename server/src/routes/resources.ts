@@ -41,21 +41,21 @@ const listQuery = z.object({
   sort: z.preprocess(blank, z.enum(['new', 'top', 'downloads']).default('new')),
 })
 
-const NOT_FOUND = 'Fichier introuvable.'
+const NOT_FOUND = 'File not found.'
 const META_ERRORS: Record<string, [string, string]> = {
-  title: ['bad_title', 'Donne un titre clair à ton fichier (6 caractères min.).'],
-  description: ['bad_description', 'La description fait 600 caractères au maximum.'],
-  courseCode: ['bad_course', 'Choisis un cours valide.'],
-  academicYear: ['bad_year', 'Année universitaire au format 2025/26.'],
+  title: ['bad_title', 'Give your file a clear title (at least 6 characters).'],
+  description: ['bad_description', 'The description can be 600 characters at most.'],
+  courseCode: ['bad_course', 'Pick a valid course.'],
+  academicYear: ['bad_year', 'Write the academic year like 2025/26.'],
 }
 const FILE_ERRORS: Record<string, [number, string, string]> = {
-  too_small: [400, 'too_small', 'Fichier trop petit pour être une vraie ressource (10 Ko min.).'],
-  too_large: [413, 'too_large', 'Le fichier dépasse 25 Mo.'],
-  bad_type: [415, 'bad_type', `Seuls les fichiers ${FILE_RULES.allowedExt.join(', ').toUpperCase()} sont acceptés.`],
-  type_mismatch: [415, 'type_mismatch', 'Le contenu du fichier ne correspond pas à son extension.'],
+  too_small: [400, 'too_small', 'This file is too small to be a real resource (10 KB min).'],
+  too_large: [413, 'too_large', 'The file is larger than 25 MB.'],
+  bad_type: [415, 'bad_type', `Only ${FILE_RULES.allowedExt.join(', ').toUpperCase()} files are accepted.`],
+  type_mismatch: [415, 'type_mismatch', 'The file content does not match its extension.'],
 }
-const rateLimited = () => new HttpError(429, 'rate_limited', `Limite de ${FILE_RULES.uploadsPerDay} fichiers par jour atteinte. Reviens demain.`)
-const duplicate = () => new HttpError(409, 'duplicate', 'Ce fichier exact a déjà été partagé. Les doublons ne rapportent pas de points.')
+const rateLimited = () => new HttpError(429, 'rate_limited', `You reached the limit of ${FILE_RULES.uploadsPerDay} files per day. Come back tomorrow.`)
+const duplicate = () => new HttpError(409, 'duplicate', 'This exact file was already shared. Duplicates earn no points.')
 
 type Id = Types.ObjectId
 export type ResourceDoc = {
@@ -114,9 +114,9 @@ const parseUpload: RequestHandler = (req, res, next) => {
     if (!err) return next()
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') return next(new HttpError(413, 'too_large', FILE_ERRORS.too_large[2]))
-      return next(new HttpError(400, 'bad_upload', 'Envoie un seul fichier, dans le champ "file", avec le formulaire.'))
+      return next(new HttpError(400, 'bad_upload', 'Send one file, in the "file" field, with the form.'))
     }
-    next(new HttpError(400, 'bad_upload', 'Envoi du fichier invalide. Réessaie.'))
+    next(new HttpError(400, 'bad_upload', 'The upload did not work. Try again.'))
   })
 }
 
@@ -132,7 +132,7 @@ export function resourcesRouter() {
   // GET /api/resources?q=&course=&kind=&semester=&sort=new|top|downloads -> { resources: Resource[] }
   router.get('/', async (req, res) => {
     const parsed = listQuery.safeParse(req.query)
-    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Filtres invalides.')
+    if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Invalid filters.')
     const { q, course, kind, semester, sort } = parsed.data
     const filter: Record<string, unknown> = {}
     if (course) filter.courseCode = course
@@ -158,11 +158,11 @@ export function resourcesRouter() {
     const me = req.user!._id
     const parsed = meta.safeParse({ ...req.body })
     if (!parsed.success) {
-      const [code, message] = META_ERRORS[String(parsed.error.issues[0]?.path[0])] ?? ['invalid_input', 'Vérifie les informations du fichier.']
+      const [code, message] = META_ERRORS[String(parsed.error.issues[0]?.path[0])] ?? ['invalid_input', 'Check the file details.']
       throw new HttpError(400, code, message)
     }
     const file = req.file
-    if (!file) throw new HttpError(400, 'no_file', 'Choisis un fichier.')
+    if (!file) throw new HttpError(400, 'no_file', 'Choose a file.')
     const check = checkFile(file.buffer, file.originalname)
     if (!check.ok) { const [status, code, message] = FILE_ERRORS[check.error]; throw new HttpError(status, code, message) }
     const hash = sha256(file.buffer)
@@ -216,12 +216,12 @@ export function resourcesRouter() {
   router.post('/:id/rate', async (req, res) => {
     const me = req.user!._id
     const r = await findResource(req.params.id)
-    if (r.uploader.equals(me)) throw new HttpError(403, 'self_vote', 'Tu ne peux pas noter ton propre fichier.')
-    if (!(await Download.exists({ resource: r._id, user: me }))) throw new HttpError(403, 'download_first', 'Télécharge le fichier avant de le noter.')
+    if (r.uploader.equals(me)) throw new HttpError(403, 'self_vote', 'You cannot rate your own file.')
+    if (!(await Download.exists({ resource: r._id, user: me }))) throw new HttpError(403, 'download_first', 'Download the file before you rate it.')
     try {
       await Rating.create({ resource: r._id, user: me })
     } catch (err) {
-      if (isDuplicateKey(err)) throw new HttpError(409, 'already_voted', 'Les notes sont définitives. Tu as déjà noté ce fichier.')
+      if (isDuplicateKey(err)) throw new HttpError(409, 'already_voted', 'Ratings are final. You already rated this file.')
       throw err
     }
     const fresh = await Resource.findOneAndUpdate({ _id: r._id }, { $inc: { helpful: 1 } }, { returnDocument: 'after' })
@@ -240,7 +240,7 @@ export function resourcesRouter() {
   router.delete('/:id', async (req, res) => {
     const u = req.user!
     const r = await findResource(req.params.id)
-    if (!r.uploader.equals(u._id) && u.role !== 'admin') throw new HttpError(403, 'forbidden', 'Tu ne peux supprimer que tes propres fichiers.')
+    if (!r.uploader.equals(u._id) && u.role !== 'admin') throw new HttpError(403, 'forbidden', 'You can only delete your own files.')
     // Deleted first: a rating arriving now finds nothing to pay.
     const gone = await Resource.deleteOne({ _id: r._id })
     if (gone.deletedCount === 0) throw new HttpError(404, 'not_found', NOT_FOUND)

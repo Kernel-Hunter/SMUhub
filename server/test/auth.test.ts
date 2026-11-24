@@ -79,7 +79,7 @@ describe('POST /api/auth/login', () => {
   it('refuses a wrong password with a generic message', async () => {
     const res = await login('lina.haddad@medtech.tn', 'wrong-password')
     assert.equal(res.status, 401)
-    assert.equal(res.body.error.message, 'Email ou mot de passe incorrect.')
+    assert.equal(res.body.error.code, 'invalid_credentials')
     assert.equal(cookieOf(res), '')
   })
 

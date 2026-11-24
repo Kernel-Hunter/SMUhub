@@ -46,7 +46,7 @@ export function meRouter() {
   router.patch('/', async (req, res) => {
     const parsed = updateMe.safeParse(req.body)
     if (!parsed.success) {
-      throw new HttpError(400, 'invalid_input', 'Profil invalide : filière (40 caractères max.), année de 1 à 6, bio (240 caractères max.) et 12 cours existants au maximum.')
+      throw new HttpError(400, 'invalid_input', 'Invalid profile: major (40 characters max), year from 1 to 6, bio (240 characters max) and at most 12 existing courses.')
     }
     const p = parsed.data
     const u = req.user!
