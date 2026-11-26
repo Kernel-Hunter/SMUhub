@@ -96,10 +96,10 @@ export default function Home() {
       </section>
 
       <section>
-        <Head title="Your courses" to="/resources" />
+        <Head title="Your courses" to="/courses" />
         <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
           {(courses.isLoading ? [] : mine).map((c) => (
-            <Link key={c.code} to={`/resources?course=${c.code}`} className="card card-hover group overflow-hidden p-4" style={{ boxShadow: `inset 0 3px 0 ${deptOf(c.dept).dot}, var(--shadow-card)` }}>
+            <Link key={c.code} to={`/courses/${c.code}`} className="card card-hover group overflow-hidden p-4" style={{ boxShadow: `inset 0 3px 0 ${deptOf(c.dept).dot}, var(--shadow-card)` }}>
               <span className="flex items-center gap-2">
                 <span className="mono rounded-[5px] px-1.5 py-0.5 text-xs font-semibold" style={{ color: deptOf(c.dept).dot, background: `color-mix(in srgb, ${deptOf(c.dept).dot} 12%, var(--surface))` }}>{c.code}</span>
                 <ArrowUpRight size={14} className="ml-auto text-faint transition-colors group-hover:text-ink" aria-hidden />

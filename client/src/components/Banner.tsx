@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 import Flow from './Flow'
 
 /** Section colour. Each area of the app keeps one muted hue (see .hue-* in index.css). */
-export type Tone = 'blue' | 'violet' | 'orange' | 'rose' | 'green' | 'gold'
+export type Tone = 'blue' | 'violet' | 'orange' | 'rose' | 'green' | 'gold' | 'plum'
 
 /**
  * Page header: a lightly tinted panel in the section's hue, with an icon tile, title,

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
 import { BookOpen, CalendarDays, HelpCircle, LayoutGrid, LogOut, Megaphone, Menu, Moon, PackageOpen, Plus, Search, Settings, Sun, Trophy, UserRound, X } from 'lucide-react'
+import { GraduationCap } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import { Avatar } from './ui'
 import Palette from './Palette'
@@ -9,6 +10,7 @@ import { cn } from '@/lib/utils'
 
 const MAIN = [
   { to: '/', label: 'Home', icon: LayoutGrid, end: true, hue: 'blue' },
+  { to: '/courses', label: 'Courses', icon: GraduationCap, hue: 'plum' },
   { to: '/resources', label: 'Library', icon: BookOpen, hue: 'blue' },
   { to: '/qa', label: 'Questions', icon: HelpCircle, hue: 'violet' },
   { to: '/voice', label: 'Campus Voice', icon: Megaphone, hue: 'orange' },
@@ -16,7 +18,7 @@ const MAIN = [
   { to: '/rentals', label: 'Rentals', icon: PackageOpen, hue: 'green' },
   { to: '/leaderboard', label: 'Leaderboard', icon: Trophy, hue: 'gold' },
 ]
-const TITLES: Record<string, string> = { '': 'Home', resources: 'Library', qa: 'Questions', voice: 'Campus Voice', events: 'Calendar', rentals: 'Rentals', leaderboard: 'Leaderboard', settings: 'Settings', u: 'Profile' }
+const TITLES: Record<string, string> = { '': 'Home', resources: 'Library', qa: 'Questions', voice: 'Campus Voice', events: 'Calendar', rentals: 'Rentals', leaderboard: 'Leaderboard', settings: 'Settings', u: 'Profile', courses: 'Courses' }
 
 export function Logo({ className }: { className?: string }) {
   return (

@@ -53,7 +53,7 @@ export default function Threads({ kind }: { kind: ThreadKind }) {
         </aside>
         <section className="min-w-0">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted"><span className="font-semibold text-ink">{list.data?.length ?? 0}</span> {qa ? (list.data?.length === 1 ? 'question' : 'questions') : (list.data?.length === 1 ? 'post' : 'posts')}</p>
+            <p className="text-sm text-muted"><span className="font-semibold text-ink">{list.data?.length ?? 0}</span> {qa ? (list.data?.length === 1 ? 'question' : 'questions') : (list.data?.length === 1 ? 'post' : 'posts')}{qa && course && <> in <Link to={`/courses/${course}`} className="font-medium text-ink hover:text-accent hover:underline" title="Open the course forum">{course}</Link></>}</p>
             <Segmented value={sort} onChange={(v) => set('sort', v === 'new' ? '' : v)} options={[{ value: 'new', label: 'Newest' }, { value: 'top', label: 'Top voted' }]} />
           </div>
           {list.isLoading ? <Skeleton rows={5} /> : list.error ? <ErrorBox error={list.error} /> : !list.data?.length ? <Empty title="Nothing here yet" hint={qa ? 'No questions match. Ask the first one.' : 'No posts match these filters.'} /> : <div className="rows stagger">{list.data.map((t) => <ThreadCard key={t.id} t={t} />)}</div>}

@@ -33,7 +33,7 @@ export default function ResourceDetail() {
           </div>
           <div className="px-6 pb-6 pt-6">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="chip mono"><span className="size-2 rounded-full" style={{ background: d.dot }} aria-hidden />{r.courseCode}</span><span className={cn('chip', KIND_TONE[r.kind])}>{KIND_LABEL[r.kind]}</span><span className="chip">{r.semester} · {r.academicYear}</span>
+              <Link to={`/courses/${r.courseCode}`} className="chip mono hover:text-ink" title="Open the course forum"><span className="size-2 rounded-full" style={{ background: d.dot }} aria-hidden />{r.courseCode}</Link><span className={cn('chip', KIND_TONE[r.kind])}>{KIND_LABEL[r.kind]}</span><span className="chip">{r.semester} · {r.academicYear}</span>
               {r.verified && <span className="chip bg-accent-soft text-accent"><BadgeCheck size={12} />Verified by classmates</span>}
             </div>
             <h1 className="mt-3 text-2xl font-semibold">{r.title}</h1>
