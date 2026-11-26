@@ -1,9 +1,24 @@
-// Course codes a question can belong to. Keep in sync with COURSES in client/src/api/courses.ts
-// until courses get their own collection and API.
-export const COURSE_CODES = [
-  'CS101', 'CS201', 'CS224', 'CS301', 'CS324',
-  'MATH101', 'MATH205', 'MATH210', 'PHY110', 'EE220',
-  'ENG101', 'ECO101', 'ACC110', 'MKT201', 'LAW105',
+// Course catalogue: code, name, department. Keep in sync with COURSES in client/src/api/courses.ts
+// until courses get their own collection.
+export const COURSES = [
+  ['CS101', 'Introduction to Programming', 'Computer Science'],
+  ['CS201', 'Data Structures', 'Computer Science'],
+  ['CS224', 'Database Systems', 'Computer Science'],
+  ['CS301', 'Algorithms & Complexity', 'Computer Science'],
+  ['CS324', 'Web Application Development', 'Computer Science'],
+  ['MATH101', 'Calculus I', 'Mathematics'],
+  ['MATH205', 'Linear Algebra', 'Mathematics'],
+  ['MATH210', 'Probability & Statistics', 'Mathematics'],
+  ['PHY110', 'Mechanics', 'Physics'],
+  ['EE220', 'Digital Logic Design', 'Engineering'],
+  ['ENG101', 'Academic Writing', 'Languages'],
+  ['ECO101', 'Microeconomics', 'Business'],
+  ['ACC110', 'Financial Accounting', 'Business'],
+  ['MKT201', 'Marketing Principles', 'Business'],
+  ['LAW105', 'Introduction to Law', 'Law'],
 ] as const
+
+// Course codes a question, file or event can belong to.
+export const COURSE_CODES = COURSES.map(([code]) => code)
 
 export const isCourseCode = (code: string) => (COURSE_CODES as readonly string[]).includes(code)
