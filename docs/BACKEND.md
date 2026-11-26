@@ -58,3 +58,4 @@ Constants live in `client/src/api/rules.ts`.
 - `PATCH /api/resources/:id` edits a file's details (title, description, course, type, semester, year) with the upload rules, for the uploader or an admin (403 otherwise). The file cannot be replaced: a new file is a new upload, so the SHA-256 and XP rules hold. Counters, ratings, `verified` and XP stay.
 - Rate limits: 5 threads per hour, 8 replies per 10 minutes, 10 rental listings per student.
 - No money moves through the platform. Rentals only connect students.
+- Announcements (`/api/announcements`, `server/src/routes/announcements.ts`): title 5 to 120, message 10 to 2000, optional course and end date; 3 per student per 24 hours; only an admin can pin; the author or an admin deletes; expired ones are hidden; no XP.

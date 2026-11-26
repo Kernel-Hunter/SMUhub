@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, ArrowUpRight, FileText, Handshake, HelpCircle, Megaphone, Trophy, Upload, type LucideIcon } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, FileText, Handshake, HelpCircle, Megaphone, Newspaper, Pin, Trophy, Upload, type LucideIcon } from 'lucide-react'
 import { api } from '@/api/client'
 import { useAuth } from '@/auth/AuthContext'
 import { ResourceCard, ThreadCard } from '@/components/Cards'
 import { Avatar, CountUp, Skeleton } from '@/components/ui'
 import Calendar from '@/components/Calendar'
 import Flow from '@/components/Flow'
-import { cn, deptOf, formatTime } from '@/lib/utils'
+import { cn, deptOf, formatTime, timeAgo } from '@/lib/utils'
 
 const DAY = 86400000
 
@@ -31,6 +31,7 @@ export default function Home() {
   const qa = useQuery({ queryKey: ['threads', 'question', 'all'], queryFn: () => api.threads.list('question') })
   const voice = useQuery({ queryKey: ['threads', 'voice', 'top'], queryFn: () => api.threads.list('voice', { sort: 'top' }) })
   const events = useQuery({ queryKey: ['events'], queryFn: api.events.list })
+  const news = useQuery({ queryKey: ['announcements', ''], queryFn: () => api.announcements.list() })
   const courses = useQuery({ queryKey: ['courses'], queryFn: api.courses.list })
   const board = useQuery({ queryKey: ['leaderboard', 'week'], queryFn: () => api.leaderboard.get('week') })
   if (!me) return null
@@ -135,6 +136,16 @@ export default function Home() {
           <section><Head title="Most discussed on Campus Voice" to="/voice?sort=top" icon={Megaphone} hue="orange" />{voice.isLoading ? <Skeleton rows={2} /> : <div className="rows">{voice.data?.slice(0, 3).map((t) => <ThreadCard key={t.id} t={t} />)}</div>}</section>
         </div>
         <aside className="grid min-w-0 grid-cols-1 content-start gap-8">
+          <section><Head title="Announcements" to="/events" count={news.data?.length} icon={Newspaper} hue="rose" />
+            <div className="card p-2">{news.isLoading ? <Skeleton rows={2} className="h-12" /> : !news.data?.length
+              ? <p className="px-3 py-3 text-sm text-muted">No announcements right now. <Link to="/events?new=announcement" className="font-medium text-accent hover:underline">Post one</Link></p>
+              : <ol>{news.data.slice(0, 3).map((a) => (
+                <li key={a.id}><Link to="/events" className="block rounded-sm px-3 py-2 transition-colors hover:bg-hover">
+                  <span className="flex items-center gap-1.5 text-sm font-medium">{a.pinned && <Pin size={12} className="hue-rose shrink-0 text-hue" aria-label="Pinned" />}<span className="truncate">{a.title}</span></span>
+                  <span className="mt-0.5 block truncate text-xs text-muted">{a.courseCode ? `${a.courseCode} · ` : ''}{a.author.name} · {timeAgo(a.createdAt)}</span>
+                </Link></li>))}</ol>}
+            </div>
+          </section>
           <section className="card p-5">
             <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold">{now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2><Link to="/events" className="text-xs font-medium text-accent hover:underline">Open calendar</Link></div>
             <Calendar days={evDays} />

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, Link, useLocation } from 'react-router-dom'
-import { BookOpen, CalendarDays, HelpCircle, LayoutGrid, LogOut, Megaphone, Menu, Moon, PackageOpen, Plus, Search, Settings, Sun, Trophy, UserRound, X } from 'lucide-react'
+import { BookOpen, CalendarDays, HelpCircle, LayoutGrid, LogOut, Megaphone, Menu, Moon, Newspaper, PackageOpen, Plus, Search, Settings, Sun, Trophy, UserRound, X } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import { GraduationCap } from 'lucide-react'
 import { Avatar } from './ui'
@@ -14,11 +14,11 @@ const MAIN = [
   { to: '/resources', label: 'Library', icon: BookOpen, hue: 'blue' },
   { to: '/qa', label: 'Questions', icon: HelpCircle, hue: 'violet' },
   { to: '/voice', label: 'Campus Voice', icon: Megaphone, hue: 'orange' },
-  { to: '/events', label: 'Calendar', icon: CalendarDays, hue: 'rose' },
+  { to: '/events', label: 'Calendar & news', icon: CalendarDays, hue: 'rose' },
   { to: '/rentals', label: 'Rentals', icon: PackageOpen, hue: 'green' },
   { to: '/leaderboard', label: 'Leaderboard', icon: Trophy, hue: 'gold' },
 ]
-const TITLES: Record<string, string> = { '': 'Home', resources: 'Library', qa: 'Questions', voice: 'Campus Voice', events: 'Calendar', rentals: 'Rentals', leaderboard: 'Leaderboard', settings: 'Settings', u: 'Profile', courses: 'Courses' }
+const TITLES: Record<string, string> = { '': 'Home', resources: 'Library', qa: 'Questions', voice: 'Campus Voice', events: 'Calendar & news', rentals: 'Rentals', leaderboard: 'Leaderboard', settings: 'Settings', u: 'Profile', courses: 'Courses' }
 
 export function Logo({ className }: { className?: string }) {
   return (
@@ -112,7 +112,7 @@ export default function Shell({ children }: { children: ReactNode }) {
                 {add && (<>
                   <div className="fixed inset-0 z-10" onClick={() => setAdd(false)} />
                   <div role="menu" className="popover absolute right-0 top-10 z-20 w-60 p-1" style={{ animation: 'rise .16s ease-out' }}>
-                    {[['/resources/new', BookOpen, 'Upload a resource', 'U'], ['/qa/new', HelpCircle, 'Ask a question', 'Q'], ['/voice/new', Megaphone, 'Post to Campus Voice', 'V'], ['/events', CalendarDays, 'Add an event', 'E'], ['/rentals', PackageOpen, 'Lend something', 'R']].map(([to, I, t, k]) => { const Icon = I as typeof Search; return (
+                    {[['/resources/new', BookOpen, 'Upload a resource', 'U'], ['/qa/new', HelpCircle, 'Ask a question', 'Q'], ['/voice/new', Megaphone, 'Post to Campus Voice', 'V'], ['/events?new=announcement', Newspaper, 'Post an announcement', 'N'], ['/events?new=event', CalendarDays, 'Add an event', 'E'], ['/rentals', PackageOpen, 'Lend something', 'R']].map(([to, I, t, k]) => { const Icon = I as typeof Search; return (
                       <Link role="menuitem" key={to as string} to={to as string} className="flex items-center gap-3 rounded-sm px-3 py-2 text-sm hover:bg-hover"><Icon size={15} className="text-muted" />{t as string}<span className="kbd ml-auto">{k as string}</span></Link>) })}
                   </div></>)}
               </div>

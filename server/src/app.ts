@@ -12,6 +12,7 @@ import { requireAuth } from './middleware/requireAuth.js'
 import { authRouter } from './routes/auth.js'
 import { questionsRouter } from './routes/questions.js'
 import { eventsRouter } from './routes/events.js'
+import { announcementsRouter } from './routes/announcements.js'
 import { rentalsRouter } from './routes/rentals.js'
 import { meRouter } from './routes/me.js'
 import { leaderboardRouter } from './routes/leaderboard.js'
@@ -38,6 +39,7 @@ export function createApp(config: Config) {
   app.use('/api/auth', authRouter(config))
   app.use('/api/questions', requireAuth, questionsRouter())
   app.use('/api/events', requireAuth, eventsRouter())
+  app.use('/api/announcements', requireAuth, announcementsRouter())
   app.use('/api/rentals', requireAuth, rentalsRouter())
   app.use('/api/me', requireAuth, meRouter())
   app.use('/api/leaderboard', requireAuth, leaderboardRouter())
