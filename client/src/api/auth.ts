@@ -24,6 +24,7 @@ export function checkSmuEmail(raw: string): string | null {
   if (!EMAIL_RE.test(email)) return 'Enter a valid email address.'
   const domain = email.split('@').pop()!
   if (!ALLOWED_DOMAINS.includes(domain)) return `Use your SMU address (${ALLOWED_DOMAINS.map((d) => '@' + d).join(', ')}).`
+  if (email.split('@')[0].includes('+')) return 'Use your plain SMU address, without a + tag.'
   return null
 }
 

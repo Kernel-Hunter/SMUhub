@@ -26,3 +26,23 @@ verificationCodeSchema.index({ email: 1, purpose: 1 }, { unique: true })
 verificationCodeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
 
 export const VerificationCode = model('VerificationCode', verificationCodeSchema)
+
+/**
+ * Wrong guesses per email and purpose over 24 hours, across every code. Each code allows 5 guesses, but a new code
+ * can be asked for every minute, so without this budget someone could keep guessing all day (lib/codes.ts).
+ * The TTL index deletes the row 24 hours after the first wrong guess.
+ */
+const codeBudgetSchema = new Schema(
+  {
+    email: { type: String, required: true, lowercase: true, trim: true, maxlength: 254 },
+    purpose: { type: String, enum: CODE_PURPOSES, required: true },
+    failures: { type: Number, default: 0, min: 0 },
+    since: { type: Date, required: true },
+  },
+  { versionKey: false },
+)
+
+codeBudgetSchema.index({ email: 1, purpose: 1 }, { unique: true })
+codeBudgetSchema.index({ since: 1 }, { expireAfterSeconds: 24 * 60 * 60 })
+
+export const CodeBudget = model('CodeBudget', codeBudgetSchema)

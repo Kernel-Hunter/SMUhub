@@ -13,7 +13,8 @@ import { outbox } from '../src/lib/mailer.js'
 import { hashPassword } from '../src/lib/password.js'
 import { SESSION_COOKIE } from '../src/lib/session.js'
 import { User } from '../src/models/User.js'
-import { VerificationCode } from '../src/models/VerificationCode.js'
+import { CodeBudget, VerificationCode } from '../src/models/VerificationCode.js'
+import { MAX_DAILY_FAILURES } from '../src/lib/codes.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_SIGNUP ?? 'mongodb://127.0.0.1:27017/smuhub_test_signup'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -54,6 +55,7 @@ after(async () => {
 beforeEach(async () => {
   await User.deleteMany({})
   await VerificationCode.deleteMany({})
+  await CodeBudget.deleteMany({})
   outbox.length = 0
 })
 
@@ -151,6 +153,16 @@ describe('POST /api/auth/register', () => {
   })
 })
 
+describe('plus-tagged addresses', () => {
+  it('refuses name+tag@ sign-ups, so one inbox cannot open many accounts', async () => {
+    const res = await register({ email: 'nour.ben.ali+alt@medtech.tn' })
+    assert.equal(res.status, 400)
+    assert.equal(res.body.error.code, 'invalid_email')
+    assert.equal(await User.countDocuments(), 0)
+    assert.equal(outbox.length, 0)
+  })
+})
+
 describe('POST /api/auth/verify', () => {
   it('refuses a wrong code with a generic 400', async () => {
     await register().expect(202)
@@ -240,6 +252,30 @@ describe('POST /api/auth/login with an unverified account', () => {
 describe('Forgot and reset password', () => {
   beforeEach(async () => {
     await User.create({ email: EMAIL, passwordHash: await hashPassword(PASSWORD), firstName: 'Nour', lastName: 'Ben Ali', emailVerified: true })
+  })
+
+  it(`stops guessing after ${MAX_DAILY_FAILURES} wrong codes in a day, even across new codes`, async () => {
+    let spent = 0
+    while (spent < MAX_DAILY_FAILURES) {
+      await ageCode(EMAIL, 'reset')
+      await post('forgot', { email: EMAIL }).expect(202)
+      const code = codeFor(EMAIL)
+      for (let i = 0; i < 5 && spent < MAX_DAILY_FAILURES; i++, spent++) await post('reset', { email: EMAIL, code: wrong(code), password: 'BrandNewPass2026' })
+    }
+    const mailed = mailsTo(EMAIL).length
+    await ageCode(EMAIL, 'reset')
+    await post('forgot', { email: EMAIL }).expect(202)
+    assert.equal(mailsTo(EMAIL).length, mailed, 'no new code once the daily budget is spent')
+    const blocked = await post('reset', { email: EMAIL, code: codeFor(EMAIL), password: 'BrandNewPass2026' })
+    assert.equal(blocked.status, 429)
+    assert.match(blocked.body.error.message, /today/)
+    assert.equal((await post('login', { email: EMAIL, password: PASSWORD })).status, 200, 'the password did not change')
+
+    // A day later the student can reset again.
+    await CodeBudget.updateOne({ email: EMAIL, purpose: 'reset' }, { $set: { since: new Date(Date.now() - 25 * 60 * 60 * 1000) } })
+    await ageCode(EMAIL, 'reset')
+    await post('forgot', { email: EMAIL }).expect(202)
+    assert.equal((await post('reset', { email: EMAIL, code: codeFor(EMAIL), password: 'BrandNewPass2026' })).status, 200)
   })
 
   it('resets the password, signs in, and ends older sessions', async () => {

@@ -113,6 +113,13 @@ describe('POST /api/auth/login', () => {
     assert.equal(res.body.error.code, 'rate_limited')
   })
 
+  it('limits per account, so one student cannot lock out everyone on the same network', async () => {
+    const limited = createApp(makeConfig({ LOGIN_RATE_LIMIT: '3' }))
+    for (let i = 0; i < 3; i++) assert.equal((await login('lina.haddad@medtech.tn', 'nope', limited)).status, 401)
+    assert.equal((await login('lina.haddad@medtech.tn', PASSWORD, limited)).status, 429)
+    assert.equal((await login('someone.else@medtech.tn', 'nope', limited)).status, 401, 'another account from the same IP is not blocked')
+  })
+
   it('sets the Secure flag in production', async () => {
     const prod = createApp(makeConfig({ NODE_ENV: 'production' }))
     const res = await login('lina.haddad@medtech.tn', PASSWORD, prod)

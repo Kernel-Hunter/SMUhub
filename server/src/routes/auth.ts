@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { rateLimit } from 'express-rate-limit'
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit'
 import { z } from 'zod'
 import type { Config } from '../config/env.js'
 import { HttpError } from '../lib/errors.js'
@@ -42,16 +42,21 @@ const PENDING = { pending: true }
 export function authRouter(config: Config) {
   const router = Router()
 
-  // Counts failed attempts only, per IP: 10 failures per 15 minutes by default (LOGIN_RATE_LIMIT).
-  const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: config.loginRateLimit,
-    skipSuccessfulRequests: true,
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
-    handler: (_req, res) => {
-      res.status(429).json({ error: { code: 'rate_limited', message: 'Too many sign-in attempts. Try again in 15 minutes.' } })
-    },
+  // Failed sign-ins only. Per IP and email: LOGIN_RATE_LIMIT failures per 15 minutes (10 by default), so one student
+  // typing a wrong password behind the campus network does not lock out everyone sharing that IP. Per IP alone, a
+  // ceiling ten times higher still stops one machine from trying many accounts.
+  const tooManyLogins = (_req: unknown, res: { status(n: number): { json(b: unknown): void } }) => {
+    res.status(429).json({ error: { code: 'rate_limited', message: 'Too many sign-in attempts. Try again in 15 minutes.' } })
+  }
+  const loginKey = (req: { ip?: string; body?: { email?: unknown } }) =>
+    `${ipKeyGenerator(req.ip ?? '')}|${typeof req.body?.email === 'string' ? normalizeEmail(req.body.email).slice(0, 254) : ''}`
+  const loginPerAccount = rateLimit({
+    windowMs: 15 * 60 * 1000, limit: config.loginRateLimit, skipSuccessfulRequests: true, keyGenerator: loginKey,
+    standardHeaders: 'draft-8', legacyHeaders: false, handler: tooManyLogins,
+  })
+  const loginPerIp = rateLimit({
+    windowMs: 15 * 60 * 1000, limit: config.loginRateLimit * 10, skipSuccessfulRequests: true,
+    standardHeaders: false, legacyHeaders: false, handler: tooManyLogins,
   })
 
   // Sign-up and password reset (US-01). Mail-sending routes count every request; code checks count failures only.
@@ -76,6 +81,9 @@ export function authRouter(config: Config) {
     if (!isAllowedDomain(email, config.allowedDomains)) {
       throw new HttpError(403, 'domain_not_allowed', `SMUhub is only for SMU students. Use your SMU address (${config.allowedDomains.map((d) => '@' + d).join(', ')}).`)
     }
+    // name+anything@smu.tn reaches the same inbox on most mail servers: one student could open many accounts and
+    // vote for themselves. Only the plain address can sign up.
+    if (email.split('@')[0].includes('+')) throw new HttpError(400, 'invalid_email', 'Use your plain SMU address, without a + tag.')
     return email
   }
   const requireMailer = () => {
@@ -91,10 +99,12 @@ export function authRouter(config: Config) {
     if (!code) return
     mailer.sendCode(email, purpose, code).catch((err) => console.error(`[mail] could not send the ${purpose} code to ${email}:`, err))
   }
-  const codeError = (result: 'invalid' | 'locked') =>
-    result === 'locked'
-      ? new HttpError(429, 'too_many_attempts', 'Too many wrong codes. Ask for a new code.')
-      : new HttpError(400, 'invalid_code', 'Wrong or expired code.')
+  const codeError = (result: 'invalid' | 'locked' | 'blocked') =>
+    result === 'blocked'
+      ? new HttpError(429, 'too_many_attempts', 'Too many wrong codes for this email today. Try again tomorrow.')
+      : result === 'locked'
+        ? new HttpError(429, 'too_many_attempts', 'Too many wrong codes. Ask for a new code.')
+        : new HttpError(400, 'invalid_code', 'Wrong or expired code.')
 
   // 202 { pending } in every case: a verified account with this email gets no mail and is left untouched,
   // so the answer never tells whether the address is already registered.
@@ -194,7 +204,7 @@ export function authRouter(config: Config) {
     res.json({ user: toPublicUser(user) })
   })
 
-  router.post('/login', loginLimiter, async (req, res) => {
+  router.post('/login', loginPerIp, loginPerAccount, async (req, res) => {
     const parsed = loginBody.safeParse(req.body)
     if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Email and password are required.')
     const email = normalizeEmail(parsed.data.email)
