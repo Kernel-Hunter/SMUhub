@@ -1,6 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Check, Plus } from 'lucide-react'
 import { api } from '@/api/client'
+import type { Me } from '@/api/types'
 import { useAuth } from '@/auth/AuthContext'
 import { Spinner, useToast } from './ui'
 import { cn, errMsg } from '@/lib/utils'
@@ -12,31 +13,34 @@ export const MAX_COURSES = 12
 export function useFollow() {
   const { me } = useAuth(); const qc = useQueryClient(); const toast = useToast()
   const mine = me?.courses ?? []
+  // One change at a time, each built from the latest saved list, so two quick clicks never drop a course.
   const m = useMutation({
-    mutationFn: (code: string) => api.me.update({ courses: mine.includes(code) ? mine.filter((c) => c !== code) : [...mine, code] }),
+    mutationKey: ['follow'],
+    mutationFn: (code: string) => { const now = qc.getQueryData<Me>(['me'])?.courses ?? mine; return api.me.update({ courses: now.includes(code) ? now.filter((c) => c !== code) : [...now, code] }) },
     onSuccess: (next, code) => {
       qc.setQueryData(['me'], next); qc.invalidateQueries({ queryKey: ['courses'] })
       toast(next.courses.includes(code) ? `${code} is in your courses now.` : `${code} was taken off your courses.`)
     },
     onError: (e) => toast(errMsg(e), 'err'),
   })
-  return { mine, toggle: m.mutate, pending: m.isPending ? m.variables : undefined, full: mine.length >= MAX_COURSES }
+  const saving = useIsMutating({ mutationKey: ['follow'] }) > 0
+  return { mine, toggle: m.mutate, pending: m.isPending ? m.variables : undefined, saving, full: mine.length >= MAX_COURSES }
 }
 
 /** "Add to my courses" / "In my courses" button. `compact` is the small square version used on course cards. */
 export function FollowButton({ code, compact, className }: { code: string; compact?: boolean; className?: string }) {
-  const { mine, toggle, pending, full } = useFollow()
+  const { mine, toggle, pending, saving, full } = useFollow()
   const on = mine.includes(code), busy = pending === code
   const label = on ? `Remove ${code} from my courses` : full ? `You can keep up to ${MAX_COURSES} courses` : `Add ${code} to my courses`
   const icon = busy ? <Spinner /> : on ? <Check size={compact ? 14 : 15} /> : <Plus size={compact ? 14 : 15} />
   if (compact) {
     return (
-      <button type="button" onClick={() => toggle(code)} disabled={busy || (!on && full)} aria-pressed={on} aria-label={label} title={label}
+      <button type="button" onClick={() => toggle(code)} disabled={saving || (!on && full)} aria-pressed={on} aria-label={label} title={label}
         className={cn('grid size-7 place-items-center rounded-sm border transition-colors disabled:opacity-50', on ? 'border-transparent bg-hue-soft text-hue' : 'border-line bg-surface text-muted hover:border-line-strong hover:text-ink', className)}>{icon}</button>
     )
   }
   return (
-    <button type="button" onClick={() => toggle(code)} disabled={busy || (!on && full)} aria-pressed={on} title={label} className={cn('btn btn-secondary h-9', className)}>
+    <button type="button" onClick={() => toggle(code)} disabled={saving || (!on && full)} aria-pressed={on} title={label} className={cn('btn btn-secondary h-9', className)}>
       {icon}{on ? 'In my courses' : 'Add to my courses'}
     </button>
   )
