@@ -55,5 +55,6 @@ Constants live in `client/src/api/rules.ts`.
 - Escape or render all user text as plain text. No raw HTML or Markdown from users.
 - Validate all input with a schema on the server. `client.ts` mirrors some length limits only to show a message sooner.
 - Check ownership on every edit and delete.
+- `PATCH /api/resources/:id` edits a file's details (title, description, course, type, semester, year) with the upload rules, for the uploader or an admin (403 otherwise). The file cannot be replaced: a new file is a new upload, so the SHA-256 and XP rules hold. Counters, ratings, `verified` and XP stay.
 - Rate limits: 5 threads per hour, 8 replies per 10 minutes, 10 rental listings per student.
 - No money moves through the platform. Rentals only connect students.

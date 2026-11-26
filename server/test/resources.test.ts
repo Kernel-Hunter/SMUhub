@@ -28,6 +28,7 @@ const cookie = (id: Id) => `${SESSION_COOKIE}=${jwt.sign({}, SECRET, { subject: 
 const as = (id: Id) => ({
   get: (path: string) => request(app).get(path).set('Cookie', cookie(id)),
   post: (path: string, body?: object) => request(app).post(path).set('Cookie', cookie(id)).send(body ?? {}),
+  patch: (path: string, body?: object) => request(app).patch(path).set('Cookie', cookie(id)).send(body ?? {}),
   del: (path: string) => request(app).delete(path).set('Cookie', cookie(id)),
 })
 const META = { title: 'Databases final 2025, solved', description: 'Full worked solution.', courseCode: 'CS224', kind: 'exam', semester: 'S1', academicYear: '2025/26' }
@@ -86,6 +87,7 @@ describe('authentication', () => {
       await request(app).get(`/api/resources/${id}/file`),
       await request(app).post(`/api/resources/${id}/rate`),
       await request(app).delete(`/api/resources/${id}`),
+      await request(app).patch(`/api/resources/${id}`).send({ title: 'Some title here' }),
       await request(app).post('/api/resources').field('title', 'Some title here').attach('file', Buffer.from('%PDF-1.4'), 'a.pdf'),
     ]) assert.equal(res.status, 401)
     assert.equal(await Resource.countDocuments(), 0)
@@ -322,6 +324,88 @@ describe('removal', () => {
     assert.equal(await mongoose.connection.db!.collection('resources.files').countDocuments(), 1)
     assert.equal((await fetchFile(omar, r.id)).status, 404)
     assert.equal((await as(omar).post(`/api/resources/${r.id}/rate`)).status, 404)
+  })
+})
+
+describe('editing', () => {
+  it('lets the uploader change the details and returns the GET shape, without an email', async () => {
+    const r = await created(lina)
+    const res = await as(lina).patch(`/api/resources/${r.id}`, { title: '  Databases   final, corrected ', courseCode: 'math101', kind: 'summary', semester: 'S2', academicYear: '2024/25', description: 'Fixed question 3.\n\n\n\nThanks Omar.' })
+    assert.equal(res.status, 200, JSON.stringify(res.body))
+    const e = res.body.resource
+    assert.equal(e.title, 'Databases final, corrected'); assert.equal(e.courseCode, 'MATH101'); assert.equal(e.kind, 'summary')
+    assert.equal(e.semester, 'S2'); assert.equal(e.academicYear, '2024/25'); assert.equal(e.description, 'Fixed question 3.\n\nThanks Omar.')
+    assert.deepEqual(Object.keys(e).sort(), Object.keys(r).sort())
+    assert.deepEqual(res.body, (await as(lina).get(`/api/resources/${r.id}`)).body)
+    assert.ok(noEmail(res.body))
+  })
+
+  it('changes only the fields sent', async () => {
+    const r = await created(lina)
+    const res = await as(lina).patch(`/api/resources/${r.id}`, { title: 'Only the title changes' })
+    assert.equal(res.status, 200)
+    const doc = (await Resource.findById(r.id))!
+    assert.equal(doc.title, 'Only the title changes'); assert.equal(doc.description, META.description); assert.equal(doc.courseCode, META.courseCode)
+    assert.equal(doc.kind, META.kind); assert.equal(doc.semester, META.semester); assert.equal(doc.academicYear, META.academicYear)
+    assert.equal((await as(lina).patch(`/api/resources/${r.id}`, { description: '' })).body.resource.description, '')
+  })
+
+  it('refuses everyone but the uploader and admins', async () => {
+    const r = await created(lina)
+    const res = await as(omar).patch(`/api/resources/${r.id}`, { title: 'Taken over by Omar' })
+    assert.equal(res.status, 403); assert.equal(res.body.error.code, 'forbidden')
+    assert.equal((await Resource.findById(r.id))!.title, META.title)
+    const byAdmin = await as(admin).patch(`/api/resources/${r.id}`, { title: 'Renamed by a moderator' })
+    assert.equal(byAdmin.status, 200); assert.equal(byAdmin.body.resource.mine, false)
+    assert.equal(byAdmin.body.resource.uploader.name, 'Lina Haddad')
+    assert.ok(noEmail(byAdmin.body))
+  })
+
+  it('validates with the upload rules', async () => {
+    const r = await created(lina)
+    const code = async (body: object) => (await as(lina).patch(`/api/resources/${r.id}`, body)).body.error?.code
+    assert.equal(await code({ title: 'abc' }), 'bad_title')
+    assert.equal(await code({ title: '     x     ' }), 'bad_title')
+    assert.equal(await code({ courseCode: 'XX999' }), 'bad_course')
+    assert.equal(await code({ academicYear: 'last year' }), 'bad_year')
+    assert.equal(await code({ description: 'x'.repeat(601) }), 'bad_description')
+    assert.equal((await as(lina).patch(`/api/resources/${r.id}`, { kind: 'lab' })).status, 400)
+    assert.equal((await as(lina).patch(`/api/resources/${r.id}`, { semester: 'S3' })).status, 400)
+    assert.equal((await as(lina).patch(`/api/resources/${r.id}`, { title: 'A valid new title', courseCode: 'XX999' })).status, 400)
+    for (const body of [{}, { sha256: 'abc', helpful: 99 }]) {
+      const res = await as(lina).patch(`/api/resources/${r.id}`, body)
+      assert.equal(res.status, 400); assert.equal(res.body.error.code, 'empty_patch')
+    }
+    const doc = (await Resource.findById(r.id))!
+    assert.equal(doc.title, META.title); assert.equal(doc.courseCode, META.courseCode); assert.equal(doc.kind, META.kind)
+  })
+
+  it('answers 404 for an unknown or malformed id', async () => {
+    assert.equal((await as(lina).patch(`/api/resources/${new mongoose.Types.ObjectId()}`, { title: 'Some new title' })).status, 404)
+    assert.equal((await as(lina).patch('/api/resources/not-an-id', { title: 'Some new title' })).status, 404)
+  })
+
+  it('never touches the file, the counters, the ratings, verified or XP', async () => {
+    const r = await created(lina)
+    for (const u of [omar, sara, nour]) { await fetchFile(u, r.id); await as(u).post(`/api/resources/${r.id}/rate`) }
+    const before = (await Resource.findById(r.id))!.toObject()
+    const earned = await xp(lina), ledgerRows = await Ledger.countDocuments()
+    const res = await as(lina).patch(`/api/resources/${r.id}`, {
+      title: 'Same file, better title', sha256: 'f'.repeat(64), fileId: new mongoose.Types.ObjectId().toString(), fileName: 'evil.html', ext: 'html', size: 1,
+      uploader: omar.toString(), downloads: 0, helpful: 0, verified: false, createdAt: 0,
+    })
+    assert.equal(res.status, 200)
+    const after = (await Resource.findById(r.id))!.toObject()
+    assert.equal(after.title, 'Same file, better title')
+    for (const k of ['sha256', 'fileName', 'ext', 'size', 'downloads', 'helpful', 'verified'] as const) assert.deepEqual(after[k], before[k], k)
+    assert.ok(after.fileId.equals(before.fileId)); assert.ok(after.uploader.equals(lina)); assert.equal(after.createdAt.getTime(), before.createdAt.getTime())
+    assert.equal(after.verified, true); assert.equal(after.helpful, 3); assert.equal(after.downloads, 3)
+    assert.equal(await Rating.countDocuments({ resource: r.id }), 3); assert.equal(await Download.countDocuments({ resource: r.id }), 3)
+    assert.equal(await xp(lina), earned); assert.equal(await Ledger.countDocuments(), ledgerRows)
+    assert.equal(res.body.resource.verified, true); assert.equal(res.body.resource.helpful, 3)
+    // The same bytes are still refused as a new upload.
+    const file = await fetchFile(omar, r.id)
+    assert.equal((await upload(sara, file.body as Buffer, 'copy.pdf')).status, 409)
   })
 })
 

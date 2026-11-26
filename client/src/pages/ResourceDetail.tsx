@@ -1,15 +1,17 @@
+import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, BadgeCheck, Download, Info, ThumbsUp, Trash2 } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, Download, Info, Pencil, ThumbsUp, Trash2 } from 'lucide-react'
 import { api } from '@/api/client'
 import { RULES } from '@/api/rules'
-import type { Resource } from '@/api/types'
+import type { Course, Resource, ResourceKind } from '@/api/types'
 import { FileBadge, ResourceCard } from '@/components/Cards'
-import { Avatar, ErrorBox, Skeleton, Spinner, useToast } from '@/components/ui'
+import { Avatar, ErrorBox, Field, Skeleton, Spinner, useToast } from '@/components/ui'
 import { KIND_LABEL, KIND_TONE, cn, deptOf, errMsg, formatSize, timeAgo } from '@/lib/utils'
 
 export default function ResourceDetail() {
   const { id = '' } = useParams(); const nav = useNavigate(); const qc = useQueryClient(); const toast = useToast()
+  const [editing, setEditing] = useState<string | null>(null) // the id being edited, so the form closes on another file
   const { data: r, error, isLoading } = useQuery({ queryKey: ['resource', id], queryFn: () => api.resources.get(id) })
   const courses = useQuery({ queryKey: ['courses'], queryFn: api.courses.list })
   const more = useQuery({ queryKey: ['resources', 'course', r?.courseCode], queryFn: () => api.resources.list({ course: r!.courseCode, sort: 'top' }), enabled: !!r })
@@ -31,7 +33,7 @@ export default function ResourceDetail() {
             <FileBadge ext={r.ext} size="lg" />
             <span className="min-w-0 truncate text-sm text-muted">{course?.name ?? r.courseCode}</span>
           </div>
-          <div className="px-6 pb-6 pt-6">
+          {editing === r.id && r.mine ? <EditDetails r={r} courses={courses.data} onDone={() => setEditing(null)} /> : <div className="px-6 pb-6 pt-6">
             <div className="flex flex-wrap items-center gap-2">
               <span className="chip mono"><span className="size-2 rounded-full" style={{ background: d.dot }} aria-hidden />{r.courseCode}</span><span className={cn('chip', KIND_TONE[r.kind])}>{KIND_LABEL[r.kind]}</span><span className="chip">{r.semester} · {r.academicYear}</span>
               {r.verified && <span className="chip bg-accent-soft text-accent"><BadgeCheck size={12} />Verified by classmates</span>}
@@ -41,14 +43,17 @@ export default function ResourceDetail() {
             <Link to={`/u/${r.uploader.id}`} className="mt-6 flex w-fit items-center gap-3 rounded-md border border-line py-2 pl-2 pr-4 transition-colors hover:bg-hover">
               <Avatar user={r.uploader} size={34} /><span className="leading-tight"><span className="block text-sm font-semibold">{r.uploader.name}</span><span className="text-xs text-muted">{r.uploader.major} · shared {timeAgo(r.createdAt)}</span></span>
             </Link>
-          </div>
+          </div>}
         </article>
 
         <aside className="grid h-fit gap-4 lg:sticky lg:top-16">
           <div className="card p-5">
             <button className="btn btn-primary h-11 w-full text-sm" onClick={() => dl.mutate()} disabled={dl.isPending}>{dl.isPending ? <Spinner /> : <Download size={16} />}Download {r.ext.toUpperCase()}</button>
             {!r.mine && <button className={cn('btn mt-2 h-11 w-full text-sm', r.iVoted ? 'bg-accent-soft text-accent' : 'btn-ghost')} disabled={r.iVoted || !r.iDownloaded || rate.isPending} onClick={() => rate.mutate()}><ThumbsUp size={15} />{r.iVoted ? 'You rated this' : 'This helped me'}</button>}
-            {r.mine && <button className="btn btn-secondary mt-2 h-11 w-full text-danger" onClick={() => confirm('Delete this file? Points it earned are removed too.') && del.mutate()}><Trash2 size={15} />Delete</button>}
+            {r.mine && <div className="mt-2 grid grid-cols-2 gap-2">
+              <button className="btn btn-secondary h-11" disabled={editing === r.id} onClick={() => setEditing(r.id)}><Pencil size={15} />Edit details</button>
+              <button className="btn btn-secondary h-11 text-danger" onClick={() => confirm('Delete this file? Points it earned are removed too.') && del.mutate()}><Trash2 size={15} />Delete</button>
+            </div>}
             <div className="mt-5 grid grid-cols-3 gap-2 text-center">
               {[[r.downloads, 'downloads', 'text-heading'], [r.helpful, 'helpful', 'text-heading'], [formatSize(r.fileSize), 'size', 'text-heading']].map(([v, l, c]) => (
                 <div key={l as string} className="rounded-md bg-hover px-2 py-3"><p className={cn('num text-base font-semibold', c as string)}>{v}</p><p className="text-xs text-muted">{l}</p></div>))}
@@ -61,5 +66,48 @@ export default function ResourceDetail() {
         <section className="mt-8"><h2 className="mb-3 px-1 text-base font-semibold">More from {r.courseCode}</h2><div className="rows">{more.data.filter((x) => x.id !== r.id).slice(0, 4).map((x) => <ResourceCard key={x.id} r={x} />)}</div></section>
       )}
     </div>
+  )
+}
+
+type Details = Pick<Resource, 'title' | 'description' | 'courseCode' | 'kind' | 'semester' | 'academicYear'>
+const DETAILS = ['title', 'description', 'courseCode', 'kind', 'semester', 'academicYear'] as const
+
+/** Inline form for the uploader: same fields as Upload, prefilled. Sends only what changed. The file itself stays. */
+function EditDetails({ r, courses, onDone }: { r: Resource; courses?: Course[]; onDone: () => void }) {
+  const qc = useQueryClient(); const toast = useToast()
+  const [f, setF] = useState<Details>({ title: r.title, description: r.description, courseCode: r.courseCode, kind: r.kind, semester: r.semester, academicYear: r.academicYear })
+  const [err, setErr] = useState('')
+  const m = useMutation({
+    mutationFn: (patch: Partial<Details>) => api.resources.update(r.id, patch),
+    onSuccess: (fresh) => {
+      qc.setQueryData(['resource', r.id], fresh)
+      for (const key of [['resource', r.id], ['resources'], ['courses'], ['profile'], ['palette']]) qc.invalidateQueries({ queryKey: key })
+      toast('Details saved.'); onDone()
+    },
+    onError: (e) => setErr(errMsg(e)),
+  })
+  const submit = (e: FormEvent) => {
+    e.preventDefault(); setErr('')
+    const patch = Object.fromEntries(DETAILS.filter((k) => f[k] !== r[k]).map((k) => [k, f[k]])) as Partial<Details>
+    if (Object.keys(patch).length === 0) return onDone()
+    m.mutate(patch)
+  }
+  return (
+    <form onSubmit={submit} className="grid gap-5 px-6 pb-6 pt-6">
+      <Field label="Title"><input className="field" maxLength={120} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} required autoFocus /></Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Course"><select className="field" value={f.courseCode} onChange={(e) => setF({ ...f, courseCode: e.target.value })} required>{courses ? courses.map((c) => <option key={c.code} value={c.code}>{c.code} · {c.name}</option>) : <option value={f.courseCode}>{f.courseCode}</option>}</select></Field>
+        <Field label="Type"><select className="field" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as ResourceKind })}>{Object.entries(KIND_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
+        <Field label="Semester"><select className="field" value={f.semester} onChange={(e) => setF({ ...f, semester: e.target.value as 'S1' | 'S2' })}><option>S1</option><option>S2</option></select></Field>
+        <Field label="Academic year"><input className="field" value={f.academicYear} onChange={(e) => setF({ ...f, academicYear: e.target.value })} /></Field>
+      </div>
+      <Field label="Description" hint="What does it cover, and who is it for?"><textarea className="field min-h-24" maxLength={600} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
+      <p className="flex gap-2 text-xs leading-relaxed text-muted"><Info size={14} className="mt-1 shrink-0" />You can change the details, not the file. To share a new version, upload it as a new file.</p>
+      {err && <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger">{err}</p>}
+      <div className="flex justify-end gap-2 border-t border-line pt-5">
+        <button type="button" className="btn btn-ghost h-10 px-4" disabled={m.isPending} onClick={onDone}>Cancel</button>
+        <button className="btn btn-primary h-10 px-6" disabled={m.isPending}>{m.isPending ? <Spinner /> : 'Save changes'}</button>
+      </div>
+    </form>
   )
 }

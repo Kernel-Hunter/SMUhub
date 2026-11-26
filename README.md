@@ -133,7 +133,7 @@ Everything else needs a session. Each router lives in `server/src/routes/`:
 | `/api/me` | Your profile (`GET`, `PATCH`) and XP history (`GET /xp`) |
 | `/api/users/:id` | A classmate's public profile: no email, no anonymous content |
 | `/api/leaderboard?period=week\|all` | Top 50 by XP |
-| `/api/resources` | Library: list, upload (multipart), download (`/:id/file`), rate helpful, remove |
+| `/api/resources` | Library: list, upload (multipart), download (`/:id/file`), rate helpful, edit details (`PATCH /:id`), remove |
 | `/api/questions` | Q&A: ask, answer, vote, accept |
 | `/api/voice` | Campus Voice: post (optionally anonymous), reply, vote |
 | `/api/events` | Calendar: list, add, join or leave |

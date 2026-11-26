@@ -99,6 +99,10 @@ export const api = {
       const a = Object.assign(document.createElement('a'), { href: apiUrl(`${path}/file`), download: '' })
       document.body.appendChild(a); a.click(); a.remove()
     },
+    /** PATCH /api/resources/:id, the uploader (or an admin) only. Details only: the file itself cannot be replaced. */
+    async update(id: string, patch: Partial<Pick<Resource, 'title' | 'description' | 'courseCode' | 'kind' | 'semester' | 'academicYear'>>): Promise<Resource> {
+      return (await http<{ resource: Resource }>(`/api/resources/${encodeURIComponent(id)}`, { method: 'PATCH', body: patch })).resource
+    },
     async rate(id: string): Promise<Resource> {
       return (await http<{ resource: Resource }>(`/api/resources/${encodeURIComponent(id)}/rate`, { method: 'POST' })).resource
     },

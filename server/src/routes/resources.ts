@@ -31,6 +31,8 @@ const meta = z.object({
   semester: z.enum(['S1', 'S2']),
   academicYear: z.string().trim().regex(/^\d{4}\/\d{2}$/),
 })
+// Same rules for an edit; absent fields stay as they are. Unknown fields (file, counters, verified) are dropped.
+const metaPatch = meta.partial()
 // The client sends empty strings for "any".
 const blank = (v: unknown) => (v === '' ? undefined : v)
 const listQuery = z.object({
@@ -53,6 +55,10 @@ const FILE_ERRORS: Record<string, [number, string, string]> = {
   too_large: [413, 'too_large', 'The file is larger than 25 MB.'],
   bad_type: [415, 'bad_type', `Only ${FILE_RULES.allowedExt.join(', ').toUpperCase()} files are accepted.`],
   type_mismatch: [415, 'type_mismatch', 'The file content does not match its extension.'],
+}
+const metaError = (err: z.ZodError) => {
+  const [code, message] = META_ERRORS[String(err.issues[0]?.path[0])] ?? ['invalid_input', 'Check the file details.']
+  return new HttpError(400, code, message)
 }
 const rateLimited = () => new HttpError(429, 'rate_limited', `You reached the limit of ${FILE_RULES.uploadsPerDay} files per day. Come back tomorrow.`)
 const duplicate = () => new HttpError(409, 'duplicate', 'This exact file was already shared. Duplicates earn no points.')
@@ -157,10 +163,7 @@ export function resourcesRouter() {
   router.post('/', quota, parseUpload, async (req, res) => {
     const me = req.user!._id
     const parsed = meta.safeParse({ ...req.body })
-    if (!parsed.success) {
-      const [code, message] = META_ERRORS[String(parsed.error.issues[0]?.path[0])] ?? ['invalid_input', 'Check the file details.']
-      throw new HttpError(400, code, message)
-    }
+    if (!parsed.success) throw metaError(parsed.error)
     const file = req.file
     if (!file) throw new HttpError(400, 'no_file', 'Choose a file.')
     const check = checkFile(file.buffer, file.originalname)
@@ -234,6 +237,21 @@ export function resourcesRouter() {
       await award({ user: r.uploader, actor: 'system', kind: 'resource_verified', points: XP_RULES.points.verified, refKey: `verify:${id}`, label: `Verified: ${r.title}` })
     }
     res.json({ resource: await oneJson((await Resource.findById(r._id)) ?? fresh, me) })
+  })
+
+  // PATCH /api/resources/:id { title?, description?, courseCode?, kind?, semester?, academicYear? } -> { resource }. The uploader or an admin.
+  // Details only: the file cannot be replaced (a new file is a new upload, so the SHA-256 and XP rules hold), and counters, ratings and `verified` stay.
+  router.patch('/:id', async (req, res) => {
+    const u = req.user!
+    const r = await findResource(req.params.id)
+    if (!r.uploader.equals(u._id) && u.role !== 'admin') throw new HttpError(403, 'forbidden', 'You can only edit your own files.')
+    const parsed = metaPatch.safeParse({ ...req.body })
+    if (!parsed.success) throw metaError(parsed.error)
+    const patch = Object.fromEntries(Object.entries(parsed.data).filter(([, v]) => v !== undefined))
+    if (Object.keys(patch).length === 0) throw new HttpError(400, 'empty_patch', 'Change at least one detail.')
+    const fresh = await Resource.findOneAndUpdate({ _id: r._id }, { $set: patch }, { returnDocument: 'after' })
+    if (!fresh) throw new HttpError(404, 'not_found', NOT_FOUND)
+    res.json({ resource: await oneJson(fresh, u._id) })
   })
 
   // DELETE /api/resources/:id -> 204. The uploader or an admin. The XP the file earned is taken back.
