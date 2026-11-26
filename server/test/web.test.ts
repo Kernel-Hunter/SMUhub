@@ -57,6 +57,17 @@ describe('built web app', () => {
     }
   })
 
+  it('refuses state-changing requests from other sites', async () => {
+    const own = createApp(loadConfig({ ...base, CLIENT_URL: 'https://smuhub.example' }))
+    assert.equal((await request(own).post('/api/auth/logout')).status, 204, 'no browser headers: tools and tests still work')
+    assert.equal((await request(own).post('/api/auth/logout').set('Origin', 'https://smuhub.example')).status, 204)
+    assert.equal((await request(own).post('/api/auth/logout').set('Origin', 'https://evil.example')).status, 403)
+    assert.equal((await request(own).post('/api/auth/logout').set('Origin', 'https://other.smu.tn').set('Sec-Fetch-Site', 'same-site')).status, 403)
+    assert.equal((await request(own).post('/api/auth/logout').set('Sec-Fetch-Site', 'cross-site')).status, 403)
+    assert.equal((await request(own).post('/api/auth/logout').set('Sec-Fetch-Site', 'same-origin')).status, 204)
+    assert.equal((await request(own).get('/api/health').set('Origin', 'https://evil.example')).status, 200, 'reads are not affected')
+  })
+
   it('serves no web app when none is configured outside production', async () => {
     const apiOnly = createApp(loadConfig(base))
     assert.equal((await request(apiOnly).get('/')).status, 404)

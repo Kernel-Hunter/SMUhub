@@ -36,6 +36,9 @@ export async function http<T>(path: string, init: { method?: string; body?: unkn
   if (res.status === 204) return undefined as T
   const data = await res.json().catch(() => null)
   if (!res.ok) {
+    // The session ended (expired, password reset elsewhere): let the app drop everything it cached for this student.
+    // Auth routes answer 401 for a wrong password, which is not a lost session.
+    if (res.status === 401 && !path.startsWith('/api/auth/')) window.dispatchEvent(new Event('smuhub:signed-out'))
     const err = data?.error
     throw new HttpError(res.status, err?.code ?? 'http_error', err?.message ?? `Error ${res.status}. Try again.`)
   }

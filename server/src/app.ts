@@ -7,7 +7,7 @@ import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import helmet from 'helmet'
 import type { Config } from './config/env.js'
-import { errorHandler, notFound } from './lib/errors.js'
+import { HttpError, errorHandler, notFound } from './lib/errors.js'
 import { requireAuth } from './middleware/requireAuth.js'
 import { authRouter } from './routes/auth.js'
 import { questionsRouter } from './routes/questions.js'
@@ -34,6 +34,17 @@ export function createApp(config: Config) {
   app.use(cors({ origin: config.clientUrl, credentials: true }))
   app.use(express.json({ limit: '10kb' }))
   app.use(cookieParser())
+
+  // Cross-site request forgery: the SameSite=Lax cookie already stops other websites, but not another site on the
+  // same parent domain (another *.smu.tn app), and body-less POSTs such as votes ran whatever their Content-Type.
+  // A browser always says where a state-changing request comes from, so refuse anything not sent by SMUhub itself.
+  app.use('/api', (req, _res, next) => {
+    if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next()
+    const origin = req.get('origin'), site = req.get('sec-fetch-site')
+    if (origin && origin === config.clientUrl) return next()
+    const foreign = site === 'cross-site' || site === 'same-site' || (!!origin && origin !== `${req.protocol}://${req.get('host')}`)
+    next(foreign ? new HttpError(403, 'cross_site', 'This request did not come from SMUhub.') : undefined)
+  })
 
   app.get('/api/health', (_req, res) => { res.json({ ok: true }) })
   app.use('/api/auth', authRouter(config))

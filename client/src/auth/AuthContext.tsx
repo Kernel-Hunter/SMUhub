@@ -29,11 +29,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const user = auth.data ?? null
 
   // Profile with XP from the server (GET /api/me), polled so XP earned from peers shows up.
+  // Every 20 s and when the tab comes back: each call ranks all students on the server, so not more often.
   const profile = useQuery({
     queryKey: ['me'],
     queryFn: api.me.get,
     enabled: !!user,
-    refetchInterval: 4000,
+    refetchInterval: 20_000,
+    refetchOnWindowFocus: true,
   })
   const me = user ? profile.data ?? null : null
   const last = useRef<number | null>(null)
@@ -48,10 +50,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     last.current = me.xp
   }, [me, toast, qc])
 
+  // A new student on this browser (a shared lab PC) must never see what the previous one had loaded.
   const adopt = (u: AuthUser) => {
-    qc.removeQueries({ queryKey: ['me'] })
+    qc.clear()
     qc.setQueryData(['auth'], u)
   }
+
+  // Any 401 from the API means the session is gone: forget everything and show the sign-in page.
+  useEffect(() => {
+    const onSignedOut = () => { qc.clear(); qc.setQueryData(['auth'], null) }
+    window.addEventListener('smuhub:signed-out', onSignedOut)
+    return () => window.removeEventListener('smuhub:signed-out', onSignedOut)
+  }, [qc])
 
   const value: Ctx = {
     user,

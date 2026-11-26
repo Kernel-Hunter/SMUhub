@@ -53,7 +53,7 @@ export default function Home() {
   const mine = (courses.data ?? []).slice().sort((a, b) => Number(me.courses.includes(b.code)) - Number(me.courses.includes(a.code)) || b.resources - a.resources).slice(0, 4)
   const evDays = new Map<number, string>()
   const now = new Date()
-  events.data?.forEach((e) => { const d = new Date(e.startsAt); if (d.getMonth() === now.getMonth()) evDays.set(d.getDate(), e.kind) })
+  events.data?.forEach((e) => { const d = new Date(e.startsAt); if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) evDays.set(d.getDate(), e.kind) })
 
   return (
     <div className="grid grid-cols-1 gap-8">
