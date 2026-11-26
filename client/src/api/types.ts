@@ -88,6 +88,18 @@ export type CampusEvent = {
   iGo: boolean
 }
 
+export type Announcement = {
+  id: string
+  title: string
+  body: string
+  courseCode?: string
+  author: PublicUser
+  pinned: boolean
+  createdAt: number
+  expiresAt?: number
+  mine: boolean
+}
+
 export type RentalCategory = 'calculator' | 'lab' | 'books' | 'tech' | 'other'
 export type RentalItem = {
   id: string

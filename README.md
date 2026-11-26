@@ -106,9 +106,9 @@ MongoDB database `SMUhub` (the name comes from `MONGODB_URI`). You do not need t
 | `resources`, `downloads`, `ratings` | Library files (metadata and SHA-256), who downloaded what, helpful ratings |
 | `resources.files`, `resources.chunks` | The uploaded files themselves (GridFS) |
 | `threads`, `replies` | Questions and Campus Voice posts, answers and replies |
-| `events`, `rentalitems`, `rentalrequests` | Calendar events, rental listings and requests |
+| `events`, `announcements`, `rentalitems`, `rentalrequests` | Calendar events, announcements, rental listings and requests |
 
-`npm run seed` can be run again at any time. It upserts two test students (password `SEED_PASSWORD`) and demo questions, Voice posts, events, rentals and library files, matched by email, title or file hash, so nothing is duplicated and no XP is paid twice. Never run it against the shared database without agreeing with the team first.
+`npm run seed` can be run again at any time. It upserts two test students (password `SEED_PASSWORD`) and demo questions, Voice posts, events, announcements, rentals and library files, matched by email, title or file hash, so nothing is duplicated and no XP is paid twice. Never run it against the shared database without agreeing with the team first.
 
 MongoDB refuses two databases whose names differ only by case (`smuhub` and `SMUhub`). If the seed fails with "db already exists with different case", drop the old one in Compass or point `MONGODB_URI` at the existing name.
 
@@ -137,6 +137,7 @@ Everything else needs a session. Each router lives in `server/src/routes/`:
 | `/api/questions` | Q&A: ask, answer, vote, accept |
 | `/api/voice` | Campus Voice: post (optionally anonymous), reply, vote |
 | `/api/events` | Calendar: list, add, join or leave |
+| `/api/announcements` | Short notices: list (`?course=`), post, delete your own (admins can pin and delete any) |
 | `/api/rentals` | List items, request, accept or decline, mark returned |
 
 `client/src/api/client.ts` is the typed client for these, and `docs/BACKEND.md` lists the rules the server enforces (ownership checks, rate limits, file checks, leaderboard integrity, privacy).

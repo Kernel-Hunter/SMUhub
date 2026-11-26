@@ -57,3 +57,4 @@ Constants live in `client/src/api/rules.ts`.
 - Check ownership on every edit and delete.
 - Rate limits: 5 threads per hour, 8 replies per 10 minutes, 10 rental listings per student.
 - No money moves through the platform. Rentals only connect students.
+- Announcements (`/api/announcements`, `server/src/routes/announcements.ts`): title 5 to 120, message 10 to 2000, optional course and end date; 3 per student per 24 hours; only an admin can pin; the author or an admin deletes; expired ones are hidden; no XP.

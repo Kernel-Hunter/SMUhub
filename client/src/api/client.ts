@@ -4,14 +4,14 @@
  * dedupe, ledger idempotency, self-vote ban); the few checks here only give a faster message.
  *
  * Routes, all under server/src/routes: me.ts, resources.ts, questions.ts (threads of kind 'question'),
- * voice.ts (threads of kind 'voice'), events.ts, rentals.ts, leaderboard.ts and users.ts.
+ * voice.ts (threads of kind 'voice'), events.ts, announcements.ts, rentals.ts, leaderboard.ts and users.ts.
  */
 import { RULES } from './rules'
 import { COURSES } from './courses'
 import { ApiError, apiUrl, http } from './http'
 import type {
   Course, LeaderRow, Me, PublicUser, Reply, Resource, ResourceKind, ResourceQuery, Thread,
-  ThreadKind, VoiceCategory, CampusEvent, RentalCategory, RentalItem, RentalRequest, XpRow,
+  ThreadKind, VoiceCategory, CampusEvent, Announcement, RentalCategory, RentalItem, RentalRequest, XpRow,
 } from './types'
 
 export { ApiError }
@@ -166,6 +166,20 @@ export const api = {
       await http('/api/events', { method: 'POST', body: i })
     },
     async toggleGoing(id: string): Promise<void> { await http(`/api/events/${id}/going`, { method: 'POST' }) },
+  },
+
+  // server/src/routes/announcements.ts: 3 per student per day, only admins pin, the author or an admin deletes.
+  announcements: {
+    async list(course?: string): Promise<Announcement[]> {
+      return (await http<{ announcements: Announcement[] }>(`/api/announcements${course ? `?course=${encodeURIComponent(course)}` : ''}`)).announcements
+    },
+    async create(i: { title: string; body: string; courseCode?: string; expiresAt?: number; pinned?: boolean }): Promise<Announcement> {
+      const title = clean(i.title, 120), body = cleanBlock(i.body, 2000)
+      if (title.length < 5) fail('bad_title', 'Title is too short (5+ characters).')
+      if (body.length < 10) fail('bad_body', 'Add a little more detail (10+ characters).')
+      return (await http<{ announcement: Announcement }>('/api/announcements', { method: 'POST', body: { ...i, title, body } })).announcement
+    },
+    async remove(id: string): Promise<void> { await http(`/api/announcements/${encodeURIComponent(id)}`, { method: 'DELETE' }) },
   },
 
   // server/src/routes/rentals.ts. The owner's contact only comes back in myRequest.contact, once accepted.

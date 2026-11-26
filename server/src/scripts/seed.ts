@@ -17,6 +17,7 @@ import { isAllowedDomain } from '../lib/email.js'
 import { Thread } from '../models/Thread.js'
 import { Reply } from '../models/Reply.js'
 import { Event } from '../models/Event.js'
+import { Announcement } from '../models/Announcement.js'
 import { RentalItem, RentalRequest } from '../models/Rental.js'
 import { XP_RULES, award } from '../lib/xp.js'
 import { Ledger } from '../models/Ledger.js'
@@ -99,6 +100,16 @@ const DEMO_EVENTS = [
   { author: A, title: 'Hackathon kickoff: 24 hours of building', kind: 'event' as const, inDays: 6, hour: 17, location: 'Block C · Innovation Lab', description: 'Teams of 3 to 4. Pizza is on the house, prizes for the top three projects.' },
   { author: Y, title: 'Calculus I midterm', kind: 'deadline' as const, inDays: 9, hour: 9, location: 'Amphi A', courseCode: 'MATH101', description: 'Chapters 1 to 4. Bring your student card.' },
   { author: A, title: 'Finance club: build your first budget', kind: 'club' as const, inDays: 4, hour: 16, location: 'Student Center, room 2', description: 'Open session, no experience needed. Bring a laptop if you have one.' },
+]
+
+/** Demo announcements: short notices, not calendar entries. Matched by title; end dates are recomputed from today on every run. */
+const DEMO_ANNOUNCEMENTS = [
+  { author: Y, title: 'CS324 lab moved to room B12 this Thursday', courseCode: 'CS324', expiresInDays: 4,
+    body: 'The usual lab room is booked for an exam, so this week we meet in B12 on the first floor. Same time, bring your laptop.' },
+  { author: A, title: 'Finance club is recruiting a treasurer', expiresInDays: 14,
+    body: 'We are looking for one student to keep the club budget and receipts in order. About two hours a week. Message me if you are interested.' },
+  { author: Y, title: 'Library closes at 2pm on Friday', expiresInDays: 6,
+    body: 'The library closes early on Friday for maintenance. Borrowed books can still be returned in the box at the entrance.' },
 ]
 
 /** Demo rental items. Matched by title; re-running resets them to available and clears their requests. Contacts are fake. */
@@ -199,6 +210,13 @@ async function main() {
     await Event.updateOne({ title: e.title }, { $set: { title: e.title, kind: e.kind, startsAt, location: e.location, courseCode: e.courseCode, description: e.description, author, goers: [author], going: 1 } }, { upsert: true })
   }
   console.log(`Seeded ${DEMO_EVENTS.length} demo events.`)
+
+  for (const a of DEMO_ANNOUNCEMENTS) {
+    const { author, expiresInDays, ...fields } = a
+    const expiresAt = new Date(Date.now() + expiresInDays * 24 * HOUR)
+    await Announcement.updateOne({ title: a.title }, { $set: { ...fields, author: ids.get(author)!, pinned: false, expiresAt } }, { upsert: true })
+  }
+  console.log(`Seeded ${DEMO_ANNOUNCEMENTS.length} demo announcements.`)
 
   for (const r of DEMO_RENTALS) {
     const { owner, ...fields } = r

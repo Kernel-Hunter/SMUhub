@@ -1,8 +1,10 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, Check, MapPin, Plus, Users, X } from 'lucide-react'
+import { CalendarDays, Check, MapPin, Newspaper, Plus, Users, X } from 'lucide-react'
 import { api } from '@/api/client'
-import Banner, { bannerBtn } from '@/components/Banner'
+import Banner, { bannerBtn, bannerGhost } from '@/components/Banner'
+import { AnnouncementFeed, AnnouncementForm } from '@/components/Announcements'
 import Calendar from '@/components/Calendar'
 import { Empty, ErrorBox, Field, Segmented, Skeleton, Spinner, useToast } from '@/components/ui'
 import { cn, daysUntil, errMsg, formatDay, formatTime } from '@/lib/utils'
@@ -15,12 +17,20 @@ const KIND: Record<Kind, { label: string; tone: string; soft: string; dot: strin
   club: { label: 'Club', tone: 'border-line', soft: 'bg-subtle text-muted', dot: 'bg-faint' },
 }
 const blank = { title: '', kind: 'event' as Kind, when: '', location: '', description: '' }
+type Publish = 'announcement' | 'event'
 
 export default function Events() {
   const qc = useQueryClient(); const toast = useToast()
   const list = useQuery({ queryKey: ['events'], queryFn: api.events.list })
   const [open, setOpen] = useState(false); const [err, setErr] = useState(''); const [f, setF] = useState(blank)
   const [kind, setKind] = useState<Kind | 'all'>('all'); const [day, setDay] = useState<number>()
+  // One publish entry point for both (US-19): ?new=announcement or ?new=event opens the form on that choice (New menu, Home).
+  const [params, setParams] = useSearchParams(); const [mode, setMode] = useState<Publish>('announcement')
+  const publish = (m: Publish) => { setMode(m); setErr(''); setOpen(true) }
+  useEffect(() => {
+    const want = params.get('new')
+    if (want === 'announcement' || want === 'event') { publish(want); setParams({}, { replace: true }) }
+  }, [params, setParams])
   const go = useMutation({ mutationFn: (id: string) => api.events.toggleGoing(id), onSuccess: () => qc.invalidateQueries({ queryKey: ['events'] }), onError: (e) => toast(errMsg(e), 'err') })
   const create = useMutation({
     mutationFn: () => api.events.create({ title: f.title, kind: f.kind, startsAt: new Date(f.when).getTime(), location: f.location, description: f.description }),
@@ -37,12 +47,21 @@ export default function Events() {
 
   return (
     <div>
-      <Banner tone="rose" icon={<CalendarDays size={13} />} label="Calendar" title="What's coming up" sub="Exams, project deadlines and club meetups in one place. Join an event to keep it on your home page."
+      <Banner tone="rose" icon={<CalendarDays size={13} />} label="Calendar & news" title="What's coming up" sub="Announcements, exams, project deadlines and club meetups in one place. Join an event to keep it on your home page."
         stats={[['This month', all.filter((e) => thisMonth(e.startsAt)).length], ['Deadlines', all.filter((e) => e.kind === 'deadline').length], ["You're going", all.filter((e) => e.iGo).length]]}
-        action={<button className={bannerBtn} onClick={() => setOpen(!open)}>{open ? <X size={15} /> : <Plus size={15} />}{open ? 'Close' : 'Add an event'}</button>} />
+        action={open ? <button className={bannerBtn} onClick={() => setOpen(false)}><X size={15} />Close</button> : <>
+          <button className={bannerBtn} onClick={() => publish('announcement')}><Newspaper size={15} />Post an announcement</button>
+          <button className={bannerGhost} onClick={() => publish('event')}><Plus size={15} />Add an event</button></>} />
 
       {open && (
-        <form onSubmit={submit} className="card rise mb-7 grid gap-4 p-6 sm:grid-cols-2">
+        <div className="card rise mb-7 p-6">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-base font-semibold">What do you want to publish?</p>
+          <Segmented value={mode} onChange={(m) => { setMode(m); setErr('') }} options={[{ value: 'announcement', label: 'Announcement' }, { value: 'event', label: 'Event' }]} />
+        </div>
+        <p className="-mt-3 mb-5 text-xs text-muted">{mode === 'announcement' ? 'A short notice: a room change, a closure, club news. It shows above the calendar and on Home.' : 'Something with a date and time: an exam, a deadline, a meetup. It goes on the calendar and people can join.'}</p>
+        {mode === 'announcement' ? <AnnouncementForm onDone={() => setOpen(false)} /> : (
+        <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2"><Field label="Title"><input className="field" required maxLength={100} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field></div>
           <div><span className="label">Type</span><div className="flex gap-2">{(Object.keys(KIND) as Kind[]).map((k) => <button type="button" key={k} onClick={() => setF({ ...f, kind: k })} className={cn('chip h-9 flex-1 cursor-pointer justify-center text-xs transition', f.kind === k ? KIND[k].soft + ' ring-1 ring-current' : 'hover:text-ink')}>{KIND[k].label}</button>)}</div></div>
           <Field label="When"><input className="field" type="datetime-local" required value={f.when} onChange={(e) => setF({ ...f, when: e.target.value })} /></Field>
@@ -50,11 +69,14 @@ export default function Events() {
           <div className="sm:col-span-2"><Field label="Details"><textarea className="field min-h-20" maxLength={500} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field></div>
           {err && <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-sm text-danger sm:col-span-2">{err}</p>}
           <div className="flex justify-end sm:col-span-2"><button className="btn btn-primary h-10 px-6" disabled={create.isPending}>{create.isPending ? <Spinner /> : 'Publish event'}</button></div>
-        </form>
+        </form>)}
+        </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className="min-w-0">
+          <AnnouncementFeed onPost={() => publish('announcement')} />
+          <h2 className="mb-3 text-base font-semibold">Upcoming</h2>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <Segmented value={kind} onChange={setKind} options={[{ value: 'all', label: 'All' }, { value: 'event', label: 'Events' }, { value: 'deadline', label: 'Deadlines' }, { value: 'club', label: 'Clubs' }]} />
             {day && <button onClick={() => setDay(undefined)} className="chip cursor-pointer gap-1 hover:text-ink"><X size={12} />{now.toLocaleDateString(undefined, { month: 'long' })} {day}</button>}
@@ -89,7 +111,7 @@ export default function Events() {
             <Calendar days={days} size="lg" selected={day} onSelect={(d) => setDay(day === d ? undefined : d)} />
             <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 border-t border-line pt-4 text-xs text-muted">{(Object.keys(KIND) as Kind[]).map((k) => <span key={k} className="flex items-center gap-2"><span className={cn('size-2 rounded-full', KIND[k].dot)} />{KIND[k].label}</span>)}</div>
           </div>
-          <div className="card p-5 text-xs leading-relaxed text-muted"><p className="mb-1 text-sm font-semibold text-ink">Anyone can add an event</p>Keep it to things that matter for SMU students. Wrong dates or spam get removed.</div>
+          <div className="card p-5 text-xs leading-relaxed text-muted"><p className="mb-1 text-sm font-semibold text-ink">Anyone can post here</p>Announcements and events alike: keep them to things that matter for SMU students. Wrong dates or spam get removed.</div>
         </aside>
       </div>
     </div>
