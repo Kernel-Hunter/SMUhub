@@ -102,13 +102,16 @@ const DEMO_EVENTS = [
   { author: A, title: 'Finance club: build your first budget', kind: 'club' as const, inDays: 4, hour: 16, location: 'Student Center, room 2', description: 'Open session, no experience needed. Bring a laptop if you have one.' },
 ]
 
-/** Demo announcements: short notices, not calendar entries. Matched by title; end dates are recomputed from today on every run. */
+/**
+ * Demo announcements: short notices, not calendar entries. Matched by title; dates are recomputed from today on every run.
+ * Posted more than a day ago, so they do not use up the daily limit (3 per student): both students can still post right after seeding.
+ */
 const DEMO_ANNOUNCEMENTS = [
-  { author: Y, title: 'CS324 lab moved to room B12 this Thursday', courseCode: 'CS324', expiresInDays: 4,
+  { author: Y, title: 'CS324 lab moved to room B12 this Thursday', courseCode: 'CS324', hoursAgo: 30, expiresInDays: 4,
     body: 'The usual lab room is booked for an exam, so this week we meet in B12 on the first floor. Same time, bring your laptop.' },
-  { author: A, title: 'Finance club is recruiting a treasurer', expiresInDays: 14,
+  { author: A, title: 'Finance club is recruiting a treasurer', hoursAgo: 50, expiresInDays: 14,
     body: 'We are looking for one student to keep the club budget and receipts in order. About two hours a week. Message me if you are interested.' },
-  { author: Y, title: 'Library closes at 2pm on Friday', expiresInDays: 6,
+  { author: Y, title: 'Library closes at 2pm on Friday', hoursAgo: 70, expiresInDays: 6,
     body: 'The library closes early on Friday for maintenance. Borrowed books can still be returned in the box at the entrance.' },
 ]
 
@@ -212,9 +215,11 @@ async function main() {
   console.log(`Seeded ${DEMO_EVENTS.length} demo events.`)
 
   for (const a of DEMO_ANNOUNCEMENTS) {
-    const { author, expiresInDays, ...fields } = a
+    const { author, hoursAgo, expiresInDays, ...fields } = a
     const expiresAt = new Date(Date.now() + expiresInDays * 24 * HOUR)
     await Announcement.updateOne({ title: a.title }, { $set: { ...fields, author: ids.get(author)!, pinned: false, expiresAt } }, { upsert: true })
+    // Mongoose keeps createdAt immutable, so the backdate goes through the raw collection.
+    await Announcement.collection.updateOne({ title: a.title }, { $set: { createdAt: new Date(Date.now() - hoursAgo * HOUR) } })
   }
   console.log(`Seeded ${DEMO_ANNOUNCEMENTS.length} demo announcements.`)
 
