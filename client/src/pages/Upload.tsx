@@ -1,9 +1,10 @@
 import { useRef, useState, type DragEvent, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BookOpen, CloudUpload, FileCheck2, ShieldCheck, X } from 'lucide-react'
 import { api } from '@/api/client'
 import { RULES } from '@/api/rules'
+import { COURSES } from '@/api/courses'
 import Banner from '@/components/Banner'
 import { FileBadge } from '@/components/Cards'
 import { Field, Spinner, useToast } from '@/components/ui'
@@ -14,7 +15,8 @@ export default function Upload() {
   const nav = useNavigate(); const qc = useQueryClient(); const toast = useToast()
   const courses = useQuery({ queryKey: ['courses'], queryFn: api.courses.list })
   const [file, setFile] = useState<File | null>(null); const [drag, setDrag] = useState(false); const [err, setErr] = useState('')
-  const [f, setF] = useState({ title: '', description: '', courseCode: '', kind: 'notes' as ResourceKind, semester: 'S1' as 'S1' | 'S2', academicYear: '2025/26' })
+  const course = (useSearchParams()[0].get('course') ?? '').toUpperCase() // /resources/new?course=CS224 from a course page
+  const [f, setF] = useState({ title: '', description: '', courseCode: COURSES.some((c) => c[0] === course) ? course : '', kind: 'notes' as ResourceKind, semester: 'S1' as 'S1' | 'S2', academicYear: '2025/26' })
   const input = useRef<HTMLInputElement>(null)
   const m = useMutation({
     mutationFn: () => api.resources.upload({ ...f, file: file! }),

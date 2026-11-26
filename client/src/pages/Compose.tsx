@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { EyeOff, HelpCircle, Megaphone } from 'lucide-react'
+import { ArrowLeft, EyeOff, HelpCircle, Megaphone } from 'lucide-react'
 import { api } from '@/api/client'
+import { COURSES } from '@/api/courses'
 import Banner from '@/components/Banner'
 import { Field, Spinner, useToast } from '@/components/ui'
 import { VOICE_LABEL, cn, errMsg } from '@/lib/utils'
@@ -11,15 +12,18 @@ import type { ThreadKind, VoiceCategory } from '@/api/types'
 export default function Compose({ kind }: { kind: ThreadKind }) {
   const nav = useNavigate(); const qc = useQueryClient(); const toast = useToast(); const qa = kind === 'question'
   const courses = useQuery({ queryKey: ['courses'], queryFn: api.courses.list })
-  const [f, setF] = useState({ title: '', body: '', courseCode: '', category: 'academics' as VoiceCategory, anonymous: false }); const [err, setErr] = useState('')
+  // Opened from a course forum (/qa/new?course=CS224): the course is picked, and posting goes back to that forum.
+  const from = (useSearchParams()[0].get('course') ?? '').toUpperCase(); const forum = qa && COURSES.some((c) => c[0] === from) ? from : ''
+  const [f, setF] = useState({ title: '', body: '', courseCode: forum, category: 'academics' as VoiceCategory, anonymous: false }); const [err, setErr] = useState('')
   const m = useMutation({
     mutationFn: () => api.threads.create({ kind, ...f }),
-    onSuccess: (t) => { qc.invalidateQueries({ queryKey: ['threads'] }); toast('Posted.'); nav(`/${qa ? 'qa' : 'voice'}/${t.id}`) }, onError: (e) => setErr(errMsg(e)),
+    onSuccess: (t) => { qc.invalidateQueries({ queryKey: ['threads'] }); qc.invalidateQueries({ queryKey: ['courses'] }); toast('Posted.'); nav(forum ? `/courses/${t.courseCode ?? f.courseCode}` : `/${qa ? 'qa' : 'voice'}/${t.id}`) }, onError: (e) => setErr(errMsg(e)),
   })
   const submit = (e: FormEvent) => { e.preventDefault(); setErr(''); m.mutate() }
   return (
     <div>
-      <Banner tone={qa ? 'violet' : 'orange'} icon={qa ? <HelpCircle size={13} /> : <Megaphone size={13} />} label={qa ? 'Questions' : 'Campus Voice'} title={qa ? 'Ask a question' : 'Write a post'} sub={qa ? 'Specific questions get answered faster.' : 'Say what happened and what would make it better.'} />
+      {forum && <Link to={`/courses/${forum}`} className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-ink"><ArrowLeft size={14} />{forum} forum</Link>}
+      <Banner tone={qa ? 'violet' : 'orange'} icon={qa ? <HelpCircle size={13} /> : <Megaphone size={13} />} label={qa ? 'Questions' : 'Campus Voice'} title={qa ? (forum ? `New post in ${forum}` : 'Ask a question') : 'Write a post'} sub={qa ? 'Specific questions get answered faster.' : 'Say what happened and what would make it better.'} />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
         <form onSubmit={submit} className="card grid gap-5 p-6">
           {qa ? <Field label="Course"><select className="field" required value={f.courseCode} onChange={(e) => setF({ ...f, courseCode: e.target.value })}><option value="">Select a course</option>{courses.data?.map((c) => <option key={c.code} value={c.code}>{c.code} · {c.name}</option>)}</select></Field>

@@ -4,7 +4,7 @@
  * dedupe, ledger idempotency, self-vote ban); the few checks here only give a faster message.
  *
  * Routes, all under server/src/routes: me.ts, resources.ts, questions.ts (threads of kind 'question'),
- * voice.ts (threads of kind 'voice'), events.ts, rentals.ts, leaderboard.ts and users.ts.
+ * voice.ts (threads of kind 'voice'), events.ts, rentals.ts, leaderboard.ts, users.ts and courses.ts.
  */
 import { RULES } from './rules'
 import { COURSES } from './courses'
@@ -58,11 +58,9 @@ export const api = {
   },
 
   courses: {
-    async list(): Promise<Course[]> {
-      // The catalogue is fixed (courses.ts); question and resource counts come from the server.
-      const [{ threads }, { resources }] = await Promise.all([http<{ threads: Thread[] }>('/api/questions'), http<{ resources: Resource[] }>('/api/resources')])
-      return COURSES.map(([code, name, dept]) => ({ code, name, dept, resources: resources.filter((r) => r.courseCode === code).length, questions: threads.filter((t) => t.courseCode === code).length }))
-    },
+    // GET /api/courses (server/src/routes/courses.ts): the whole catalogue with counts, from one aggregate per collection.
+    async list(): Promise<Course[]> { return (await http<{ courses: Course[] }>('/api/courses')).courses },
+    async get(code: string): Promise<Course> { return (await http<{ course: Course }>(`/api/courses/${encodeURIComponent(code)}`)).course },
   },
 
   // server/src/routes/resources.ts. It checks the file's type on its bytes, its size, its SHA-256 (duplicates),

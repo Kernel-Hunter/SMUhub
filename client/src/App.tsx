@@ -20,6 +20,8 @@ const Rentals = lazy(() => import('@/pages/Rentals'))
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'))
 const Profile = lazy(() => import('@/pages/Profile'))
 const Settings = lazy(() => import('@/pages/Settings'))
+const Courses = lazy(() => import('@/pages/Courses'))
+const Course = lazy(() => import('@/pages/Course'))
 
 type FromState = { from?: string } | null
 
@@ -66,6 +68,8 @@ export default function App() {
           <Route path="/voice" element={<Threads kind="voice" />} />
           <Route path="/voice/new" element={<Compose kind="voice" />} />
           <Route path="/voice/:id" element={<ThreadDetail kind="voice" />} />
+          <Route path="/courses" element={<Courses />} />
+          <Route path="/courses/:code" element={<Course />} />
           <Route path="/events" element={<Events />} />
           <Route path="/rentals" element={<Rentals />} />
           <Route path="/leaderboard" element={<Leaderboard />} />

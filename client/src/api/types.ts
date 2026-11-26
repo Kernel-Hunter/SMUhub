@@ -19,7 +19,8 @@ export type Me = PublicUser & {
   courses: string[]
 }
 
-export type Course = { code: string; name: string; dept: string; resources: number; questions: number }
+/** From GET /api/courses: open = unanswered questions, events = still on the calendar, students = have it in their courses. */
+export type Course = { code: string; name: string; dept: string; resources: number; questions: number; open: number; events: number; students: number }
 
 export type ResourceKind = 'notes' | 'exam' | 'summary' | 'slides' | 'tutorial'
 

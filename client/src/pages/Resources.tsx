@@ -44,7 +44,7 @@ export default function Resources() {
 
         <section className="min-w-0">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted"><span className="font-semibold text-ink">{list.data?.length ?? 0}</span> {list.data?.length === 1 ? 'file' : 'files'}{course && <> in <span className="font-medium text-ink">{course}</span></>}</p>
+            <p className="text-sm text-muted"><span className="font-semibold text-ink">{list.data?.length ?? 0}</span> {list.data?.length === 1 ? 'file' : 'files'}{course && <> in <Link to={`/courses/${course}`} className="font-medium text-ink hover:text-accent hover:underline" title="Open the course forum">{course}</Link></>}</p>
             <Segmented value={sort} onChange={(v) => set('sort', v === 'new' ? '' : v)} options={[{ value: 'new', label: 'Newest' }, { value: 'top', label: 'Most helpful' }, { value: 'downloads', label: 'Most downloaded' }]} />
           </div>
           {list.isLoading ? <Skeleton rows={6} /> : list.error ? <ErrorBox error={list.error} /> : !list.data?.length ? (

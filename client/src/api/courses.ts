@@ -1,5 +1,5 @@
-// Course catalogue: code, name, department. Keep in sync with COURSE_CODES in server/src/lib/courses.ts
-// until courses get their own collection and API.
+// Course catalogue: code, name, department. Keep in sync with COURSES in server/src/lib/courses.ts
+// until courses get their own collection. Used for instant checks; counts come from GET /api/courses.
 export const COURSES = [
   ['CS101', 'Introduction to Programming', 'Computer Science'],
   ['CS201', 'Data Structures', 'Computer Science'],

@@ -164,12 +164,14 @@ h1, h2, h3 { color: var(--heading); text-wrap: balance; }
 .hue-rose   { --hue: #c23b5c; --hue-ink: #a52f4c; }
 .hue-green  { --hue: #1f8558; --hue-ink: #186c47; }
 .hue-gold   { --hue: #b07914; --hue-ink: #8a5e0c; }
+.hue-plum   { --hue: #93458a; --hue-ink: #7a3772; }
 .dark .hue-blue   { --hue: #3fb0d0; --hue-ink: #5cc0dc; }
 .dark .hue-violet { --hue: #8f88f0; --hue-ink: #a59ff5; }
 .dark .hue-orange { --hue: #f0894a; --hue-ink: #f5a06c; }
 .dark .hue-rose   { --hue: #ee6f8f; --hue-ink: #f38aa5; }
 .dark .hue-green  { --hue: #4cc08a; --hue-ink: #6fd0a2; }
 .dark .hue-gold   { --hue: #e2ad45; --hue-ink: #ebc06a; }
+.dark .hue-plum   { --hue: #d585ca; --hue-ink: #e19fd8; }
 [class*='hue-'] { --hue-soft: color-mix(in srgb, var(--hue) 10%, var(--surface)); --hue-tint: color-mix(in srgb, var(--hue) 5%, var(--surface)); --hue-line: color-mix(in srgb, var(--hue) 22%, var(--border)); }
 .text-hue { color: var(--hue-ink); }
 .bg-hue { background: var(--hue); color: #fff; }
