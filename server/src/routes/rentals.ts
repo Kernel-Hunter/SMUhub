@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { isValidObjectId, type Types } from 'mongoose'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
+import { notify, notifyMany } from '../lib/notify.js'
 import { loadPeople, personOr, type PublicPerson } from '../lib/people.js'
 import { RentalItem, RentalRequest } from '../models/Rental.js'
 
@@ -129,7 +130,9 @@ export function rentalsRouter() {
     }
     try {
       const q = await RentalRequest.create({ item: item._id, owner: item.owner, renter: me, from: new Date(from), to: new Date(to), note })
-      res.status(201).json({ request: requestJson(q, await loadPeople([me])) })
+      const people = await loadPeople([me])
+      await notify(item.owner, { kind: 'rental_request', title: `${people.get(me.toString())?.name ?? 'A classmate'} asked to borrow your item`, body: item.title, link: '/rentals', actor: me })
+      res.status(201).json({ request: requestJson(q, people) })
     } catch (err) {
       // The partial unique index catches parallel duplicates that slipped past the check above.
       if ((err as { code?: number }).code === 11000) throw new HttpError(409, 'duplicate', 'You already have a pending request for this item.')
@@ -161,10 +164,15 @@ export function rentalsRouter() {
         await RentalItem.updateOne({ _id: item._id }, { available: true })
         throw handled()
       }
+      const others = await RentalRequest.find({ item: item._id, status: 'pending', _id: { $ne: q._id } }, { renter: 1 })
       await RentalRequest.updateMany({ item: item._id, status: 'pending', _id: { $ne: q._id } }, { status: 'declined' })
+      // The contact is never in a notification: the renter reads it on the Rentals page.
+      await notify(q.renter, { kind: 'rental_accepted', title: 'Your rental request was accepted', body: `${item.title}. Open Rentals to see how to reach the owner.`, link: '/rentals', actor: me })
+      await notifyMany(others.map((o) => o.renter), { kind: 'rental_declined', title: 'Your rental request was declined', body: item.title, link: '/rentals', actor: me })
     } else {
       const claimed = await RentalRequest.updateOne({ _id: q._id, status: 'pending' }, { status: 'declined' })
       if (claimed.modifiedCount === 0) throw handled()
+      await notify(q.renter, { kind: 'rental_declined', title: 'Your rental request was declined', body: item.title, link: '/rentals', actor: me })
     }
     const fresh = (await RentalRequest.findById(q._id))!
     res.json({ request: requestJson(fresh, await loadPeople([fresh.renter])) })

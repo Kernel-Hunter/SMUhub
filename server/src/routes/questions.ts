@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { isCourseCode } from '../lib/courses.js'
+import { notify } from '../lib/notify.js'
 import { loadPeople } from '../lib/people.js'
 import { LIMITS, ago, escapeRegex, findReply, findThread, replyJson, threadJson } from '../lib/threads.js'
 import { XP_RULES, award } from '../lib/xp.js'
@@ -97,7 +98,9 @@ export function questionsRouter() {
     if (recent >= LIMITS.repliesPer10Min) throw new HttpError(429, 'rate_limited', 'Too many answers in a short time. Take a break.')
     const reply = await Reply.create({ ...parsed.data, thread: thread._id, author: me })
     await Thread.updateOne({ _id: thread._id }, { $inc: { replyCount: 1 } })
-    res.status(201).json({ reply: replyJson(reply, me, await loadPeople([me])) })
+    const people = await loadPeople([me])
+    await notify(thread.author, { kind: 'answer', title: `${people.get(me.toString())?.name ?? 'A classmate'} answered your question`, body: thread.title, link: `/qa/${thread._id}`, actor: me })
+    res.status(201).json({ reply: replyJson(reply, me, people) })
   })
 
   // Upvote an answer: POST /api/questions/replies/:replyId/vote. Same rules as questions.
@@ -125,6 +128,7 @@ export function questionsRouter() {
     if (done.modifiedCount === 0) throw new HttpError(409, 'already_solved', 'This question already has an accepted answer.')
     await Reply.updateOne({ _id: reply._id }, { accepted: true })
     await award({ user: reply.author, actor: me, kind: 'answer_accepted', points: XP_RULES.points.accepted, refKey: `accept:${thread._id}`, label: `Answer accepted: ${thread.title}` })
+    await notify(reply.author, { kind: 'answer_accepted', title: 'Your answer was accepted', body: thread.title, link: `/qa/${thread._id}`, actor: me })
     const fresh = (await Reply.findById(reply._id))!
     res.json({ reply: replyJson(fresh, me, await loadPeople([fresh.author])), solved: true })
   })

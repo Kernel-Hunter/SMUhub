@@ -6,6 +6,7 @@ import { GraduationCap } from 'lucide-react'
 import { Avatar } from './ui'
 import Palette from './Palette'
 import Flow from './Flow'
+import NotificationBell from './Notifications'
 import { cn } from '@/lib/utils'
 
 const MAIN = [
@@ -107,6 +108,7 @@ export default function Shell({ children }: { children: ReactNode }) {
               <button onClick={() => setSearch(true)} className="hidden h-8 w-60 items-center gap-2 rounded-sm border border-line bg-surface px-3 text-sm text-faint transition-colors hover:border-line-strong hover:text-muted md:flex"><Search size={14} />Search SMUhub<span className="kbd ml-auto">⌘K</span></button>
               <button onClick={() => setSearch(true)} aria-label="Search" className="grid size-8 place-items-center rounded-sm text-muted hover:bg-hover md:hidden"><Search size={16} /></button>
               <button onClick={toggle} aria-label={dark ? 'Use light theme' : 'Use dark theme'} title={dark ? 'Light theme' : 'Dark theme'} className="grid size-8 place-items-center rounded-sm text-muted transition hover:bg-hover hover:text-ink">{dark ? <Sun size={16} /> : <Moon size={16} />}</button>
+              <NotificationBell />
               <div className="relative">
                 <button onClick={() => setAdd(!add)} className="btn btn-primary btn-sm" aria-expanded={add} aria-haspopup="menu"><Plus size={14} />New</button>
                 {add && (<>

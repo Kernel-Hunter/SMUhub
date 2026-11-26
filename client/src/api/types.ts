@@ -133,6 +133,12 @@ export type XpKind =
   | 'resource_verified' | 'resource_helpful' | 'answer_accepted' | 'answer_upvoted'
   | 'question_upvoted' | 'voice_upvoted' | 'removal_penalty'
 
+/** An in-app notification (GET /api/notifications). Never carries who caused it. */
+export type NotificationKind =
+  | 'answer' | 'voice_reply' | 'answer_accepted' | 'resource_helpful' | 'resource_verified'
+  | 'rental_request' | 'rental_accepted' | 'rental_declined' | 'announcement'
+export type AppNotification = { id: string; kind: NotificationKind; title: string; body?: string; link: string; read: boolean; createdAt: number }
+
 export type LeaderRow = { user: PublicUser; xp: number; rank: number; uploads: number; isMe: boolean }
 
 export type ResourceQuery = {
