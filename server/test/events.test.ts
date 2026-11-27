@@ -14,6 +14,7 @@ import { SESSION_COOKIE } from '../src/lib/session.js'
 import { User } from '../src/models/User.js'
 import { Event } from '../src/models/Event.js'
 import { LIMITS } from '../src/routes/events.js'
+import { dropTestDb } from './db.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_EVENTS ?? 'mongodb://127.0.0.1:27017/smuhub_test_events'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -33,10 +34,7 @@ before(async () => {
   await mongoose.connect(MONGO, { serverSelectionTimeoutMS: 3000 })
   await mongoose.connection.dropDatabase()
 })
-after(async () => {
-  await mongoose.connection.dropDatabase()
-  await mongoose.disconnect()
-})
+after(dropTestDb)
 beforeEach(async () => {
   await Promise.all([User.deleteMany({}), Event.deleteMany({})])
   const base = { passwordHash: 'x', major: 'CS', year: 2 }

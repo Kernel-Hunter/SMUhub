@@ -21,6 +21,7 @@ import { Download, Rating, Resource } from '../src/models/Resource.js'
 import { UploadLog } from '../src/models/UploadLog.js'
 import { UPLOAD_SLOTS, uploadsInFlight } from '../src/routes/resources.js'
 import { makeOffice, makePdf, makePng } from '../src/scripts/sampleFiles.js'
+import { dropTestDb } from './db.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_RESOURCES ?? 'mongodb://127.0.0.1:27017/smuhub_test_resources'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -63,10 +64,7 @@ before(async () => {
   await mongoose.connection.dropDatabase()
   await Promise.all([User.syncIndexes(), Ledger.syncIndexes(), Resource.syncIndexes(), Download.syncIndexes(), Rating.syncIndexes(), UploadLog.syncIndexes()])
 })
-after(async () => {
-  await mongoose.connection.dropDatabase()
-  await mongoose.disconnect()
-})
+after(dropTestDb)
 beforeEach(async () => {
   const db = mongoose.connection.db!
   // The ledger refuses deletes through the app, so tests clear it with the raw driver.

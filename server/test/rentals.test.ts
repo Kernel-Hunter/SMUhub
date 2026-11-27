@@ -14,6 +14,7 @@ import { SESSION_COOKIE } from '../src/lib/session.js'
 import { User } from '../src/models/User.js'
 import { RentalItem, RentalRequest } from '../src/models/Rental.js'
 import { LIMITS } from '../src/routes/rentals.js'
+import { dropTestDb } from './db.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_RENTALS ?? 'mongodb://127.0.0.1:27017/smuhub_test_rentals'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -40,10 +41,7 @@ before(async () => {
   await mongoose.connection.dropDatabase()
   await RentalRequest.syncIndexes() // the drop removed the partial unique index
 })
-after(async () => {
-  await mongoose.connection.dropDatabase()
-  await mongoose.disconnect()
-})
+after(dropTestDb)
 beforeEach(async () => {
   await Promise.all([User.deleteMany({}), RentalItem.deleteMany({}), RentalRequest.deleteMany({})])
   const base = { passwordHash: 'x', major: 'CS', year: 2 }

@@ -16,6 +16,7 @@ import { Ledger } from '../src/models/Ledger.js'
 import { User } from '../src/models/User.js'
 import { Thread } from '../src/models/Thread.js'
 import { Reply } from '../src/models/Reply.js'
+import { dropTestDb } from './db.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_XP ?? 'mongodb://127.0.0.1:27017/smuhub_test_xp'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -43,10 +44,7 @@ before(async () => {
   await mongoose.connection.dropDatabase()
   await Promise.all([User.syncIndexes(), Ledger.syncIndexes()]) // the unique refKey index must exist
 })
-after(async () => {
-  await mongoose.connection.dropDatabase()
-  await mongoose.disconnect()
-})
+after(dropTestDb)
 beforeEach(async () => {
   // The ledger refuses deletes through the app, so tests clear it with the raw driver.
   await Promise.all([User.deleteMany({}), Thread.deleteMany({}), Reply.deleteMany({}), Ledger.collection.deleteMany({})])

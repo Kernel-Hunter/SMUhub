@@ -16,6 +16,7 @@ import { User } from '../src/models/User.js'
 import { Thread } from '../src/models/Thread.js'
 import { Reply } from '../src/models/Reply.js'
 import { Ledger } from '../src/models/Ledger.js'
+import { dropTestDb } from './db.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_VOICE ?? 'mongodb://127.0.0.1:27017/smuhub_test_voice'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -41,10 +42,7 @@ before(async () => {
   await mongoose.connection.dropDatabase()
   await Ledger.syncIndexes() // unique refKey
 })
-after(async () => {
-  await mongoose.connection.dropDatabase()
-  await mongoose.disconnect()
-})
+after(dropTestDb)
 beforeEach(async () => {
   // Ledger.deleteMany throws on purpose (append-only); tests clear the collection directly.
   await Promise.all([User.deleteMany({}), Thread.deleteMany({}), Reply.deleteMany({}), Ledger.collection.deleteMany({})])

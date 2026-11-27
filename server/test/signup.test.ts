@@ -15,6 +15,7 @@ import { SESSION_COOKIE } from '../src/lib/session.js'
 import { User } from '../src/models/User.js'
 import { CodeBudget, VerificationCode } from '../src/models/VerificationCode.js'
 import { MAX_DAILY_FAILURES } from '../src/lib/codes.js'
+import { dropTestDb } from './db.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_SIGNUP ?? 'mongodb://127.0.0.1:27017/smuhub_test_signup'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -48,10 +49,7 @@ before(async () => {
   await User.syncIndexes()
   await VerificationCode.syncIndexes()
 })
-after(async () => {
-  await mongoose.connection.dropDatabase()
-  await mongoose.disconnect()
-})
+after(dropTestDb)
 beforeEach(async () => {
   await User.deleteMany({})
   await VerificationCode.deleteMany({})

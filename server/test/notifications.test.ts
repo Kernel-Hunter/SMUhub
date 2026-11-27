@@ -21,6 +21,7 @@ import { RentalItem, RentalRequest } from '../src/models/Rental.js'
 import { Download, Rating, Resource } from '../src/models/Resource.js'
 import { Notification, type NotificationKind } from '../src/models/Notification.js'
 import { LIMITS } from '../src/routes/notifications.js'
+import { dropTestDb } from './db.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_NOTIFICATIONS ?? 'mongodb://127.0.0.1:27017/smuhub_test_notifications'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -48,10 +49,7 @@ before(async () => {
   await mongoose.connection.dropDatabase()
   await Promise.all([User.syncIndexes(), Notification.syncIndexes(), Ledger.syncIndexes(), RentalRequest.syncIndexes(), Rating.syncIndexes(), Download.syncIndexes()])
 })
-after(async () => {
-  await mongoose.connection.dropDatabase()
-  await mongoose.disconnect()
-})
+after(dropTestDb)
 beforeEach(async () => {
   await Promise.all([
     User.deleteMany({}), Thread.deleteMany({}), Reply.deleteMany({}), Announcement.deleteMany({}), Notification.deleteMany({}),

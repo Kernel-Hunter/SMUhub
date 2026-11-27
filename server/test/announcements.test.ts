@@ -15,6 +15,7 @@ import { User } from '../src/models/User.js'
 import { Ledger } from '../src/models/Ledger.js'
 import { Announcement } from '../src/models/Announcement.js'
 import { LIMITS } from '../src/routes/announcements.js'
+import { dropTestDb } from './db.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_ANNOUNCEMENTS ?? 'mongodb://127.0.0.1:27017/smuhub_test_announcements'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -36,10 +37,7 @@ before(async () => {
   await mongoose.connect(MONGO, { serverSelectionTimeoutMS: 3000 })
   await mongoose.connection.dropDatabase()
 })
-after(async () => {
-  await mongoose.connection.dropDatabase()
-  await mongoose.disconnect()
-})
+after(dropTestDb)
 beforeEach(async () => {
   await Promise.all([User.deleteMany({}), Announcement.deleteMany({})])
   const base = { passwordHash: 'x', major: 'CS', year: 2 }
