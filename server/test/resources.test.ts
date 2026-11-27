@@ -5,6 +5,8 @@
  */
 import { after, before, beforeEach, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import http from 'node:http'
+import type { AddressInfo } from 'node:net'
 import jwt from 'jsonwebtoken'
 import mongoose, { type Types } from 'mongoose'
 import request from 'supertest'
@@ -16,6 +18,8 @@ import { XP_RULES } from '../src/lib/xp.js'
 import { Ledger } from '../src/models/Ledger.js'
 import { User } from '../src/models/User.js'
 import { Download, Rating, Resource } from '../src/models/Resource.js'
+import { UploadLog } from '../src/models/UploadLog.js'
+import { UPLOAD_SLOTS, uploadsInFlight } from '../src/routes/resources.js'
 import { makeOffice, makePdf, makePng } from '../src/scripts/sampleFiles.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_RESOURCES ?? 'mongodb://127.0.0.1:27017/smuhub_test_resources'
@@ -57,7 +61,7 @@ const noEmail = (body: unknown) => !/@(medtech|msb)\.tn/.test(JSON.stringify(bod
 before(async () => {
   await mongoose.connect(MONGO, { serverSelectionTimeoutMS: 3000 })
   await mongoose.connection.dropDatabase()
-  await Promise.all([User.syncIndexes(), Ledger.syncIndexes(), Resource.syncIndexes(), Download.syncIndexes(), Rating.syncIndexes()])
+  await Promise.all([User.syncIndexes(), Ledger.syncIndexes(), Resource.syncIndexes(), Download.syncIndexes(), Rating.syncIndexes(), UploadLog.syncIndexes()])
 })
 after(async () => {
   await mongoose.connection.dropDatabase()
@@ -67,7 +71,7 @@ beforeEach(async () => {
   const db = mongoose.connection.db!
   // The ledger refuses deletes through the app, so tests clear it with the raw driver.
   await Promise.all([
-    User.deleteMany({}), Resource.deleteMany({}), Download.deleteMany({}), Rating.deleteMany({}), Ledger.collection.deleteMany({}),
+    User.deleteMany({}), Resource.deleteMany({}), Download.deleteMany({}), Rating.deleteMany({}), UploadLog.deleteMany({}), Ledger.collection.deleteMany({}),
     db.collection('resources.files').deleteMany({}), db.collection('resources.chunks').deleteMany({}),
   ])
   const base = { passwordHash: 'x', major: 'CS', year: 2 }
@@ -200,14 +204,71 @@ describe('upload', () => {
     for (let i = 0; i < FILE_RULES.uploadsPerDay; i++) await created(lina)
     const res = await upload(lina, pdf(), 'one-more.pdf')
     assert.equal(res.status, 429); assert.equal(res.body.error.code, 'rate_limited')
-    await Resource.updateMany({ uploader: lina }, { createdAt: new Date(Date.now() - 25 * 3_600_000) }) // a day later
+    await UploadLog.updateMany({ user: lina }, { createdAt: new Date(Date.now() - 25 * 3_600_000) }) // a day later
     await created(lina)
   })
 
-  it('keeps the daily limit with parallel uploads', async () => {
+  it('keeps the daily limit with parallel uploads (one at a time per student)', async () => {
     const res = await Promise.all(Array.from({ length: 8 }, () => upload(omar, pdf(), 'p.pdf')))
-    assert.equal(res.filter((r) => r.status === 201).length, FILE_RULES.uploadsPerDay)
-    assert.equal(res.filter((r) => r.status === 429).length, 8 - FILE_RULES.uploadsPerDay)
+    const ok = res.filter((r) => r.status === 201).length
+    assert.ok(ok >= 1 && ok <= FILE_RULES.uploadsPerDay)
+    for (const r of res.filter((x) => x.status !== 201)) { assert.equal(r.status, 429); assert.ok(['rate_limited', 'upload_in_progress'].includes(r.body.error.code)) }
+    assert.equal(await Resource.countDocuments({ uploader: omar }), ok)
+  })
+
+  it('does not give an upload back when a file is deleted', async () => {
+    const ids: string[] = []
+    for (let i = 0; i < FILE_RULES.uploadsPerDay; i++) ids.push((await created(lina)).id)
+    assert.equal((await as(lina).del(`/api/resources/${ids[0]}`)).status, 204)
+    const res = await upload(lina, pdf(), 'one-more.pdf')
+    assert.equal(res.status, 429); assert.equal(res.body.error.code, 'rate_limited')
+  })
+})
+
+describe('uploads in flight', () => {
+  let server: http.Server
+  before(() => { server = app.listen(0) })
+  after(() => { server.closeAllConnections(); server.close() })
+
+  // An upload whose body never ends: the server holds its slot until the socket closes.
+  const stalled = (id: Id) => {
+    const req = http.request({
+      port: (server.address() as AddressInfo).port, method: 'POST', path: '/api/resources',
+      headers: { Cookie: cookie(id), 'Content-Type': 'multipart/form-data; boundary=x', 'Content-Length': 20 * 1024 * 1024 },
+    })
+    req.on('error', () => {})
+    req.write('--x\r\nContent-Disposition: form-data; name="title"\r\n\r\nA stalled upload\r\n')
+    return req
+  }
+  const inFlight = async (n: number) => {
+    for (let i = 0; i < 400 && uploadsInFlight() !== n; i++) await new Promise((r) => setTimeout(r, 5))
+    assert.equal(uploadsInFlight(), n)
+  }
+
+  it('allows one upload at a time per student, and frees the slot when the client gives up', async () => {
+    const first = stalled(lina)
+    await inFlight(1)
+    const res = await upload(lina, pdf(), 'second.pdf')
+    assert.equal(res.status, 429); assert.equal(res.body.error.code, 'upload_in_progress')
+    assert.match(res.body.error.message, /^[A-Z][^{}<>]+\.$/)
+    assert.equal((await upload(omar, pdf(), 'other-student.pdf')).status, 201)
+    first.destroy()
+    await inFlight(0)
+    assert.equal((await upload(lina, pdf(), 'after-abort.pdf')).status, 201)
+    await inFlight(0)
+  })
+
+  it(`answers 503 once ${UPLOAD_SLOTS.global} uploads are in flight`, async () => {
+    const base = { passwordHash: 'x', major: 'CS', year: 2 }
+    const extra = await Promise.all(Array.from({ length: UPLOAD_SLOTS.global }, (_, i) => User.create({ ...base, email: `extra${i}@medtech.tn`, firstName: 'Extra', lastName: `Student${i}` })))
+    const open = extra.map((u) => stalled(u._id))
+    await inFlight(UPLOAD_SLOTS.global)
+    const res = await upload(lina, pdf(), 'busy.pdf')
+    assert.equal(res.status, 503); assert.equal(res.body.error.code, 'busy')
+    assert.equal(res.body.error.message, 'The server is busy. Try again in a minute.')
+    for (const r of open) r.destroy()
+    await inFlight(0)
+    assert.equal((await upload(lina, pdf(), 'not-busy.pdf')).status, 201)
   })
 })
 
@@ -237,6 +298,20 @@ describe('download', () => {
     assert.equal(seen.downloads, 2); assert.equal(seen.iDownloaded, true)
     assert.equal(await Download.countDocuments({ resource: r.id }), 3)
     assert.equal((await as(nour).get(`/api/resources/${r.id}`)).body.resource.iDownloaded, false)
+  })
+
+  it('serves a link followed from another site but does not count it as a download', async () => {
+    const r = await created(lina)
+    for (const site of ['cross-site', 'same-site']) {
+      const res = await fetchFile(omar, r.id).set('Sec-Fetch-Site', site)
+      assert.equal(res.status, 200); assert.ok((res.body as Buffer).length > 0)
+    }
+    assert.equal((await Resource.findById(r.id))!.downloads, 0)
+    assert.equal(await Download.countDocuments({ resource: r.id }), 0)
+    assert.equal((await as(omar).post(`/api/resources/${r.id}/rate`)).body.error.code, 'download_first')
+    await fetchFile(omar, r.id).set('Sec-Fetch-Site', 'same-origin')
+    await fetchFile(sara, r.id).set('Sec-Fetch-Site', 'none')
+    assert.equal((await Resource.findById(r.id))!.downloads, 2)
   })
 
   it('answers 404 for an unknown resource', async () => {
@@ -294,6 +369,30 @@ describe('rating', () => {
     assert.equal((await Resource.findById(r.id))!.verified, false)
     assert.equal(await xp(lina), 2 * XP_RULES.points.helpful)
   })
+
+  it('counts only ratings that paid XP toward verification', async () => {
+    // Omar, Sara and Nour already spent their weekly pair cap with Lina (two days ago, so the daily cap is free).
+    const twoDaysAgo = new Date(Date.now() - 2 * 86_400_000)
+    for (const u of [omar, sara, nour]) for (let i = 0; i < XP_RULES.pairWeeklyCap; i++) {
+      await Ledger.create({ user: lina, actor: u, kind: 'answer_upvoted', points: 1, refKey: `old:${u}:${i}`, label: 'Earlier upvote', createdAt: twoDaysAgo })
+    }
+    const before = await xp(lina)
+    const r = await created(lina)
+    for (const u of [omar, sara, nour]) { await fetchFile(u, r.id); assert.equal((await as(u).post(`/api/resources/${r.id}/rate`)).status, 200) }
+    let doc = (await Resource.findById(r.id))!
+    assert.equal(doc.helpful, 3); assert.equal(doc.verified, false)
+    assert.equal(await xp(lina), before)
+    assert.equal(await Rating.countDocuments({ resource: r.id, paid: true }), 0)
+    // Two paying ratings are still short of the threshold, the third one verifies.
+    const base = { passwordHash: 'x', major: 'CS', year: 2 }
+    const [a, b] = await Promise.all(['amel.ben@medtech.tn', 'yassine.t@msb.tn'].map((email, i) => User.create({ ...base, email, firstName: 'New', lastName: `Rater${i}` })))
+    for (const u of [a._id, b._id]) { await fetchFile(u, r.id); await as(u).post(`/api/resources/${r.id}/rate`) }
+    assert.equal((await Resource.findById(r.id))!.verified, false)
+    await fetchFile(admin, r.id); await as(admin).post(`/api/resources/${r.id}/rate`)
+    doc = (await Resource.findById(r.id))!
+    assert.equal(doc.helpful, 6); assert.equal(doc.verified, true)
+    assert.equal(await xp(lina), before + 3 * XP_RULES.points.helpful + XP_RULES.points.verified)
+  })
 })
 
 describe('removal', () => {
@@ -324,6 +423,26 @@ describe('removal', () => {
     assert.equal(await mongoose.connection.db!.collection('resources.files').countDocuments(), 1)
     assert.equal((await fetchFile(omar, r.id)).status, 404)
     assert.equal((await as(omar).post(`/api/resources/${r.id}/rate`)).status, 404)
+  })
+
+  it('takes back a rating whose award lands after the removal', async () => {
+    const r = await created(lina)
+    await fetchFile(omar, r.id)
+    // Force the race by call order: the rating has counted itself, then the whole removal runs, then the rating goes on.
+    const original = Resource.findOneAndUpdate
+    const racing = async (...args: Parameters<typeof original>) => {
+      const doc = await original.apply(Resource, args)
+      Resource.findOneAndUpdate = original
+      assert.equal((await as(lina).del(`/api/resources/${r.id}`)).status, 204)
+      return doc
+    }
+    Resource.findOneAndUpdate = racing as unknown as typeof original
+    try {
+      assert.equal((await as(omar).post(`/api/resources/${r.id}/rate`)).status, 404)
+    } finally {
+      Resource.findOneAndUpdate = original
+    }
+    assert.equal(await xp(lina), 0)
   })
 })
 

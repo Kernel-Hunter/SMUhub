@@ -28,6 +28,11 @@ export type AwardInput = {
   label: string
   /** Server-side only (seed): when the event happened. Caps are counted in the windows ending then. */
   at?: Date
+  /**
+   * Checked in the student's queue right before paying; false pays nothing. compensate() runs in the same queue, so
+   * content removed (then compensated) before this check pays nothing, and content removed after it is taken back.
+   */
+  onlyIf?: () => Promise<boolean>
 }
 
 /**
@@ -40,7 +45,7 @@ export function award(input: AwardInput): Promise<number> {
   return oneAtATime(input.user, () => awardNow(input))
 }
 
-async function awardNow({ user, actor, kind, points, refKey, label, at = new Date() }: AwardInput): Promise<number> {
+async function awardNow({ user, actor, kind, points, refKey, label, at = new Date(), onlyIf }: AwardInput): Promise<number> {
   if (!(points > 0)) return 0
   const system = actor === 'system'
   if (!system && actor.equals(user)) return 0
@@ -56,6 +61,7 @@ async function awardNow({ user, actor, kind, points, refKey, label, at = new Dat
   ])
   const pts = Math.min(points, Math.max(0, XP_RULES.dailyXpCap - (today?.sum ?? 0)))
   if (pts <= 0) return 0
+  if (onlyIf && !(await onlyIf())) return 0
   try {
     await Ledger.create({ user, actor: system ? null : actor, kind, points: pts, refKey, label, createdAt: at })
   } catch (err) {

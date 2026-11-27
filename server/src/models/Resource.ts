@@ -42,11 +42,16 @@ const downloadSchema = new Schema(
 )
 downloadSchema.index({ resource: 1, user: 1 }, { unique: true })
 
-/** A student rated a resource helpful. Final: one per student and resource, never changed. */
+/**
+ * A student rated a resource helpful. Final: one per student and resource, never changed.
+ * `paid` is true when the rating paid the uploader XP; only those count toward verification (a rater whose weekly
+ * pair cap with the uploader is spent still counts in `helpful`, but cannot help verify the file).
+ */
 const ratingSchema = new Schema(
   {
     resource: { type: Schema.Types.ObjectId, ref: 'Resource', required: true },
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    paid: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
   },
   { versionKey: false },
