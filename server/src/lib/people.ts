@@ -13,4 +13,4 @@ export async function loadPeople(ids: Types.ObjectId[]) {
 
 /** The person for `id`, or a neutral placeholder when the account was deleted (the client always expects someone). */
 export const personOr = (people: Map<string, PublicPerson>, id: Types.ObjectId): PublicPerson =>
-  people.get(id.toString()) ?? { id: id.toString(), name: 'Former student', handle: '', major: '', year: 1 }
+  people.get(id.toString()) ?? { id: id.toString(), name: 'Former student', major: '', year: 1 }

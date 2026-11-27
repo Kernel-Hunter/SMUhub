@@ -7,15 +7,18 @@ import { HttpError } from '../lib/errors.js'
 import { isCourseCode } from '../lib/courses.js'
 import { CONTENT_TYPES, FILE_RULES, checkFile, deleteFile, filesBucket, safeFileName, saveFile, sha256 } from '../lib/files.js'
 import { notify } from '../lib/notify.js'
+import { serialize } from '../lib/serial.js'
 import { loadPeople, personOr } from '../lib/people.js'
 import { DAY, XP_RULES, award, compensate } from '../lib/xp.js'
 import { Download, RESOURCE_KINDS, Rating, Resource } from '../models/Resource.js'
+import { UploadLog } from '../models/UploadLog.js'
 
 /**
  * Resources library, mounted at /api/resources behind requireAuth (see app.ts).
  * Same rules as docs/BACKEND.md: allowed types checked on the bytes,
- * 10 KB to 25 MB, SHA-256 duplicates refused, 5 uploads per student per 24 h; rate only what you downloaded,
- * never your own file, once. Each rating pays the uploader through award(); the third one verifies the file (bonus from 'system').
+ * 10 KB to 25 MB, SHA-256 duplicates refused, 5 uploads per student per 24 h (counted in UploadLog, so deleting a file
+ * gives no upload back), one upload in flight per student; rate only what you downloaded, never your own file, once.
+ * Each rating pays the uploader through award(); the third rating that paid XP verifies the file (bonus from 'system').
  * Removing a file takes back the XP it earned with a compensating ledger row (compensate()).
  */
 
@@ -97,17 +100,28 @@ async function findResource(id: string) {
   return r
 }
 
-// Uploads of one student run one at a time, so parallel requests cannot all pass the daily count before any is saved.
-// Holds for a single server process (same limit as award() in lib/xp.ts).
-const queues = new Map<string, Promise<unknown>>()
-function oneAtATime<T>(key: string, fn: () => Promise<T>): Promise<T> {
-  const run = (queues.get(key) ?? Promise.resolve()).then(fn, fn)
-  const tail = run.then(() => {}, () => {})
-  queues.set(key, tail)
-  void tail.then(() => { if (queues.get(key) === tail) queues.delete(key) })
-  return run
+// Saved uploads, from the append-only log: a deleted file still counts.
+const uploadsToday = (me: Id) => UploadLog.countDocuments({ user: me, createdAt: { $gt: new Date(Date.now() - DAY) } })
+
+// Uploads are read into memory (up to 25 MB each), so the number of bodies being read at once is capped before multer
+// starts: one per student, UPLOAD_SLOTS.global in all. Counted in this process only, like serialize().
+export const UPLOAD_SLOTS = { global: 6 }
+const uploading = new Set<string>()
+/** Uploads currently holding a slot (tests and diagnostics). */
+export const uploadsInFlight = () => uploading.size
+
+const uploadSlot: RequestHandler = (req, res, next) => {
+  const me = req.user!._id.toString()
+  if (uploading.has(me)) throw new HttpError(429, 'upload_in_progress', 'Your previous upload is still in progress. Wait for it to finish.')
+  if (uploading.size >= UPLOAD_SLOTS.global) throw new HttpError(503, 'busy', 'The server is busy. Try again in a minute.')
+  uploading.add(me)
+  // 'close' fires once the response is sent (success or error) and when the client aborts, so the slot is always freed.
+  // The request's own 'close' is not enough: it fires as soon as the body has been read, before the file is saved.
+  const release = () => { uploading.delete(me) }
+  res.once('close', release)
+  req.once('error', release)
+  next()
 }
-const uploadsToday = (me: Id) => Resource.countDocuments({ uploader: me, createdAt: { $gt: new Date(Date.now() - DAY) } })
 
 // Multipart, kept in memory (25 MB max), one file in the field `file`. File names are read as UTF-8.
 const multipart = multer({
@@ -161,7 +175,7 @@ export function resourcesRouter() {
   })
 
   // POST /api/resources, multipart: file + title, description, courseCode, kind, semester, academicYear -> 201 { resource }
-  router.post('/', quota, parseUpload, async (req, res) => {
+  router.post('/', uploadSlot, quota, parseUpload, async (req, res) => {
     const me = req.user!._id
     const parsed = meta.safeParse({ ...req.body })
     if (!parsed.success) throw metaError(parsed.error)
@@ -172,33 +186,41 @@ export function resourcesRouter() {
     const hash = sha256(file.buffer)
     const fileName = safeFileName(file.originalname, check.ext, parsed.data.title)
 
-    const doc = await oneAtATime(me.toString(), async () => {
+    // One at a time per student (serialize, single process), so parallel uploads cannot all pass the daily count before any is saved.
+    const doc = await serialize(`upload:${me}`, async () => {
       if (await uploadsToday(me) >= FILE_RULES.uploadsPerDay) throw rateLimited()
       if (await Resource.exists({ sha256: hash })) throw duplicate()
       const fileId = await saveFile(file.buffer, fileName, { uploader: me, sha256: hash })
+      let saved
       try {
-        return await Resource.create({ ...parsed.data, fileName, ext: check.ext, size: file.size, sha256: hash, fileId, uploader: me })
+        saved = await Resource.create({ ...parsed.data, fileName, ext: check.ext, size: file.size, sha256: hash, fileId, uploader: me })
       } catch (err) {
         await deleteFile(fileId)
         if (isDuplicateKey(err)) throw duplicate() // another student uploaded the same bytes at the same moment
         throw err
       }
+      await UploadLog.create({ user: me })
+      return saved
     })
     res.status(201).json({ resource: await oneJson(doc, me) })
   })
 
-  // GET /api/resources/:id/file -> the bytes, as an attachment. Records the download (once per student).
+  // GET /api/resources/:id/file -> the bytes, as an attachment. Records the download (once per student),
+  // unless the browser says the link was followed from another site: a link posted elsewhere must not inflate the count.
   router.get('/:id/file', async (req, res) => {
     const me = req.user!._id
     const r = await findResource(req.params.id)
     const bucket = filesBucket()
     const [stored] = await bucket.find({ _id: r.fileId }).limit(1).toArray()
     if (!stored) throw new HttpError(404, 'not_found', NOT_FOUND)
-    try {
-      const rec = await Download.updateOne({ resource: r._id, user: me }, { $setOnInsert: { createdAt: new Date() } }, { upsert: true })
-      if (rec.upsertedCount === 1 && !r.uploader.equals(me)) await Resource.updateOne({ _id: r._id }, { $inc: { downloads: 1 } })
-    } catch (err) {
-      if (!isDuplicateKey(err)) throw err // a parallel request recorded it first
+    const site = req.get('sec-fetch-site')
+    if (!site || site === 'same-origin' || site === 'none') {
+      try {
+        const rec = await Download.updateOne({ resource: r._id, user: me }, { $setOnInsert: { createdAt: new Date() } }, { upsert: true })
+        if (rec.upsertedCount === 1 && !r.uploader.equals(me)) await Resource.updateOne({ _id: r._id }, { $inc: { downloads: 1 } })
+      } catch (err) {
+        if (!isDuplicateKey(err)) throw err // a parallel request recorded it first
+      }
     }
     res.attachment(r.fileName)
     res.set({
@@ -222,8 +244,9 @@ export function resourcesRouter() {
     const r = await findResource(req.params.id)
     if (r.uploader.equals(me)) throw new HttpError(403, 'self_vote', 'You cannot rate your own file.')
     if (!(await Download.exists({ resource: r._id, user: me }))) throw new HttpError(403, 'download_first', 'Download the file before you rate it.')
+    let rating
     try {
-      await Rating.create({ resource: r._id, user: me })
+      rating = await Rating.create({ resource: r._id, user: me })
     } catch (err) {
       if (isDuplicateKey(err)) throw new HttpError(409, 'already_voted', 'Ratings are final. You already rated this file.')
       throw err
@@ -231,13 +254,25 @@ export function resourcesRouter() {
     const fresh = await Resource.findOneAndUpdate({ _id: r._id }, { $inc: { helpful: 1 } }, { returnDocument: 'after' })
     if (!fresh) throw new HttpError(404, 'not_found', NOT_FOUND) // removed in the meantime: nothing to pay
     const id = r._id.toString()
-    await award({ user: r.uploader, actor: me, kind: 'resource_helpful', points: XP_RULES.points.helpful, refKey: `helpful:${me}:${id}`, label: `Helpful: ${r.title}` })
+    // A removal may land at any point. award() checks the file still exists inside the uploader's queue, where the
+    // removal's compensate() also runs: removed before the check pays nothing, removed after it is taken back.
+    const exists = async () => !!(await Resource.exists({ _id: r._id }))
+    const paid = await award({ user: r.uploader, actor: me, kind: 'resource_helpful', points: XP_RULES.points.helpful, refKey: `helpful:${me}:${id}`, label: `Helpful: ${r.title}`, onlyIf: exists })
+    if (!(await exists())) throw new HttpError(404, 'not_found', NOT_FOUND)
     await notify(r.uploader, { kind: 'resource_helpful', title: 'A classmate found your file helpful', body: r.title, link: `/resources/${id}`, actor: me })
-    // Exactly one request flips `verified`, so the bonus is paid once (and its refKey would refuse a second payment anyway).
-    const verified = await Resource.updateOne({ _id: r._id, verified: false, helpful: { $gte: FILE_RULES.verifyThreshold } }, { verified: true })
-    if (verified.modifiedCount === 1) {
-      await award({ user: r.uploader, actor: 'system', kind: 'resource_verified', points: XP_RULES.points.verified, refKey: `verify:${id}`, label: `Verified: ${r.title}` })
-      await notify(r.uploader, { kind: 'resource_verified', title: 'Your file is now verified', body: r.title, link: `/resources/${id}`, actor: 'system' })
+    // Only ratings that paid XP count toward verification: once a rater's weekly pair cap with the uploader is spent, their
+    // rating still shows in `helpful` but cannot verify, so a few friends cannot verify file after file for the bonus.
+    // Each paying rating is marked before counting, so the last of parallel ones sees them all. Exactly one request
+    // flips `verified` (conditional update), so the bonus is paid once (and its refKey would refuse a second payment anyway).
+    if (paid > 0) {
+      await Rating.updateOne({ _id: rating._id }, { paid: true })
+      if (await Rating.countDocuments({ resource: r._id, paid: true }) >= FILE_RULES.verifyThreshold) {
+        const verified = await Resource.updateOne({ _id: r._id, verified: false }, { verified: true })
+        if (verified.modifiedCount === 1) {
+          await award({ user: r.uploader, actor: 'system', kind: 'resource_verified', points: XP_RULES.points.verified, refKey: `verify:${id}`, label: `Verified: ${r.title}`, onlyIf: exists })
+          await notify(r.uploader, { kind: 'resource_verified', title: 'Your file is now verified', body: r.title, link: `/resources/${id}`, actor: 'system' })
+        }
+      }
     }
     res.json({ resource: await oneJson((await Resource.findById(r._id)) ?? fresh, me) })
   })

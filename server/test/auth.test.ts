@@ -17,6 +17,7 @@ import { hashPassword } from '../src/lib/password.js'
 import { SESSION_COOKIE } from '../src/lib/session.js'
 import { requireAuth } from '../src/middleware/requireAuth.js'
 import { User } from '../src/models/User.js'
+import { dropTestDb } from './db.js'
 
 const MONGO = process.env.MONGODB_URI_TEST ?? 'mongodb://127.0.0.1:27017/smuhub_test'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -42,10 +43,7 @@ before(async () => {
   await mongoose.connection.dropDatabase()
   await User.syncIndexes()
 })
-after(async () => {
-  await mongoose.connection.dropDatabase()
-  await mongoose.disconnect()
-})
+after(dropTestDb)
 beforeEach(async () => {
   await User.deleteMany({})
   const u = await User.create({ email: 'lina.haddad@medtech.tn', passwordHash: await hashPassword(PASSWORD), firstName: 'Lina', lastName: 'Haddad', major: 'CS', year: 2 })

@@ -16,6 +16,7 @@ import { Ledger } from '../src/models/Ledger.js'
 import { User } from '../src/models/User.js'
 import { Thread } from '../src/models/Thread.js'
 import { Reply } from '../src/models/Reply.js'
+import { dropTestDb } from './db.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_XP ?? 'mongodb://127.0.0.1:27017/smuhub_test_xp'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -43,10 +44,7 @@ before(async () => {
   await mongoose.connection.dropDatabase()
   await Promise.all([User.syncIndexes(), Ledger.syncIndexes()]) // the unique refKey index must exist
 })
-after(async () => {
-  await mongoose.connection.dropDatabase()
-  await mongoose.disconnect()
-})
+after(dropTestDb)
 beforeEach(async () => {
   // The ledger refuses deletes through the app, so tests clear it with the raw driver.
   await Promise.all([User.deleteMany({}), Thread.deleteMany({}), Reply.deleteMany({}), Ledger.collection.deleteMany({})])
@@ -190,7 +188,7 @@ describe('GET /api/me and /api/me/xp', () => {
     const res = await as(lina).get('/api/me')
     assert.equal(res.status, 200)
     const me = res.body.me
-    assert.deepEqual(Object.keys(me).sort(), ['bio', 'courses', 'handle', 'id', 'joinedAt', 'major', 'name', 'rank', 'role', 'uploads', 'weeklyXp', 'xp', 'year'])
+    assert.deepEqual(Object.keys(me).sort(), ['bio', 'courses', 'id', 'joinedAt', 'major', 'name', 'rank', 'role', 'uploads', 'weeklyXp', 'xp', 'year'])
     assert.equal(me.id, lina.toString())
     assert.equal(me.name, 'Lina Haddad')
     assert.equal(me.xp, 42)
@@ -294,7 +292,7 @@ describe('GET /api/users/:id', () => {
     assert.equal(res.status, 200)
     const p = res.body
     assert.deepEqual(Object.keys(p).sort(), ['acceptedAnswers', 'resources', 'threads', 'user'])
-    assert.deepEqual(Object.keys(p.user).sort(), ['bio', 'handle', 'id', 'joinedAt', 'major', 'name', 'rank', 'xp', 'year'])
+    assert.deepEqual(Object.keys(p.user).sort(), ['bio', 'id', 'joinedAt', 'major', 'name', 'rank', 'xp', 'year'])
     assert.equal(p.user.name, 'Lina Haddad')
     assert.equal(p.user.bio, 'SQL nerd')
     assert.equal(p.user.xp, XP_RULES.points.accepted)

@@ -16,6 +16,7 @@ import { User } from '../src/models/User.js'
 import { Thread } from '../src/models/Thread.js'
 import { Resource } from '../src/models/Resource.js'
 import { Event } from '../src/models/Event.js'
+import { dropTestDb } from './db.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_COURSES ?? 'mongodb://127.0.0.1:27017/smuhub_test_courses'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -32,10 +33,7 @@ before(async () => {
   await mongoose.connect(MONGO, { serverSelectionTimeoutMS: 3000 })
   await mongoose.connection.dropDatabase()
 })
-after(async () => {
-  await mongoose.connection.dropDatabase()
-  await mongoose.disconnect()
-})
+after(dropTestDb)
 beforeEach(async () => {
   await Promise.all([User.deleteMany({}), Thread.deleteMany({}), Resource.deleteMany({}), Event.deleteMany({})])
   const base = { passwordHash: 'x', major: 'CS', year: 2 }

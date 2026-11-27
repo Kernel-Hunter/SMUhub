@@ -52,11 +52,14 @@ export function toPublicUser(u: UserDoc): PublicUserDto {
   }
 }
 
-/** The public shape other students see (client/src/api/types.ts PublicUser). Never includes the email. */
-export type ClientUser = { id: string; name: string; handle: string; major: string; year: number }
+/**
+ * The public shape other students see (client/src/api/types.ts PublicUser). Never includes the email, nor any part of it:
+ * with only three allowed domains, the part before the @ is the address.
+ */
+export type ClientUser = { id: string; name: string; major: string; year: number }
 
-export function toClientUser(u: { _id: { toString(): string }; firstName: string; lastName: string; email: string; major?: string | null; year?: number | null }): ClientUser {
-  return { id: u._id.toString(), name: `${u.firstName} ${u.lastName}`, handle: u.email.split('@')[0], major: u.major ?? '', year: u.year ?? 1 }
+export function toClientUser(u: { _id: { toString(): string }; firstName: string; lastName: string; major?: string | null; year?: number | null }): ClientUser {
+  return { id: u._id.toString(), name: `${u.firstName} ${u.lastName}`, major: u.major ?? '', year: u.year ?? 1 }
 }
 
 // Safety net in case a document is ever passed to res.json() directly.

@@ -5,6 +5,7 @@ import { HttpError } from '../lib/errors.js'
 import { isCourseCode } from '../lib/courses.js'
 import { notifyAnnouncement } from '../lib/notify.js'
 import { loadPeople, personOr, type PublicPerson } from '../lib/people.js'
+import { serialize } from '../lib/serial.js'
 import { Announcement } from '../models/Announcement.js'
 
 /**
@@ -73,9 +74,12 @@ export function announcementsRouter() {
     const now = Date.now()
     if (expiresAt != null && expiresAt <= now) throw new HttpError(400, 'bad_date', 'Pick an end date in the future.')
     if (expiresAt != null && expiresAt > now + 365 * DAY) throw new HttpError(400, 'bad_date', 'Pick an end date within the next 12 months.')
-    const recent = await Announcement.countDocuments({ author: user._id, createdAt: { $gte: new Date(now - DAY) } })
-    if (recent >= LIMITS.perDay) throw new HttpError(429, 'rate_limited', `You can post ${LIMITS.perDay} announcements per day. Try again tomorrow.`)
-    const a = await Announcement.create({ ...rest, pinned, expiresAt: expiresAt == null ? undefined : new Date(expiresAt), author: user._id })
+    // Count and insert one at a time per student, so parallel requests cannot all pass the count (lib/serial.ts).
+    const a = await serialize(`post:${user._id}`, async () => {
+      const recent = await Announcement.countDocuments({ author: user._id, createdAt: { $gte: new Date(now - DAY) } })
+      if (recent >= LIMITS.perDay) throw new HttpError(429, 'rate_limited', `You can post ${LIMITS.perDay} announcements per day. Try again tomorrow.`)
+      return Announcement.create({ ...rest, pinned, expiresAt: expiresAt == null ? undefined : new Date(expiresAt), author: user._id })
+    })
     await notifyAnnouncement(a)
     res.status(201).json({ announcement: announcementJson(a, user._id, personOr(await loadPeople([user._id]), user._id)) })
   })

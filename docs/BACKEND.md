@@ -38,13 +38,16 @@ Constants live in `client/src/api/rules.ts`.
 - Each ledger row has a unique `refKey` (`helpful:<voter>:<resource>`), so one event pays once.
 - XP comes from other students: a rating from someone who downloaded the file, upvotes, accepted answers. Posting alone earns nothing.
 - Forbidden: self-votes, self-awards, rating without downloading, changing a vote.
-- Caps: 120 XP per day per student, 3 XP-earning interactions per voter-to-author pair per week, 5 uploads per day.
+- Caps: 120 XP per day per student, 3 XP-earning interactions per voter-to-author pair per week, 5 uploads per day. Uploads are counted in an append-only `UploadLog` (kept 2 days), so deleting a file gives no upload back.
+- One upload in flight per student (429 `upload_in_progress`) and 6 in all (503 `busy`), checked before the body is read.
 - Files: store SHA-256 and reject duplicates globally. Allowed types only: pdf, docx, pptx, xlsx, png, jpg (never html, svg, zip). Check magic bytes, size 10 KB to 25 MB. Hash on the server, not in the browser.
-- Serve downloads with `Content-Disposition: attachment` and `X-Content-Type-Options: nosniff`, from a separate domain or signed URL, behind a session check.
-- A resource is "verified" after 3 distinct downloaders rate it helpful.
+- Serve downloads with `Content-Disposition: attachment` and `X-Content-Type-Options: nosniff`, from a separate domain or signed URL, behind a session check. A download is recorded only when `Sec-Fetch-Site` is absent, `same-origin` or `none`: a link followed from another site still gets the file but does not count (nor unlock rating).
+- A resource is "verified" after 3 distinct downloaders rate it helpful with a rating that paid XP (`ratings.paid`). A rating blocked by the pair cap still counts in `helpful` but not toward verification.
+- A rating that races a removal never keeps its XP: `award()` checks the file still exists inside the uploader's queue, where the removal's `compensate()` also runs.
 
 ## Privacy
 
+- No response about another student carries their email or any part of it. The public user shape is `{ id, name, major, year }`: with only three allowed domains, the part before the @ would be the address.
 - Anonymous posts and replies: the API omits the author for everyone, the author included (they get `mine: true`). Moderators can look up the real author in the database for abuse handling.
 - Anonymous Voice posts earn no XP when upvoted: an XP jump right after an upvote would point at the author.
 - Profiles never list anonymous content.

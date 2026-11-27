@@ -16,6 +16,7 @@ import { User } from '../src/models/User.js'
 import { Thread } from '../src/models/Thread.js'
 import { Reply } from '../src/models/Reply.js'
 import { Ledger } from '../src/models/Ledger.js'
+import { dropTestDb } from './db.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_VOICE ?? 'mongodb://127.0.0.1:27017/smuhub_test_voice'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -41,10 +42,7 @@ before(async () => {
   await mongoose.connection.dropDatabase()
   await Ledger.syncIndexes() // unique refKey
 })
-after(async () => {
-  await mongoose.connection.dropDatabase()
-  await mongoose.disconnect()
-})
+after(dropTestDb)
 beforeEach(async () => {
   // Ledger.deleteMany throws on purpose (append-only); tests clear the collection directly.
   await Promise.all([User.deleteMany({}), Thread.deleteMany({}), Reply.deleteMany({}), Ledger.collection.deleteMany({})])
@@ -85,6 +83,13 @@ describe('posting and listing', () => {
     const res = await publish()
     assert.equal(res.status, 429)
     assert.equal(res.body.error.code, 'rate_limited')
+  })
+
+  it('keeps the shared hourly limit with parallel posts and questions', async () => {
+    const q = { title: 'What does a LEFT JOIN return?', body: 'Lab 4 uses it and I do not see the difference.', courseCode: 'CS224' }
+    const res = await Promise.all(Array.from({ length: 20 }, (_, i) => i % 2 ? publish(lina, { title: `${POST.title} ${i}` }) : as(lina).post('/api/questions', q)))
+    assert.equal(res.filter((r) => r.status === 201).length, LIMITS.threadsPerHour)
+    assert.equal(await Thread.countDocuments({ author: lina }), LIMITS.threadsPerHour)
   })
 
   it('filters by category and search term, and sorts by votes', async () => {
@@ -240,6 +245,13 @@ describe('replies', () => {
     const res = await as(omar).post(`/api/voice/${t.id}/replies`, { body: 'One more' })
     assert.equal(res.status, 429)
     assert.equal((await as(omar).get(`/api/voice/${t.id}`)).body.thread.replyCount, LIMITS.repliesPer10Min)
+  })
+
+  it('keeps the reply limit with parallel requests', async () => {
+    const t = (await publish()).body.thread
+    const res = await Promise.all(Array.from({ length: 20 }, (_, i) => as(omar).post(`/api/voice/${t.id}/replies`, { body: `Reply ${i}`, anonymous: i % 2 === 0 })))
+    assert.equal(res.filter((r) => r.status === 201).length, LIMITS.repliesPer10Min)
+    assert.equal(await Reply.countDocuments({ author: omar }), LIMITS.repliesPer10Min)
   })
 })
 

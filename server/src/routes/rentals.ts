@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { notify, notifyMany } from '../lib/notify.js'
 import { loadPeople, personOr, type PublicPerson } from '../lib/people.js'
+import { serialize } from '../lib/serial.js'
 import { RentalItem, RentalRequest } from '../models/Rental.js'
 
 /**
@@ -98,9 +99,12 @@ export function rentalsRouter() {
       const [code, message] = ITEM_ERRORS[String(parsed.error.issues[0]?.path[0])] ?? ['invalid_input', 'Check the details of your listing.']
       throw new HttpError(400, code, message)
     }
-    const count = await RentalItem.countDocuments({ owner: me })
-    if (count >= LIMITS.listingsPerStudent) throw new HttpError(429, 'rate_limited', `You can list at most ${LIMITS.listingsPerStudent} items.`)
-    const item = await RentalItem.create({ ...parsed.data, owner: me })
+    // Count and insert one at a time per student, so parallel requests cannot all pass the count (lib/serial.ts).
+    const item = await serialize(`post:${me}`, async () => {
+      const count = await RentalItem.countDocuments({ owner: me })
+      if (count >= LIMITS.listingsPerStudent) throw new HttpError(429, 'rate_limited', `You can list at most ${LIMITS.listingsPerStudent} items.`)
+      return RentalItem.create({ ...parsed.data, owner: me })
+    })
     res.status(201).json({ item: (await itemsJson([item], me))[0] })
   })
 

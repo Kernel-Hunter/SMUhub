@@ -251,7 +251,9 @@ async function main() {
     await Rating.updateOne({ resource: r._id, user: other }, { $setOnInsert: { createdAt: new Date(at.getTime() + 2 * HOUR) } }, { upsert: true })
     const [downloads, helpful] = await Promise.all([Download.countDocuments({ resource: r._id, user: { $ne: r.uploader } }), Rating.countDocuments({ resource: r._id })])
     await Resource.updateOne({ _id: r._id }, { downloads, helpful })
-    fileXp += await award({ user: r.uploader, actor: other, kind: 'resource_helpful', points: XP_RULES.points.helpful, refKey: `helpful:${other}:${r._id}`, label: `Helpful: ${r.title}`, at: new Date(at.getTime() + 2 * HOUR) })
+    const pts = await award({ user: r.uploader, actor: other, kind: 'resource_helpful', points: XP_RULES.points.helpful, refKey: `helpful:${other}:${r._id}`, label: `Helpful: ${r.title}`, at: new Date(at.getTime() + 2 * HOUR) })
+    if (pts > 0) await Rating.updateOne({ resource: r._id, user: other }, { paid: true }) // counts toward verification, like a live rating
+    fileXp += pts
   }
   console.log(`Seeded ${DEMO_RESOURCES.length} demo library files (${fileXp} XP newly awarded).`)
   await disconnectDb()

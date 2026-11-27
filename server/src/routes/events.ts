@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { isCourseCode } from '../lib/courses.js'
 import { loadPeople, personOr, type PublicPerson } from '../lib/people.js'
+import { serialize } from '../lib/serial.js'
 import { Event } from '../models/Event.js'
 
 /**
@@ -57,9 +58,12 @@ export function eventsRouter() {
     const now = Date.now()
     if (startsAt < now - 3_600_000) throw new HttpError(400, 'bad_date', 'Pick a date in the future.')
     if (startsAt > now + 365 * DAY) throw new HttpError(400, 'bad_date', 'Pick a date within the next 12 months.')
-    const upcoming = await Event.countDocuments({ author: me, startsAt: { $gt: new Date(now) } })
-    if (upcoming >= LIMITS.upcomingPerStudent) throw new HttpError(429, 'rate_limited', `You already have ${LIMITS.upcomingPerStudent} upcoming events.`)
-    const event = await Event.create({ ...rest, startsAt: new Date(startsAt), location: location || 'TBA', author: me, goers: [me], going: 1 })
+    // Count and insert one at a time per student, so parallel requests cannot all pass the count (lib/serial.ts).
+    const event = await serialize(`post:${me}`, async () => {
+      const upcoming = await Event.countDocuments({ author: me, startsAt: { $gt: new Date(now) } })
+      if (upcoming >= LIMITS.upcomingPerStudent) throw new HttpError(429, 'rate_limited', `You already have ${LIMITS.upcomingPerStudent} upcoming events.`)
+      return Event.create({ ...rest, startsAt: new Date(startsAt), location: location || 'TBA', author: me, goers: [me], going: 1 })
+    })
     res.status(201).json({ event: eventJson(event, me, personOr(await loadPeople([me]), me)) })
   })
 

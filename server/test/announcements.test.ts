@@ -15,6 +15,7 @@ import { User } from '../src/models/User.js'
 import { Ledger } from '../src/models/Ledger.js'
 import { Announcement } from '../src/models/Announcement.js'
 import { LIMITS } from '../src/routes/announcements.js'
+import { dropTestDb } from './db.js'
 
 const MONGO = process.env.MONGODB_URI_TEST_ANNOUNCEMENTS ?? 'mongodb://127.0.0.1:27017/smuhub_test_announcements'
 const SECRET = 'test-secret-that-is-long-enough-for-hs256-signing'
@@ -36,10 +37,7 @@ before(async () => {
   await mongoose.connect(MONGO, { serverSelectionTimeoutMS: 3000 })
   await mongoose.connection.dropDatabase()
 })
-after(async () => {
-  await mongoose.connection.dropDatabase()
-  await mongoose.disconnect()
-})
+after(dropTestDb)
 beforeEach(async () => {
   await Promise.all([User.deleteMany({}), Announcement.deleteMany({})])
   const base = { passwordHash: 'x', major: 'CS', year: 2 }
@@ -103,6 +101,12 @@ describe('posting announcements', () => {
     // Older than 24 hours no longer counts (createdAt is immutable through Mongoose, so set it on the raw collection).
     await Announcement.collection.updateMany({ author: new mongoose.Types.ObjectId(lina) }, { $set: { createdAt: new Date(Date.now() - 2 * DAY) } })
     assert.equal((await post()).status, 201)
+  })
+
+  it('keeps the daily limit with parallel requests', async () => {
+    const res = await Promise.all(Array.from({ length: 20 }, (_, i) => post(lina, { title: `Notice number ${i + 1}` })))
+    assert.equal(res.filter((r) => r.status === 201).length, LIMITS.perDay)
+    assert.equal(await Announcement.countDocuments({ author: lina }), LIMITS.perDay)
   })
 
   it('lets only an admin pin', async () => {

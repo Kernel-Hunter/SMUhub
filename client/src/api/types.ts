@@ -3,7 +3,6 @@
 export type PublicUser = {
   id: string
   name: string
-  handle: string
   major: string
   year: number
 }
