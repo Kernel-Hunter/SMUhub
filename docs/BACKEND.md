@@ -47,6 +47,7 @@ Constants live in `client/src/api/rules.ts`.
 
 ## Privacy
 
+- No response about another student carries their email or any part of it. The public user shape is `{ id, name, major, year }`: with only three allowed domains, the part before the @ would be the address.
 - Anonymous posts and replies: the API omits the author for everyone, the author included (they get `mine: true`). Moderators can look up the real author in the database for abuse handling.
 - Anonymous Voice posts earn no XP when upvoted: an XP jump right after an upvote would point at the author.
 - Profiles never list anonymous content.
