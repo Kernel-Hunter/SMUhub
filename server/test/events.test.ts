@@ -91,6 +91,12 @@ describe('adding and listing events', () => {
     assert.equal((await add(omar)).status, 201)
   })
 
+  it('keeps the upcoming limit with parallel requests', async () => {
+    const res = await Promise.all(Array.from({ length: 20 }, (_, i) => add(lina, { startsAt: Date.now() + (i + 1) * DAY })))
+    assert.equal(res.filter((r) => r.status === 201).length, LIMITS.upcomingPerStudent)
+    assert.equal(await Event.countDocuments({ author: lina }), LIMITS.upcomingPerStudent)
+  })
+
   it('lists upcoming events soonest first and hides old ones', async () => {
     await add(lina, { title: 'Later event on campus', startsAt: Date.now() + 5 * DAY })
     await add(omar, { title: 'Sooner event on campus', startsAt: Date.now() + DAY })

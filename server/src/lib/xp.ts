@@ -1,5 +1,6 @@
 import { Types } from 'mongoose'
 import { Ledger, type XpKind } from '../models/Ledger.js'
+import { serialize } from './serial.js'
 
 /** Gamification constants. Keep in sync with client/src/api/rules.ts (the client only displays them). */
 export const XP_RULES = {
@@ -14,16 +15,8 @@ export const WEEK = 7 * DAY
 type Id = Types.ObjectId
 const isDuplicateKey = (err: unknown) => (err as { code?: number } | null)?.code === 11000
 
-// Awards for one student run one at a time, so parallel requests cannot all pass a cap check before any of them writes.
-// Holds for a single server process; several instances would need a transaction or a per-student counter document.
-const queues = new Map<string, Promise<unknown>>()
-function oneAtATime<T>(key: string, fn: () => Promise<T>): Promise<T> {
-  const run = (queues.get(key) ?? Promise.resolve()).then(fn, fn)
-  const tail = run.then(() => {}, () => {})
-  queues.set(key, tail)
-  void tail.then(() => { if (queues.get(key) === tail) queues.delete(key) })
-  return run
-}
+// Awards for one student run one at a time (serialize, single process), so parallel requests cannot all pass a cap check before any of them writes.
+const oneAtATime = <T>(user: Id, fn: () => Promise<T>) => serialize(`xp:${user}`, fn)
 
 export type AwardInput = {
   user: Id
@@ -44,7 +37,7 @@ export type AwardInput = {
  * (the last award is clamped). Returns the points actually written (0 when nothing was paid). Never throws on a repeat.
  */
 export function award(input: AwardInput): Promise<number> {
-  return oneAtATime(input.user.toString(), () => awardNow(input))
+  return oneAtATime(input.user, () => awardNow(input))
 }
 
 async function awardNow({ user, actor, kind, points, refKey, label, at = new Date() }: AwardInput): Promise<number> {
@@ -78,7 +71,7 @@ async function awardNow({ user, actor, kind, points, refKey, label, at = new Dat
  * `refKey` (e.g. `remove:<id>`) makes it run once. Returns the (negative) points written, 0 when nothing was due.
  */
 export function compensate(input: { user: Id; match: RegExp; refKey: string; label: string }): Promise<number> {
-  return oneAtATime(input.user.toString(), () => compensateNow(input))
+  return oneAtATime(input.user, () => compensateNow(input))
 }
 
 async function compensateNow({ user, match, refKey, label }: { user: Id; match: RegExp; refKey: string; label: string }): Promise<number> {

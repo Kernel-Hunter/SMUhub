@@ -105,6 +105,12 @@ describe('posting announcements', () => {
     assert.equal((await post()).status, 201)
   })
 
+  it('keeps the daily limit with parallel requests', async () => {
+    const res = await Promise.all(Array.from({ length: 20 }, (_, i) => post(lina, { title: `Notice number ${i + 1}` })))
+    assert.equal(res.filter((r) => r.status === 201).length, LIMITS.perDay)
+    assert.equal(await Announcement.countDocuments({ author: lina }), LIMITS.perDay)
+  })
+
   it('lets only an admin pin', async () => {
     const res = await post(lina, { pinned: true })
     assert.equal(res.status, 403)

@@ -72,6 +72,13 @@ describe('asking and listing', () => {
     assert.equal(res.body.error.code, 'rate_limited')
   })
 
+  it('keeps the hourly limit with parallel requests', async () => {
+    const res = await Promise.all(Array.from({ length: 20 }, (_, i) => ask(asker, { title: `${QUESTION.title} ${i}` })))
+    assert.equal(res.filter((r) => r.status === 201).length, LIMITS.threadsPerHour)
+    assert.equal(res.filter((r) => r.status === 429).length, 20 - LIMITS.threadsPerHour)
+    assert.equal(await Thread.countDocuments({ author: asker }), LIMITS.threadsPerHour)
+  })
+
   it('filters by course, search term and unsolved, and sorts by votes', async () => {
     const a = (await ask()).body.thread
     await ask(asker, { title: 'How do I compute a variance?', body: 'Exercise 2 of the statistics series.', courseCode: 'MATH210' })
@@ -142,6 +149,13 @@ describe('answers and accepting', () => {
     const q = (await ask()).body.thread
     for (let i = 0; i < LIMITS.repliesPer10Min; i++) assert.equal((await as(helper).post(`/api/questions/${q.id}/replies`, { body: `Answer ${i}` })).status, 201)
     assert.equal((await as(helper).post(`/api/questions/${q.id}/replies`, { body: 'One more' })).status, 429)
+  })
+
+  it('keeps the answer limit with parallel requests', async () => {
+    const q = (await ask()).body.thread
+    const res = await Promise.all(Array.from({ length: 20 }, (_, i) => as(helper).post(`/api/questions/${q.id}/replies`, { body: `Answer ${i}` })))
+    assert.equal(res.filter((r) => r.status === 201).length, LIMITS.repliesPer10Min)
+    assert.equal(await Reply.countDocuments({ author: helper }), LIMITS.repliesPer10Min)
   })
 
   it('only lets the asker accept, never their own answer, and only once', async () => {

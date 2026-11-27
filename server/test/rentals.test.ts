@@ -96,6 +96,12 @@ describe('listing items', () => {
     assert.equal(res.body.error.code, 'rate_limited')
     assert.equal((await list(renter)).status, 201)
   })
+
+  it('keeps the listing limit with parallel requests', async () => {
+    const res = await Promise.all(Array.from({ length: 30 }, (_, i) => list(owner, { title: `Calculator number ${i}` })))
+    assert.equal(res.filter((r) => r.status === 201).length, LIMITS.listingsPerStudent)
+    assert.equal(await RentalItem.countDocuments({ owner }), LIMITS.listingsPerStudent)
+  })
 })
 
 describe('requests', () => {

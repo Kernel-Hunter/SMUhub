@@ -7,6 +7,7 @@ import { HttpError } from '../lib/errors.js'
 import { isCourseCode } from '../lib/courses.js'
 import { CONTENT_TYPES, FILE_RULES, checkFile, deleteFile, filesBucket, safeFileName, saveFile, sha256 } from '../lib/files.js'
 import { notify } from '../lib/notify.js'
+import { serialize } from '../lib/serial.js'
 import { loadPeople, personOr } from '../lib/people.js'
 import { DAY, XP_RULES, award, compensate } from '../lib/xp.js'
 import { Download, RESOURCE_KINDS, Rating, Resource } from '../models/Resource.js'
@@ -97,16 +98,6 @@ async function findResource(id: string) {
   return r
 }
 
-// Uploads of one student run one at a time, so parallel requests cannot all pass the daily count before any is saved.
-// Holds for a single server process (same limit as award() in lib/xp.ts).
-const queues = new Map<string, Promise<unknown>>()
-function oneAtATime<T>(key: string, fn: () => Promise<T>): Promise<T> {
-  const run = (queues.get(key) ?? Promise.resolve()).then(fn, fn)
-  const tail = run.then(() => {}, () => {})
-  queues.set(key, tail)
-  void tail.then(() => { if (queues.get(key) === tail) queues.delete(key) })
-  return run
-}
 const uploadsToday = (me: Id) => Resource.countDocuments({ uploader: me, createdAt: { $gt: new Date(Date.now() - DAY) } })
 
 // Multipart, kept in memory (25 MB max), one file in the field `file`. File names are read as UTF-8.
@@ -172,7 +163,8 @@ export function resourcesRouter() {
     const hash = sha256(file.buffer)
     const fileName = safeFileName(file.originalname, check.ext, parsed.data.title)
 
-    const doc = await oneAtATime(me.toString(), async () => {
+    // One at a time per student (serialize, single process), so parallel uploads cannot all pass the daily count before any is saved.
+    const doc = await serialize(`upload:${me}`, async () => {
       if (await uploadsToday(me) >= FILE_RULES.uploadsPerDay) throw rateLimited()
       if (await Resource.exists({ sha256: hash })) throw duplicate()
       const fileId = await saveFile(file.buffer, fileName, { uploader: me, sha256: hash })

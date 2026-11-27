@@ -87,6 +87,13 @@ describe('posting and listing', () => {
     assert.equal(res.body.error.code, 'rate_limited')
   })
 
+  it('keeps the shared hourly limit with parallel posts and questions', async () => {
+    const q = { title: 'What does a LEFT JOIN return?', body: 'Lab 4 uses it and I do not see the difference.', courseCode: 'CS224' }
+    const res = await Promise.all(Array.from({ length: 20 }, (_, i) => i % 2 ? publish(lina, { title: `${POST.title} ${i}` }) : as(lina).post('/api/questions', q)))
+    assert.equal(res.filter((r) => r.status === 201).length, LIMITS.threadsPerHour)
+    assert.equal(await Thread.countDocuments({ author: lina }), LIMITS.threadsPerHour)
+  })
+
   it('filters by category and search term, and sorts by votes', async () => {
     const a = (await publish()).body.thread
     await publish(lina, { title: 'Grades take five weeks to come out', body: 'Several courses, same story every semester.', category: 'academics' })
@@ -240,6 +247,13 @@ describe('replies', () => {
     const res = await as(omar).post(`/api/voice/${t.id}/replies`, { body: 'One more' })
     assert.equal(res.status, 429)
     assert.equal((await as(omar).get(`/api/voice/${t.id}`)).body.thread.replyCount, LIMITS.repliesPer10Min)
+  })
+
+  it('keeps the reply limit with parallel requests', async () => {
+    const t = (await publish()).body.thread
+    const res = await Promise.all(Array.from({ length: 20 }, (_, i) => as(omar).post(`/api/voice/${t.id}/replies`, { body: `Reply ${i}`, anonymous: i % 2 === 0 })))
+    assert.equal(res.filter((r) => r.status === 201).length, LIMITS.repliesPer10Min)
+    assert.equal(await Reply.countDocuments({ author: omar }), LIMITS.repliesPer10Min)
   })
 })
 

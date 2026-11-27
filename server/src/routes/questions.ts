@@ -4,6 +4,7 @@ import { HttpError } from '../lib/errors.js'
 import { isCourseCode } from '../lib/courses.js'
 import { notify } from '../lib/notify.js'
 import { loadPeople } from '../lib/people.js'
+import { serialize } from '../lib/serial.js'
 import { LIMITS, ago, escapeRegex, findReply, findThread, replyJson, threadJson } from '../lib/threads.js'
 import { XP_RULES, award } from '../lib/xp.js'
 import { Thread } from '../models/Thread.js'
@@ -60,9 +61,12 @@ export function questionsRouter() {
     if (!parsed.success) {
       throw new HttpError(400, 'invalid_input', 'Pick a course, a title (at least 8 characters) and a description (at least 10 characters).')
     }
-    const recent = await Thread.countDocuments({ author: me, createdAt: { $gte: ago(3_600_000) } })
-    if (recent >= LIMITS.threadsPerHour) throw new HttpError(429, 'rate_limited', `Slow down: at most ${LIMITS.threadsPerHour} questions per hour.`)
-    const thread = await Thread.create({ ...parsed.data, kind: 'question', author: me })
+    // Count and insert one at a time per student, so parallel requests cannot all pass the count (lib/serial.ts).
+    const thread = await serialize(`post:${me}`, async () => {
+      const recent = await Thread.countDocuments({ author: me, createdAt: { $gte: ago(3_600_000) } })
+      if (recent >= LIMITS.threadsPerHour) throw new HttpError(429, 'rate_limited', `Slow down: at most ${LIMITS.threadsPerHour} questions per hour.`)
+      return Thread.create({ ...parsed.data, kind: 'question', author: me })
+    })
     res.status(201).json({ thread: threadJson(thread, me, await loadPeople([me])) })
   })
 
@@ -94,9 +98,11 @@ export function questionsRouter() {
     const parsed = newReply.safeParse(req.body)
     if (!parsed.success) throw new HttpError(400, 'invalid_input', 'Your answer is too short.')
     const thread = await findQuestion(req.params.id)
-    const recent = await Reply.countDocuments({ author: me, createdAt: { $gte: ago(600_000) } })
-    if (recent >= LIMITS.repliesPer10Min) throw new HttpError(429, 'rate_limited', 'Too many answers in a short time. Take a break.')
-    const reply = await Reply.create({ ...parsed.data, thread: thread._id, author: me })
+    const reply = await serialize(`post:${me}`, async () => {
+      const recent = await Reply.countDocuments({ author: me, createdAt: { $gte: ago(600_000) } })
+      if (recent >= LIMITS.repliesPer10Min) throw new HttpError(429, 'rate_limited', 'Too many answers in a short time. Take a break.')
+      return Reply.create({ ...parsed.data, thread: thread._id, author: me })
+    })
     await Thread.updateOne({ _id: thread._id }, { $inc: { replyCount: 1 } })
     const people = await loadPeople([me])
     await notify(thread.author, { kind: 'answer', title: `${people.get(me.toString())?.name ?? 'A classmate'} answered your question`, body: thread.title, link: `/qa/${thread._id}`, actor: me })
