@@ -50,6 +50,18 @@ Constants live in `client/src/api/rules.ts`.
 - Profiles never list anonymous content.
 - Rental contact details are returned only to the renter after the owner accepts.
 
+## Notifications
+
+In-app only (US-23), no email or push. Code: `server/src/lib/notify.ts`, `server/src/routes/notifications.ts`, `server/src/models/Notification.ts`.
+
+- Written after the action succeeded, for: a new answer on your question, a new reply on your Campus Voice post, your answer accepted, your file rated helpful or verified, a rental request on your item, your rental request accepted or declined (including requests declined because the owner accepted someone else), and a new announcement for a course in your `courses` list or any pinned one. Upvotes notify nobody.
+- Never about your own action. A failed write is logged and never fails the request that caused it.
+- Anonymous replies: the notification says "Someone replied to your post" and its `actor` is stored as null. The API never sends `actor` for any notification.
+- Rental notifications never carry the owner's contact; the renter reads it on the Rentals page.
+- Announcements fan out in one `insertMany` to at most 500 students, never to the author. A notice with no course that is not pinned notifies nobody.
+- `GET /api/notifications` answers `{ notifications, unread }`, the newest 30. `POST /api/notifications/read { ids? }` marks those (all when omitted) as read and answers `{ unread }`; ids that are malformed or belong to someone else are ignored. `DELETE /api/notifications/:id` answers 204, or 404 when it is not yours. Every query is scoped to the signed-in student.
+- Notifications are deleted 60 days after creation (TTL index on `createdAt`).
+
 ## Other rules
 
 - Escape or render all user text as plain text. No raw HTML or Markdown from users.

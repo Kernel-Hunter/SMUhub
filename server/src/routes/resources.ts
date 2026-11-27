@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { isCourseCode } from '../lib/courses.js'
 import { CONTENT_TYPES, FILE_RULES, checkFile, deleteFile, filesBucket, safeFileName, saveFile, sha256 } from '../lib/files.js'
+import { notify } from '../lib/notify.js'
 import { loadPeople, personOr } from '../lib/people.js'
 import { DAY, XP_RULES, award, compensate } from '../lib/xp.js'
 import { Download, RESOURCE_KINDS, Rating, Resource } from '../models/Resource.js'
@@ -231,10 +232,12 @@ export function resourcesRouter() {
     if (!fresh) throw new HttpError(404, 'not_found', NOT_FOUND) // removed in the meantime: nothing to pay
     const id = r._id.toString()
     await award({ user: r.uploader, actor: me, kind: 'resource_helpful', points: XP_RULES.points.helpful, refKey: `helpful:${me}:${id}`, label: `Helpful: ${r.title}` })
+    await notify(r.uploader, { kind: 'resource_helpful', title: 'A classmate found your file helpful', body: r.title, link: `/resources/${id}`, actor: me })
     // Exactly one request flips `verified`, so the bonus is paid once (and its refKey would refuse a second payment anyway).
     const verified = await Resource.updateOne({ _id: r._id, verified: false, helpful: { $gte: FILE_RULES.verifyThreshold } }, { verified: true })
     if (verified.modifiedCount === 1) {
       await award({ user: r.uploader, actor: 'system', kind: 'resource_verified', points: XP_RULES.points.verified, refKey: `verify:${id}`, label: `Verified: ${r.title}` })
+      await notify(r.uploader, { kind: 'resource_verified', title: 'Your file is now verified', body: r.title, link: `/resources/${id}`, actor: 'system' })
     }
     res.json({ resource: await oneJson((await Resource.findById(r._id)) ?? fresh, me) })
   })

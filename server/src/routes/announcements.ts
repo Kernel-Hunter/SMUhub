@@ -3,6 +3,7 @@ import { isValidObjectId, type Types } from 'mongoose'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { isCourseCode } from '../lib/courses.js'
+import { notifyAnnouncement } from '../lib/notify.js'
 import { loadPeople, personOr, type PublicPerson } from '../lib/people.js'
 import { Announcement } from '../models/Announcement.js'
 
@@ -75,6 +76,7 @@ export function announcementsRouter() {
     const recent = await Announcement.countDocuments({ author: user._id, createdAt: { $gte: new Date(now - DAY) } })
     if (recent >= LIMITS.perDay) throw new HttpError(429, 'rate_limited', `You can post ${LIMITS.perDay} announcements per day. Try again tomorrow.`)
     const a = await Announcement.create({ ...rest, pinned, expiresAt: expiresAt == null ? undefined : new Date(expiresAt), author: user._id })
+    await notifyAnnouncement(a)
     res.status(201).json({ announcement: announcementJson(a, user._id, personOr(await loadPeople([user._id]), user._id)) })
   })
 

@@ -139,6 +139,7 @@ Everything else needs a session. Each router lives in `server/src/routes/`:
 | `/api/events` | Calendar: list, add, join or leave |
 | `/api/announcements` | Short notices: list (`?course=`), post, delete your own (admins can pin and delete any) |
 | `/api/rentals` | List items, request, accept or decline, mark returned |
+| `/api/notifications` | Your notifications: newest 30 with the unread count (`GET`), mark read (`POST /read { ids? }`, all when no ids), dismiss one (`DELETE /:id`) |
 
 `client/src/api/client.ts` is the typed client for these, and `docs/BACKEND.md` lists the rules the server enforces (ownership checks, rate limits, file checks, leaderboard integrity, privacy).
 

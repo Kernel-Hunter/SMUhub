@@ -4,14 +4,14 @@
  * dedupe, ledger idempotency, self-vote ban); the few checks here only give a faster message.
  *
  * Routes, all under server/src/routes: me.ts, resources.ts, questions.ts (threads of kind 'question'),
- * voice.ts (threads of kind 'voice'), events.ts, announcements.ts, rentals.ts, leaderboard.ts, users.ts and courses.ts.
+ * voice.ts (threads of kind 'voice'), events.ts, announcements.ts, rentals.ts, leaderboard.ts, users.ts, courses.ts and notifications.ts.
  */
 import { RULES } from './rules'
 import { COURSES } from './courses'
 import { ApiError, apiUrl, http } from './http'
 import type {
   Course, LeaderRow, Me, PublicUser, Reply, Resource, ResourceKind, ResourceQuery, Thread,
-  ThreadKind, VoiceCategory, CampusEvent, Announcement, RentalCategory, RentalItem, RentalRequest, XpRow,
+  ThreadKind, VoiceCategory, CampusEvent, Announcement, RentalCategory, RentalItem, RentalRequest, XpRow, AppNotification,
 } from './types'
 
 export { ApiError }
@@ -198,6 +198,18 @@ export const api = {
       await http(`/api/rentals/requests/${requestId}/respond`, { method: 'POST', body: { accept } })
     },
     async markReturned(itemId: string): Promise<void> { await http(`/api/rentals/${itemId}/returned`, { method: 'POST' }) },
+  },
+
+  // server/src/routes/notifications.ts: only the signed-in student's own, newest 30, with the unread count.
+  notifications: {
+    async list(): Promise<{ notifications: AppNotification[]; unread: number }> {
+      return http<{ notifications: AppNotification[]; unread: number }>('/api/notifications')
+    },
+    /** Marks these as read, or all of them when no ids are given. Answers the new unread count. */
+    async read(ids?: string[]): Promise<number> {
+      return (await http<{ unread: number }>('/api/notifications/read', { method: 'POST', body: ids ? { ids } : {} })).unread
+    },
+    async remove(id: string): Promise<void> { await http(`/api/notifications/${encodeURIComponent(id)}`, { method: 'DELETE' }) },
   },
 
   leaderboard: {

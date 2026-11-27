@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
+import { notify } from '../lib/notify.js'
 import { loadPeople } from '../lib/people.js'
 import { LIMITS, ago, escapeRegex, findReply, findThread, replyJson, threadJson } from '../lib/threads.js'
 import { XP_RULES, award } from '../lib/xp.js'
@@ -93,7 +94,11 @@ export function voiceRouter() {
     if (recent >= LIMITS.repliesPer10Min) throw new HttpError(429, 'rate_limited', 'Too many replies in a short time. Take a break.')
     const reply = await Reply.create({ ...parsed.data, thread: thread._id, author: me })
     await Thread.updateOne({ _id: thread._id }, { $inc: { replyCount: 1 } })
-    res.status(201).json({ reply: replyJson(reply, me, await loadPeople([me])) })
+    const people = await loadPeople([me])
+    // An anonymous reply names nobody, and notify() does not store its author.
+    const who = reply.anonymous ? 'Someone' : (people.get(me.toString())?.name ?? 'A classmate')
+    await notify(thread.author, { kind: 'voice_reply', title: `${who} replied to your post`, body: thread.title, link: `/voice/${thread._id}`, actor: me, anonymous: reply.anonymous })
+    res.status(201).json({ reply: replyJson(reply, me, people) })
   })
 
   // Upvote a reply: POST /api/voice/replies/:replyId/vote. Same rules as posts; pays no XP.

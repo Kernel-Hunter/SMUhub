@@ -20,6 +20,7 @@ import { usersRouter } from './routes/users.js'
 import { voiceRouter } from './routes/voice.js'
 import { resourcesRouter } from './routes/resources.js'
 import { coursesRouter } from './routes/courses.js'
+import { notificationsRouter } from './routes/notifications.js'
 
 /** Builds the Express app without starting it, so tests can drive it with supertest. */
 export function createApp(config: Config) {
@@ -57,6 +58,7 @@ export function createApp(config: Config) {
   app.use('/api/users', requireAuth, usersRouter())
   app.use('/api/voice', requireAuth, voiceRouter())
   app.use('/api/courses', requireAuth, coursesRouter())
+  app.use('/api/notifications', requireAuth, notificationsRouter())
   // Multipart uploads are parsed inside this router (multer), after requireAuth: express.json's 10 kB limit does not apply to them.
   app.use('/api/resources', requireAuth, resourcesRouter())
 
