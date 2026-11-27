@@ -9,7 +9,7 @@ import { CONTENT_TYPES, FILE_RULES, checkFile, deleteFile, filesBucket, safeFile
 import { notify } from '../lib/notify.js'
 import { serialize } from '../lib/serial.js'
 import { loadPeople, personOr } from '../lib/people.js'
-import { DAY, XP_RULES, award, compensate } from '../lib/xp.js'
+import { DAY, XP_RULES, award, compensate, pairCapSpent } from '../lib/xp.js'
 import { Download, RESOURCE_KINDS, Rating, Resource } from '../models/Resource.js'
 import { UploadLog } from '../models/UploadLog.js'
 
@@ -257,14 +257,17 @@ export function resourcesRouter() {
     // A removal may land at any point. award() checks the file still exists inside the uploader's queue, where the
     // removal's compensate() also runs: removed before the check pays nothing, removed after it is taken back.
     const exists = async () => !!(await Resource.exists({ _id: r._id }))
+    // Checked before paying: this rater had already used up their weekly pair cap with the uploader.
+    const capped = await pairCapSpent(r.uploader, me)
     const paid = await award({ user: r.uploader, actor: me, kind: 'resource_helpful', points: XP_RULES.points.helpful, refKey: `helpful:${me}:${id}`, label: `Helpful: ${r.title}`, onlyIf: exists })
     if (!(await exists())) throw new HttpError(404, 'not_found', NOT_FOUND)
     await notify(r.uploader, { kind: 'resource_helpful', title: 'A classmate found your file helpful', body: r.title, link: `/resources/${id}`, actor: me })
-    // Only ratings that paid XP count toward verification: once a rater's weekly pair cap with the uploader is spent, their
-    // rating still shows in `helpful` but cannot verify, so a few friends cannot verify file after file for the bonus.
+    // A rating counts toward verification when it paid XP, or when only the uploader's daily cap stopped the payment.
+    // Once a rater's weekly pair cap with the uploader is spent, their rating still shows in `helpful` but cannot verify,
+    // so a few friends cannot verify file after file for the bonus, while a popular uploader's capped day still counts.
     // Each paying rating is marked before counting, so the last of parallel ones sees them all. Exactly one request
     // flips `verified` (conditional update), so the bonus is paid once (and its refKey would refuse a second payment anyway).
-    if (paid > 0) {
+    if (paid > 0 || !capped) {
       await Rating.updateOne({ _id: rating._id }, { paid: true })
       if (await Rating.countDocuments({ resource: r._id, paid: true }) >= FILE_RULES.verifyThreshold) {
         const verified = await Resource.updateOne({ _id: r._id, verified: false }, { verified: true })

@@ -391,6 +391,14 @@ describe('rating', () => {
     assert.equal(doc.helpful, 6); assert.equal(doc.verified, true)
     assert.equal(await xp(lina), before + 3 * XP_RULES.points.helpful + XP_RULES.points.verified)
   })
+
+  it('still verifies when only the uploader\'s daily cap stopped the points', async () => {
+    // Lina earned her full daily XP from other classmates today, so the ratings pay nothing.
+    await Ledger.create({ user: lina, actor: admin, kind: 'answer_accepted', points: XP_RULES.dailyXpCap, refKey: 'busy-day', label: 'Busy day', createdAt: new Date(Date.now() - 3_600_000) })
+    const r = await created(lina)
+    for (const u of [omar, sara, nour]) { await fetchFile(u, r.id); assert.equal((await as(u).post(`/api/resources/${r.id}/rate`)).status, 200) }
+    assert.equal((await Resource.findById(r.id))!.verified, true)
+  })
 })
 
 describe('removal', () => {

@@ -41,6 +41,12 @@ export type AwardInput = {
  * from one actor to one student per 7 days, at most XP_RULES.dailyXpCap points per student per 24 h
  * (the last award is clamped). Returns the points actually written (0 when nothing was paid). Never throws on a repeat.
  */
+/** True when `actor` already gave `user` XP_RULES.pairWeeklyCap paying interactions in the last 7 days. */
+export async function pairCapSpent(user: Types.ObjectId, actor: Types.ObjectId) {
+  const pair = await Ledger.countDocuments({ actor, user, points: { $gt: 0 }, createdAt: { $gt: new Date(Date.now() - WEEK) } })
+  return pair >= XP_RULES.pairWeeklyCap
+}
+
 export function award(input: AwardInput): Promise<number> {
   return oneAtATime(input.user, () => awardNow(input))
 }
