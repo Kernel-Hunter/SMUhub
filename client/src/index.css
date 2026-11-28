@@ -1,27 +1,31 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/ibm-plex-sans';
+@import '@fontsource-variable/newsreader/opsz.css';
 @import '@fontsource/ibm-plex-mono/400.css';
 @import '@fontsource/ibm-plex-mono/500.css';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================================================
-   Design tokens. SMU colours: accent #007fa4 (logo), night blue #203549 (titles).
+   Design tokens. Direction: the SMU campus by the Mediterranean. Stone frame, white working sheet,
+   sea-blue accent from the SMU logo (#007fa4), night blue for titles and the home hero.
+   Type: Newsreader (display, titles only), IBM Plex Sans (interface), IBM Plex Mono (codes, figures).
    One accent, cool neutrals, green/red for states only. Text pairs are WCAG AA (checked with axe).
    Change colours here, never in components.
    ============================================================================ */
 :root {
   /* surfaces */
-  --bg: #f6f8fa;              /* page */
-  --surface: #ffffff;         /* cards, sidebar, menus */
-  --subtle: #eef1f4;          /* hover, neutral chips */
+  --shell: #eceff2;           /* outer frame behind the sidebar and the sheet */
+  --bg: #f8f9fb;              /* the working sheet */
+  --surface: #ffffff;         /* cards, menus */
+  --subtle: #eff2f5;          /* hover, neutral chips */
   /* lines */
-  --border: #dfe4ea;          /* card and section separators */
-  --border-strong: #cdd4dc;   /* hover border, secondary buttons */
+  --border: #e2e6eb;          /* card and section separators */
+  --border-strong: #cfd5dc;   /* hover border, secondary buttons */
   --border-input: #8a96a3;    /* form fields (3:1 on surface) */
   /* text */
-  --text: #17212b;            /* 16.3:1 on surface */
-  --heading: #203549;         /* SMU night blue, titles only */
+  --text: #111c27;            /* 17:1 on surface */
+  --heading: #14283b;         /* SMU night blue, titles only */
   --muted: #4b5763;           /* 7.4:1 */
   --faint: #5e6a76;           /* 5.6:1 on surface, 4.9:1 on subtle: meta and discreet labels */
   /* accent (SMU blue) */
@@ -36,17 +40,19 @@
   /* elevation: menus, popovers and toasts only */
   --shadow-pop: 0 4px 12px rgb(16 22 29 / .08), 0 1px 2px rgb(16 22 29 / .06);
   --overlay: rgb(16 22 29 / .4);
-  --shadow-card: 0 1px 2px rgb(16 22 29 / .04);
+  --shadow-card: 0 1px 2px rgb(15 27 38 / .04), 0 1px 1px rgb(15 27 38 / .02);
+  --shadow-sheet: 0 1px 2px rgb(15 27 38 / .05), 0 8px 24px -16px rgb(15 27 38 / .12);
   --shadow-lift: 0 1px 2px rgb(16 22 29 / .04), 0 4px 12px -6px rgb(16 22 29 / .14);
-  --night: #1d3347; --night-2: #16283a;
+  --night: #14283b; --night-2: #0f2031;
   color-scheme: light;
 }
 .dark {
-  --bg: #10161d;
-  --surface: #161e26;
-  --subtle: #1d2731;
-  --border: #2a3541;
-  --border-strong: #36414d;
+  --shell: #090e13;
+  --bg: #0e141b;
+  --surface: #131a22;
+  --subtle: #1a232d;
+  --border: #232d38;
+  --border-strong: #303b47;
   --border-input: #5f6d7b;
   --text: #e6ecf1;
   --heading: #f1f5f8;
@@ -61,9 +67,10 @@
   --danger: #f07c86;  --danger-soft: #3a1e24;
   --shadow-pop: 0 4px 16px rgb(0 0 0 / .4), 0 0 0 1px var(--border);
   --overlay: rgb(0 0 0 / .55);
-  --shadow-card: none;
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / .03);
+  --shadow-sheet: 0 0 0 1px rgb(255 255 255 / .02);
   --shadow-lift: none;
-  --night: #14283a; --night-2: #0f1f2e;
+  --night: #132b42; --night-2: #0f2336;
   color-scheme: dark;
 }
 
@@ -74,7 +81,7 @@
 }
 
 @theme inline {
-  --color-bg: var(--bg); --color-surface: var(--surface); --color-subtle: var(--subtle);
+  --color-shell: var(--shell); --color-bg: var(--bg); --color-surface: var(--surface); --color-subtle: var(--subtle);
   --color-border: var(--border); --color-border-strong: var(--border-strong); --color-border-input: var(--border-input);
   --color-ink: var(--text); --color-heading: var(--heading); --color-muted: var(--muted); --color-faint: var(--faint);
   --color-accent: var(--accent-text); --color-accent-fill: var(--accent); --color-accent-soft: var(--accent-soft); --color-on-accent: var(--on-accent);
@@ -84,7 +91,7 @@
   --color-line: var(--line); --color-line-strong: var(--line-strong);
 
   --font-sans: 'IBM Plex Sans Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-sans);
+  --font-display: 'Newsreader Variable', 'Iowan Old Style', Georgia, serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   /* type scale: 12 / 14 / 16 / 20 / 28 */
@@ -95,11 +102,11 @@
   --text-xl: 20px; --text-xl--line-height: 28px;
   --text-2xl: 28px; --text-2xl--line-height: 36px;
 
-  /* radius: 6 small elements / 8 cards and menus / 10 panels */
+  /* radius: 6 chips / 8 controls / 10 menus / 14 cards / 18 panels */
   --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 10px;
-  --radius-xl: 10px; --radius-2xl: 10px; --radius-3xl: 10px; --radius-full: 9999px;
+  --radius-xl: 14px; --radius-2xl: 18px; --radius-3xl: 24px; --radius-full: 9999px;
 
-  --shadow-popover: var(--shadow-pop);
+  --shadow-popover: var(--shadow-pop); --shadow-sheet: var(--shadow-sheet); --shadow-card: var(--shadow-card);
 
   /* motion: one curve for everything that enters or reacts, one for the drawer */
   --ease-out: cubic-bezier(.23, 1, .32, 1);
@@ -110,6 +117,8 @@ html { background: var(--bg); scroll-padding-top: 64px; }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 body { margin: 0; font-family: var(--font-sans); font-size: 14px; line-height: 20px; color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; text-wrap: pretty; }
 h1, h2, h3 { color: var(--heading); text-wrap: balance; }
+/* Titles are set in Newsreader: the one expressive face, used for page titles and big figures only. */
+h1, .display { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.012em; font-optical-sizing: auto; }
 ::selection { background: var(--accent-soft); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 /* Containers focused by script (the page after navigation) get no ring: only controls do. */
@@ -124,16 +133,16 @@ svg.lucide { stroke-width: 1.5; }
   .eyebrow { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted); }
 
   /* containers: separated by 1px borders, no shadows */
-  .card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-card); }
+  .card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-card); }
   /* clickable cards: a border and shadow step on hover, no movement */
   .card-hover { transition: border-color .15s var(--ease-out), box-shadow .15s var(--ease-out); }
   @media (hover: hover) { .card-hover:hover { border-color: var(--border-strong); box-shadow: var(--shadow-lift); } }
-  .rows { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-card); }
+  .rows { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-card); }
   .rows > * + * { border-top: 1px solid var(--border); }
-  .popover { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-pop); }
+  .popover { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-pop); }
 
   /* buttons */
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid transparent; font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap; cursor: pointer; color: var(--text); background: transparent; transition: background-color .15s, border-color .15s, color .15s, transform .1s var(--ease-out); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid transparent; font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap; cursor: pointer; color: var(--text); background: transparent; transition: background-color .15s, border-color .15s, color .15s, transform .1s var(--ease-out); }
   .btn:disabled { opacity: .5; cursor: not-allowed; }
   .btn:active:not(:disabled) { transform: scale(.97); }
   .btn-primary, .btn-accent { background: var(--accent); color: var(--on-accent); box-shadow: inset 0 1px 0 rgb(255 255 255 / .14), 0 1px 2px rgb(16 22 29 / .12); }
@@ -152,7 +161,7 @@ svg.lucide { stroke-width: 1.5; }
   }
 
   /* forms */
-  .field { width: 100%; height: 36px; padding: 0 12px; background: var(--surface); border: 1px solid var(--border-input); border-radius: 6px; font-size: 14px; line-height: 20px; color: var(--text); transition: border-color .15s; }
+  .field { width: 100%; height: 36px; padding: 0 12px; background: var(--surface); border: 1px solid var(--border-input); border-radius: 8px; font-size: 14px; line-height: 20px; color: var(--text); transition: border-color .15s; }
   textarea.field { height: auto; padding: 8px 12px; }
   .field::placeholder { color: var(--faint); }
   @media (max-width: 639px) { .field { font-size: 16px; } } /* stops iOS zooming into the field */
@@ -219,3 +228,8 @@ svg.lucide { stroke-width: 1.5; }
 .toast { transition: opacity .15s var(--ease-out), transform .15s var(--ease-out); }
 @starting-style { .toast { opacity: 0; transform: translateY(8px); } }
 .toast-leave { opacity: 0; transform: translateY(4px); }
+
+/* Sidebar rows: quiet hover, the active page sits on a raised white pill. */
+.nav-row:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.nav-on { background: var(--surface); box-shadow: 0 1px 2px rgb(15 27 38 / .06), 0 0 0 1px var(--border); }
+.dark .nav-on { box-shadow: 0 0 0 1px var(--border), inset 0 1px 0 rgb(255 255 255 / .04); }

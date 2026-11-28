@@ -51,11 +51,11 @@ export function Chip({ children, tone, className }: { children: ReactNode; tone?
 
 export function PageHeader({ eyebrow, title, sub, action }: { eyebrow?: string; title: ReactNode; sub?: string; action?: ReactNode }) {
   return (
-    <header className="rise mb-7 flex flex-wrap items-end justify-between gap-4">
+    <header className="rise mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-8">
       <div className="max-w-2xl">
-        {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
-        <h1 className="text-2xl font-medium">{title}</h1>
-        {sub && <p className="mt-1 max-w-xl text-sm text-muted">{sub}</p>}
+        {eyebrow && <p className="eyebrow mb-3">{eyebrow}</p>}
+        <h1 className="text-[34px] leading-[40px] sm:text-[40px] sm:leading-[46px]">{title}</h1>
+        {sub && <p className="mt-3 max-w-xl text-[15px] leading-6 text-muted">{sub}</p>}
       </div>
       {action}
     </header>

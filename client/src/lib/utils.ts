@@ -41,3 +41,9 @@ export const DEPT: Record<string, { dot: string }> = {
 export const deptOf = (d: string) => DEPT[d] ?? DEPT['Computer Science']
 /** Course-code tag colours: the department dot mixed toward the text colour, so the code passes 4.5:1 in both themes. */
 export const deptTag = (dot: string) => ({ color: `color-mix(in srgb, ${dot} 55%, var(--text))`, background: `color-mix(in srgb, ${dot} 12%, var(--surface))` })
+
+/** Level from total XP: level n starts at 20*n^2 XP. Returns the level, the XP range of that level and the progress (0..1). */
+export function levelOf(xp: number) {
+  const level = Math.floor(Math.sqrt(Math.max(0, xp) / 20)), lo = level * level * 20, hi = (level + 1) ** 2 * 20
+  return { level, lo, hi, progress: (xp - lo) / (hi - lo) }
+}

@@ -7,7 +7,7 @@ import { Avatar } from './ui'
 import Palette from './Palette'
 import Flow from './Flow'
 import NotificationBell from './Notifications'
-import { cn } from '@/lib/utils'
+import { cn, levelOf } from '@/lib/utils'
 
 const MAIN = [
   { to: '/', label: 'Home', icon: LayoutGrid, end: true, hue: 'blue' },
@@ -45,9 +45,8 @@ export function Logo({ className }: { className?: string }) {
 
 function Item({ to, label, icon: Icon, end, hue = 'blue' }: { to: string; label: string; icon: typeof Search; end?: boolean; hue?: string }) {
   return (
-    <NavLink to={to} end={end} className={({ isActive }) => cn(`hue-${hue}`, 'group relative flex h-9 min-w-0 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors', isActive ? 'bg-hue-soft text-hue' : 'text-muted hover:bg-hover hover:text-ink')}>
+    <NavLink to={to} end={end} className={({ isActive }) => cn(`hue-${hue}`, 'group relative flex h-9 min-w-0 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors', isActive ? 'nav-on text-ink' : 'nav-row text-muted hover:text-ink')}>
       {({ isActive }) => <>
-        {isActive && <span className="absolute -left-3 top-1.5 bottom-1.5 w-[3px] rounded-r-full" style={{ background: 'var(--hue)' }} aria-hidden />}
         <span className={cn('grid size-6 shrink-0 place-items-center transition-colors', isActive ? 'text-hue' : 'group-hover:text-hue')}><Icon size={16} aria-hidden /></span>
         <span className="truncate">{label}</span></>}
     </NavLink>
@@ -57,8 +56,8 @@ function Item({ to, label, icon: Icon, end, hue = 'blue' }: { to: string; label:
 function Sidebar({ onNav }: { onNav?: () => void }) {
   const { me, logout } = useAuth()
   if (!me) return null
-  const level = Math.floor(Math.sqrt(me.xp / 20)), lo = level * level * 20, hi = (level + 1) ** 2 * 20
-  const pct = Math.max(4, ((me.xp - lo) / (hi - lo)) * 100)
+  const { level, hi, progress } = levelOf(me.xp)
+  const pct = Math.max(4, progress * 100)
   // Layout: every block spans the same box (12px from the sidebar edges) and pads its content by 12px (px-3),
   // so logo, nav labels, section title, XP card and user row all line up on the same left and right edges.
   // Stacks are flex columns, not CSS grids: an implicit grid column grows to its widest child's min-content,
@@ -127,11 +126,14 @@ export default function Shell({ children }: { children: ReactNode }) {
   if (!me) return null
   const section = TITLES[pathname.split('/')[1] ?? ''] ?? 'SMUhub'
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh bg-shell">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-ink focus:px-3 focus:py-2 focus:text-paper">Skip to content</a>
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-line bg-side lg:block"><Sidebar /></aside>
-      <div className="lg:pl-60">
-        <header className="sticky top-0 z-20 border-b border-line bg-bg">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 lg:block"><Sidebar /></aside>
+      {/* Desktop: the page is a sheet inset 8px into the stone frame. This strip hides content scrolling above the sticky header. */}
+      <div aria-hidden className="fixed right-0 top-0 z-30 hidden h-2 bg-shell lg:left-60 lg:block" />
+      <div className="lg:py-2 lg:pl-60 lg:pr-2">
+      <div className="min-h-dvh bg-bg lg:min-h-[calc(100dvh-16px)] lg:rounded-2xl lg:border lg:border-line lg:shadow-sheet">
+        <header className="sticky top-0 z-20 border-b border-line bg-bg lg:top-2 lg:rounded-t-[17px]">
           <div className="mx-auto flex h-12 max-w-[1120px] items-center gap-2 px-4 sm:gap-3 sm:px-8">
             <button ref={menuBtn} type="button" className="icon-btn -ml-1 text-ink lg:hidden" aria-label="Open menu" aria-expanded={menu} onClick={() => setMenu(true)}><Menu size={18} aria-hidden /></button>
             <span className="flex min-w-0 items-center gap-2 text-sm"><span className="hidden text-faint sm:inline">SMUhub</span><span className="hidden text-faint sm:inline" aria-hidden>/</span><span className="min-w-0 truncate font-medium">{section}</span></span>
@@ -144,12 +146,13 @@ export default function Shell({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
-        <main id="main" key={pathname} tabIndex={-1} className="mx-auto w-full max-w-[1120px] px-4 pb-24 pt-8 outline-none sm:px-8 sm:pt-10">{children}</main>
+        <main id="main" key={pathname} tabIndex={-1} className="mx-auto w-full max-w-[1120px] px-4 pb-24 pt-8 outline-none sm:px-8 sm:pt-12">{children}</main>
+      </div>
       </div>
       {menu && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal aria-label="Menu">
           <div className="absolute inset-0 bg-[var(--overlay)]" style={{ animation: 'fade .15s' }} onClick={() => setMenu(false)} />
-          <div ref={drawer} className="drawer absolute inset-y-0 left-0 w-[272px] border-r border-line bg-side shadow-popover"><button type="button" aria-label="Close menu" className="icon-btn absolute right-3 top-3" onClick={() => setMenu(false)}><X size={16} aria-hidden /></button><Sidebar onNav={() => setMenu(false)} /></div>
+          <div ref={drawer} className="drawer absolute inset-y-0 left-0 w-[272px] border-r border-line bg-shell shadow-popover"><button type="button" aria-label="Close menu" className="icon-btn absolute right-3 top-3" onClick={() => setMenu(false)}><X size={16} aria-hidden /></button><Sidebar onNav={() => setMenu(false)} /></div>
         </div>
       )}
       <Palette open={search} onClose={() => setSearch(false)} />

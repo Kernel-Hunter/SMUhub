@@ -7,7 +7,7 @@ import { ResourceCard, ThreadCard } from '@/components/Cards'
 import { Avatar, CountUp, Skeleton } from '@/components/ui'
 import Calendar from '@/components/Calendar'
 import Flow from '@/components/Flow'
-import { cn, deptOf, deptTag, formatTime, timeAgo } from '@/lib/utils'
+import { cn, deptOf, deptTag, formatTime, levelOf, timeAgo } from '@/lib/utils'
 
 const DAY = 86400000
 
@@ -55,23 +55,19 @@ export default function Home() {
 
   return (
     <div className="grid grid-cols-1 gap-8">
-      <header className="night relative overflow-hidden rounded-[14px] px-6 py-7 sm:px-8">
-        <Flow className="text-[#3fb0d0] opacity-70" />
-        <div className="relative flex flex-wrap items-center justify-between gap-6">
+      <header className="night relative overflow-hidden rounded-2xl px-6 py-8 sm:px-10 sm:py-10">
+        <Flow className="text-[#3fb0d0] opacity-60" />
+        <div className="relative grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="min-w-0 max-w-xl">
-            <h1 className="text-[28px] font-medium leading-tight">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</h1>
-            <p className="mt-2 text-sm text-white/75">{fresh > 0 ? `${fresh} new ${fresh === 1 ? 'file' : 'files'} landed in your courses this week.` : 'Nothing new in your courses this week.'} {open.length} {open.length === 1 ? 'question is' : 'questions are'} still waiting for an answer.</p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Link to="/resources/new" className="btn h-9 bg-[#3fb0d0] text-[#06222c] hover:bg-[#5cc0dc]"><Upload size={16} />Share a file</Link>
-              <Link to="/qa?open=1" className="btn h-9 border-white/20 bg-white/10 text-white hover:bg-white/15"><HelpCircle size={16} />Answer a question</Link>
+            <p className="text-sm font-medium text-[#8fd3e8]">{new Date().toLocaleDateString(undefined, { weekday: 'long' })}</p>
+            <h1 className="mt-2 text-[40px] leading-[44px] sm:text-[52px] sm:leading-[56px]">{new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}</h1>
+            <p className="mt-4 text-[15px] leading-6 text-white/75">{fresh > 0 ? `${fresh} new ${fresh === 1 ? 'file' : 'files'} landed in your courses this week.` : 'Nothing new in your courses this week.'} {open.length} {open.length === 1 ? 'question is' : 'questions are'} still waiting for an answer.</p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Link to="/resources/new" className="btn h-9 bg-[#3fb0d0] text-[#06222c] hover:bg-[#5cc0dc]"><Upload size={16} aria-hidden />Share a file</Link>
+              <Link to="/qa?open=1" className="btn h-9 border-white/20 bg-white/10 text-white hover:bg-white/15"><HelpCircle size={16} aria-hidden />Answer a question</Link>
             </div>
           </div>
-          <dl className="flex gap-3">
-            {([['Your XP', <CountUp value={me.xp} />], ['Rank', me.rank ? `#${me.rank}` : '-'], ['Uploads', me.uploads]] as [string, React.ReactNode][]).map(([l, v]) => (
-              <div key={l} className="flex min-w-24 flex-col-reverse rounded-[10px] border border-white/12 bg-white/[.06] px-4 py-3">
-                <dt className="text-xs text-white/60">{l}</dt><dd className="num text-2xl font-medium">{v}</dd>
-              </div>))}
-          </dl>
+          <LevelPanel xp={me.xp} rank={me.rank} uploads={me.uploads} />
         </div>
       </header>
 
@@ -164,6 +160,31 @@ export default function Home() {
           </section>
         </aside>
       </div>
+    </div>
+  )
+}
+
+/** The XP moment on the home hero: a progress ring for the current level, with rank and uploads beside it. */
+function LevelPanel({ xp, rank, uploads }: { xp: number; rank: number; uploads: number }) {
+  const { level, hi, progress } = levelOf(xp)
+  const r = 52, c = 2 * Math.PI * r
+  return (
+    <div className="flex items-center gap-6 rounded-2xl border border-white/10 bg-white/[.04] p-4 pr-6">
+      <div className="relative size-32 shrink-0">
+        <svg viewBox="0 0 120 120" className="size-full -rotate-90" aria-hidden>
+          <circle cx="60" cy="60" r={r} fill="none" stroke="rgb(255 255 255 / .12)" strokeWidth="8" />
+          <circle cx="60" cy="60" r={r} fill="none" stroke="#3fb0d0" strokeWidth="8" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - Math.max(0.03, progress))} className="transition-[stroke-dashoffset] duration-500 ease-out" />
+        </svg>
+        <div className="absolute inset-0 grid place-content-center text-center">
+          <span className="text-xs text-white/60">Level</span>
+          <span className="display num text-[40px] leading-10 text-white">{level}</span>
+        </div>
+      </div>
+      <dl className="grid gap-3">
+        <div><dt className="text-xs text-white/60">XP</dt><dd className="num text-lg font-medium text-white"><CountUp value={xp} /><span className="text-sm font-normal text-white/50"> / {hi}</span></dd></div>
+        <div><dt className="text-xs text-white/60">Campus rank</dt><dd className="num text-lg font-medium text-white">{rank ? `#${rank}` : 'Not yet'}</dd></div>
+        <div><dt className="text-xs text-white/60">Your uploads</dt><dd className="num text-lg font-medium text-white">{uploads}</dd></div>
+      </dl>
     </div>
   )
 }

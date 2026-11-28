@@ -1,47 +1,38 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
-import Flow from './Flow'
 
 /** Section colour. Each area of the app keeps one muted hue (see .hue-* in index.css). */
 export type Tone = 'blue' | 'violet' | 'orange' | 'rose' | 'green' | 'gold' | 'plum'
 
 /**
- * Page header: a lightly tinted panel in the section's hue, with an icon tile, title,
- * context line, optional actions and metrics. Solid tint with still contour lines (Flow), no gradients.
+ * Page header: section label in its hue, a Newsreader title, context line, actions, and figures in one quiet strip.
  */
 export default function Banner({ tone = 'blue', icon, label, title, sub, stats, action, children }: {
   tone?: Tone; icon: ReactNode; label: string; title: ReactNode; sub?: string
   stats?: [string, ReactNode][]; action?: ReactNode; children?: ReactNode
 }) {
   return (
-    <header className={cn(`hue-${tone}`, 'relative mb-8 overflow-hidden rounded-[12px] border px-6 py-6 sm:px-7')} style={{ background: 'var(--hue-tint)', borderColor: 'var(--hue-line)' }}>
-      <Flow className="text-[color:var(--hue)] opacity-60" />
-      <div className="relative flex flex-wrap items-end justify-between gap-6">
-        <div className="flex min-w-0 max-w-2xl gap-4">
-          <span className="tile size-11 rounded-[10px] [&_svg]:size-5" aria-hidden>{icon}</span>
-          <div className="min-w-0">
-            <p className="text-hue text-xs font-medium">{label}</p>
-            <h1 className="mt-0.5 text-2xl font-medium">{title}</h1>
-            {sub && <p className="mt-2 text-sm text-muted">{sub}</p>}
-            {action && <div className="mt-4 flex flex-wrap gap-2">{action}</div>}
-          </div>
-        </div>
-        {stats && (
-          <dl className="flex flex-wrap gap-3">
-            {stats.map(([l, v]) => (
-              <div key={l} className="flex min-w-24 flex-col-reverse rounded-[10px] border bg-surface px-4 py-2.5 shadow-[var(--shadow-card)]" style={{ borderColor: 'var(--hue-line)' }}>
-                <dt className="text-xs text-muted">{l}</dt>
-                <dd className="num text-xl font-medium text-heading">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
-        {children}
+    <header className={cn(`hue-${tone}`, 'rise mb-10 flex flex-wrap items-end justify-between gap-x-10 gap-y-6 border-b border-line pb-8')}>
+      <div className="min-w-0 max-w-2xl">
+        <p className="flex items-center gap-2 text-sm font-medium text-hue"><span className="tile size-6 rounded-md [&_svg]:size-3.5" aria-hidden>{icon}</span>{label}</p>
+        <h1 className="mt-4 text-[34px] leading-[40px] sm:text-[40px] sm:leading-[46px]">{title}</h1>
+        {sub && <p className="mt-3 max-w-xl text-[15px] leading-6 text-muted">{sub}</p>}
+        {action && <div className="mt-6 flex flex-wrap gap-2">{action}</div>}
       </div>
+      {stats && (
+        <dl className="grid w-full auto-cols-fr grid-flow-col divide-x divide-line rounded-xl border border-line bg-surface shadow-card sm:flex sm:w-auto">
+          {stats.map(([l, v]) => (
+            <div key={l} className="flex min-w-0 flex-col-reverse px-3 py-3.5 sm:min-w-28 sm:px-5">
+              <dt className="text-xs text-muted [overflow-wrap:anywhere]">{l}</dt>
+              <dd className="num display text-[28px] leading-8 text-heading">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {children}
     </header>
   )
 }
 
-/** Banner actions use the one accent, like every primary button. The section hue stays in the tile and tint. */
 export const bannerBtn = 'btn btn-primary h-9'
 export const bannerGhost = 'btn btn-secondary h-9'

@@ -40,11 +40,11 @@ export default function Leaderboard() {
                     <span className="mt-2 w-full truncate text-sm font-semibold">{r.user.name}</span>
                     <span className="text-xs text-muted">{r.user.major}</span>
                     <div className={cn(m.bar, m.h, 'mt-3 grid w-full place-items-center rounded-t-md border border-b-0')}>
-                      <span><span className="num block text-lg font-medium leading-none">{r.xp}</span><span className="text-xs font-medium text-muted">{m.label}</span></span>
+                      <span><span className="num display block text-[28px] leading-8 text-heading">{r.xp}</span><span className="text-xs font-medium text-muted">{m.label} · XP</span></span>
                     </div>
                   </Link>) })}
               </div>
-              <ol className="rows stagger">
+              {(data?.length ?? 0) > 3 && <ol className="rows stagger">
                 {data?.slice(3).map((r) => (
                   <li key={r.user.id} className={cn('flex items-center gap-3 px-4 py-3', r.isMe && 'bg-accent-soft')}>
                     <span className="num grid size-7 place-items-center rounded-full bg-hover text-xs font-semibold text-muted">{r.rank}</span><Avatar user={r.user} size={34} />
@@ -53,7 +53,7 @@ export default function Leaderboard() {
                     <span className="num w-12 text-right text-sm font-semibold">{r.xp}</span>
                   </li>
                 ))}
-              </ol>
+              </ol>}
             </>
           )}
         </div>
