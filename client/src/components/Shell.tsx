@@ -56,12 +56,12 @@ function Sidebar({ onNav }: { onNav?: () => void }) {
   // and nowrap (truncated) text made that wider than the sidebar.
   return (
     <div className="flex h-full min-w-0 flex-col px-3 py-4" onClick={onNav}>
-      <div className="flex items-center justify-between gap-2 px-3"><Logo /><span className="shrink-0 rounded-sm bg-accent-soft px-2 text-xs font-medium text-accent">Beta</span></div>
+      <div className="flex items-center justify-between gap-2 px-3"><Logo /></div>
       <nav className="mt-6 flex flex-col gap-0.5" aria-label="Main">{MAIN.map((n) => <Item key={n.to} {...n} />)}</nav>
       <p className="mt-8 px-3 pb-2 text-xs font-medium text-faint">You</p>
       <nav className="flex flex-col gap-1" aria-label="Account"><Item to={`/u/${me.id}`} label="Profile" icon={UserRound} /><Item to="/settings" label="Settings" icon={Settings} /></nav>
       <div className="mt-auto flex flex-col gap-2 pt-4">
-        <Link to="/leaderboard" className="night relative block overflow-hidden rounded-[10px] px-3 py-3 transition-transform hover:-translate-y-0.5">
+        <Link to="/leaderboard" className="night relative block overflow-hidden rounded-[10px] px-3 py-3 transition-colors hover:bg-[var(--night-2)]">
           <Flow className="w-full text-[#3fb0d0] opacity-40" />
           <div className="relative flex items-baseline justify-between gap-2"><span className="text-xs font-semibold">Level {level}</span><span className="num truncate text-xs text-white/70">{me.xp} / {hi} XP</span></div>
           <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-white/15" aria-hidden><span className="block h-full rounded-full bg-[#3fb0d0] transition-[width] duration-700" style={{ width: `${pct}%` }} /></div>

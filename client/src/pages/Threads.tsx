@@ -39,7 +39,7 @@ export default function Threads({ kind }: { kind: ThreadKind }) {
               Unanswered only<span className={cn('relative h-5 w-9 rounded-full transition', unsolved ? 'bg-accent-fill' : 'bg-line-strong')}><span className={cn('absolute top-1 size-4 rounded-full bg-white ring-1 ring-black/10 transition-all', unsolved ? 'left-[18px]' : 'left-1')} /></span>
             </button>
           )}
-          <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-faint">{qa ? 'Courses' : 'Topics'}</p>
+          <p className="mb-2 mt-5 text-xs font-medium text-faint">{qa ? 'Courses' : 'Topics'}</p>
           <div className="-mx-1 grid max-h-80 grid-cols-1 gap-1 overflow-auto">
             {qa ? (<>
               <Item on={!course} onClick={() => set('course', '')} dot={<span className="size-2 rounded-full bg-ink/30" />} label="All courses" count={a.length} />

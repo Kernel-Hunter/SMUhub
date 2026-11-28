@@ -35,8 +35,6 @@ export default function Home() {
   const courses = useQuery({ queryKey: ['courses'], queryFn: api.courses.list })
   const board = useQuery({ queryKey: ['leaderboard', 'week'], queryFn: () => api.leaderboard.get('week') })
   if (!me) return null
-  const hour = new Date().getHours()
-  const greet = hour < 5 ? 'Up late' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
   const fresh = (res.data ?? []).filter((r) => me.courses.includes(r.courseCode) && Date.now() - r.createdAt < 7 * DAY).length
   const open = (qa.data ?? []).filter((t) => !t.solved)
 
@@ -61,8 +59,7 @@ export default function Home() {
         <Flow className="text-[#3fb0d0] opacity-70" />
         <div className="relative flex flex-wrap items-center justify-between gap-6">
           <div className="min-w-0 max-w-xl">
-            <p className="text-xs font-medium text-white/60">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-            <h1 className="mt-1 text-[28px] font-semibold leading-tight">{greet}, {me.name.split(' ')[0]}</h1>
+            <h1 className="text-[28px] font-medium leading-tight">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</h1>
             <p className="mt-2 text-sm text-white/75">{fresh > 0 ? `${fresh} new ${fresh === 1 ? 'file' : 'files'} landed in your courses this week.` : 'Nothing new in your courses this week.'} {open.length} {open.length === 1 ? 'question is' : 'questions are'} still waiting for an answer.</p>
             <div className="mt-5 flex flex-wrap gap-2">
               <Link to="/resources/new" className="btn h-9 bg-[#3fb0d0] text-[#06222c] hover:bg-[#5cc0dc]"><Upload size={16} />Share a file</Link>
@@ -116,13 +113,13 @@ export default function Home() {
           <section className="card p-5">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div><p className="text-sm text-muted">Campus activity, last 7 days</p><p className="mt-1 text-2xl font-semibold text-heading"><CountUp value={total} /> <span className="text-sm font-normal text-muted">uploads and posts</span></p></div>
-              <div className="flex gap-4 text-xs text-muted"><span className="flex items-center gap-2"><span className="size-2 rounded-full bg-accent-fill" />Uploads</span><span className="flex items-center gap-2"><span className="size-2 rounded-full bg-[#5b54c9]" />Posts</span></div>
+              <div className="flex gap-4 text-xs text-muted"><span className="flex items-center gap-2"><span className="size-2 rounded-full bg-accent-fill" />Uploads</span><span className="flex items-center gap-2"><span className="size-2 rounded-full bg-line-strong" />Posts</span></div>
             </div>
             <div className="mt-6 grid h-36 grid-cols-7 items-end gap-3">
               {week.map((w, i) => (
                 <div key={i} className="group flex h-full flex-col items-center justify-end gap-2">
                   <div className="relative flex w-full max-w-10 flex-1 flex-col justify-end overflow-hidden rounded-sm bg-subtle">
-                    <span className="bar block w-full bg-[#5b54c9]/80" style={{ height: `${(w.posts / peak) * 100}%`, animationDelay: `${i * 50}ms` }} />
+                    <span className="bar block w-full bg-line-strong" style={{ height: `${(w.posts / peak) * 100}%`, animationDelay: `${i * 50}ms` }} />
                     <span className="bar block w-full bg-accent-fill" style={{ height: `${(w.up / peak) * 100}%`, animationDelay: `${i * 50}ms` }} />
                     <span className="num pointer-events-none absolute inset-x-0 top-1 text-center text-xs font-semibold text-ink opacity-0 transition group-hover:opacity-100">{w.up + w.posts}</span>
                   </div>

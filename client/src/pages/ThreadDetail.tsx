@@ -67,7 +67,7 @@ export default function ThreadDetail({ kind }: { kind: ThreadKind }) {
 
         <aside className="grid h-fit gap-4 lg:sticky lg:top-16">
           <div className="card p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-faint">Posted by</p>
+            <p className="text-xs font-medium text-faint">Posted by</p>
             {t.author ? (
               <Link to={`/u/${t.author.id}`} className="mt-3 flex items-center gap-3"><Avatar user={t.author} size={38} /><span className="leading-tight"><span className="block text-sm font-semibold">{t.author.name}</span><span className="text-xs text-muted">{t.author.major}, year {t.author.year}</span></span></Link>
             ) : <p className="mt-3 flex items-center gap-3"><span className="grid size-10 place-items-center rounded-full bg-hover text-muted"><EyeOff size={16} /></span><span className="text-sm font-semibold">Anonymous student{t.mine && ' (you)'}</span></p>}

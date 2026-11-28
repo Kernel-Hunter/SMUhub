@@ -20,7 +20,7 @@ function EventRow({ e }: { e: CampusEvent }) {
     <Link to="/events" className="flex items-center gap-4 bg-surface px-4 py-3 transition-colors hover:bg-bg">
       <span className={cn('grid size-10 shrink-0 place-content-center rounded-sm text-center', e.kind === 'deadline' ? 'bg-danger-soft text-danger' : e.kind === 'event' ? 'bg-accent-soft text-accent' : 'bg-subtle text-muted')}>
         <span className="num text-sm font-semibold leading-none">{new Date(e.startsAt).getDate()}</span>
-        <span className="text-[10px] uppercase">{new Date(e.startsAt).toLocaleDateString(undefined, { month: 'short' })}</span>
+        <span className="text-[11px]">{new Date(e.startsAt).toLocaleDateString(undefined, { month: 'short' })}</span>
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium">{e.title}</span>

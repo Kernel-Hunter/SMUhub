@@ -83,12 +83,12 @@ export default function Events() {
           </div>
           {list.isLoading ? <Skeleton rows={4} /> : list.error ? <ErrorBox error={list.error} /> : !groups.length ? <Empty title="Nothing scheduled" hint={day ? 'Nothing on that day. Pick another one.' : 'Add the first event.'} /> : groups.map(([g, items]) => (
             <div key={g} className="mb-6">
-              <p className="mb-3 px-1 text-xs font-semibold uppercase tracking-wider text-faint">{g}</p>
+              <p className="mb-3 px-1 text-xs font-medium text-faint">{g}</p>
               <ol className="grid gap-3 stagger">
                 {items.map((e) => { const k = KIND[e.kind]; const d = new Date(e.startsAt); return (
                   <li key={e.id} className="card card-hover flex gap-4 p-4">
                     <div className={cn(k.tone, 'grid w-16 shrink-0 content-center rounded-md border bg-surface py-3 text-center')}>
-                      <p className="text-xs font-medium uppercase text-faint">{d.toLocaleDateString(undefined, { month: 'short' })}</p>
+                      <p className="text-xs font-medium text-faint">{d.toLocaleDateString(undefined, { month: 'short' })}</p>
                       <p className="num text-lg font-semibold text-heading">{d.getDate()}</p>
                       <p className="text-xs text-muted">{d.toLocaleDateString(undefined, { weekday: 'short' })}</p>
                     </div>
