@@ -32,7 +32,7 @@ export default function Signup() {
   return (
     <AuthLayout>
       <form onSubmit={submit} noValidate>
-        <h1 className="text-2xl font-semibold">Create your account</h1>
+        <h1 className="text-2xl font-medium">Create your account</h1>
         <p className="mt-2 text-sm text-muted">Join with your SMU email. We'll send you a code to confirm it's yours.</p>
         <fieldset disabled={busy} className="mt-8 grid min-w-0 grid-cols-1 gap-4">
           <div className="grid grid-cols-2 gap-3">

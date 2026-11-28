@@ -32,7 +32,7 @@ function EmailForm({ email, setEmail, onSent }: { email: string; setEmail: (v: s
   }
   return (
     <form onSubmit={submit} noValidate>
-      <h1 className="text-2xl font-semibold">Reset your password</h1>
+      <h1 className="text-2xl font-medium">Reset your password</h1>
       <p className="mt-2 text-sm text-muted">Enter your SMU email. If you have an account, we'll send you a code to choose a new password.</p>
       <fieldset disabled={busy} className="mt-8 grid min-w-0 grid-cols-1 gap-4">
         <label><span className="label">SMU email</span><input className="field !h-10" type="email" inputMode="email" autoComplete="email" autoFocus value={email} onChange={(e) => { setEmail(e.target.value); setErr('') }} placeholder={`firstname.lastname@${ALLOWED_DOMAINS[0] ?? 'smu.tn'}`} aria-invalid={!!err} required /></label>
@@ -67,7 +67,7 @@ function ResetForm({ email, onChangeEmail }: { email: string; onChangeEmail: () 
 
   return (
     <form onSubmit={submit} noValidate>
-      <h1 className="text-2xl font-semibold">Choose a new password</h1>
+      <h1 className="text-2xl font-medium">Choose a new password</h1>
       <p className="mt-2 text-sm text-muted">If <span className="font-medium text-ink">{email}</span> has an account, we sent it a 6-digit code. It's valid for 15 minutes.</p>
       <fieldset disabled={busy} className="mt-8 grid min-w-0 grid-cols-1 gap-4">
         <div>

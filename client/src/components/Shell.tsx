@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { NavLink, Link, useLocation } from 'react-router-dom'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom'
 import { BookOpen, CalendarDays, HelpCircle, LayoutGrid, LogOut, Megaphone, Menu, Moon, Newspaper, PackageOpen, Plus, Search, Settings, Sun, Trophy, UserRound, X } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import { GraduationCap } from 'lucide-react'
@@ -19,6 +19,15 @@ const MAIN = [
   { to: '/rentals', label: 'Rentals', icon: PackageOpen, hue: 'green' },
   { to: '/leaderboard', label: 'Leaderboard', icon: Trophy, hue: 'gold' },
 ]
+/** The "New" menu. Each letter works while the menu is open. */
+const NEW_ITEMS = [
+  { to: '/resources/new', icon: BookOpen, label: 'Share a file', key: 'U' },
+  { to: '/qa/new', icon: HelpCircle, label: 'Ask a question', key: 'Q' },
+  { to: '/voice/new', icon: Megaphone, label: 'Post to Campus Voice', key: 'V' },
+  { to: '/events?new=announcement', icon: Newspaper, label: 'Post an announcement', key: 'N' },
+  { to: '/events?new=event', icon: CalendarDays, label: 'Add an event', key: 'E' },
+  { to: '/rentals', icon: PackageOpen, label: 'Lend something', key: 'R' },
+]
 const TITLES: Record<string, string> = { '': 'Home', resources: 'Library', qa: 'Questions', voice: 'Campus Voice', events: 'Calendar & news', rentals: 'Rentals', leaderboard: 'Leaderboard', settings: 'Settings', u: 'Profile', courses: 'Courses' }
 
 export function Logo({ className }: { className?: string }) {
@@ -29,7 +38,7 @@ export function Logo({ className }: { className?: string }) {
       <span className="grid size-8 shrink-0 place-items-center rounded-sm dark:bg-white dark:p-0.5">
         <img src="/smu-mark.png" alt="Logo South Mediterranean University" width={32} height={32} className="size-full object-contain" />
       </span>
-      <span className="text-base font-semibold text-heading">SMUhub</span>
+      <span className="text-base font-medium text-heading">SMUhub</span>
     </Link>
   )
 }
@@ -38,8 +47,8 @@ function Item({ to, label, icon: Icon, end, hue = 'blue' }: { to: string; label:
   return (
     <NavLink to={to} end={end} className={({ isActive }) => cn(`hue-${hue}`, 'group relative flex h-9 min-w-0 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors', isActive ? 'bg-hue-soft text-hue' : 'text-muted hover:bg-hover hover:text-ink')}>
       {({ isActive }) => <>
-        {isActive && <span className="absolute -left-3 top-1.5 bottom-1.5 w-[3px] rounded-r-full" style={{ background: 'var(--hue)', animation: 'fade .2s' }} aria-hidden />}
-        <span className={cn('grid size-6 shrink-0 place-items-center rounded-[6px] transition-colors', isActive ? 'bg-hue' : 'group-hover:text-hue')}><Icon size={15} strokeWidth={isActive ? 2 : 1.75} /></span>
+        {isActive && <span className="absolute -left-3 top-1.5 bottom-1.5 w-[3px] rounded-r-full" style={{ background: 'var(--hue)' }} aria-hidden />}
+        <span className={cn('grid size-6 shrink-0 place-items-center transition-colors', isActive ? 'text-hue' : 'group-hover:text-hue')}><Icon size={16} aria-hidden /></span>
         <span className="truncate">{label}</span></>}
     </NavLink>
   )
@@ -64,13 +73,13 @@ function Sidebar({ onNav }: { onNav?: () => void }) {
         <Link to="/leaderboard" className="night relative block overflow-hidden rounded-[10px] px-3 py-3 transition-colors hover:bg-[var(--night-2)]">
           <Flow className="w-full text-[#3fb0d0] opacity-40" />
           <div className="relative flex items-baseline justify-between gap-2"><span className="text-xs font-semibold">Level {level}</span><span className="num truncate text-xs text-white/70">{me.xp} / {hi} XP</span></div>
-          <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-white/15" aria-hidden><span className="block h-full rounded-full bg-[#3fb0d0] transition-[width] duration-700" style={{ width: `${pct}%` }} /></div>
+          <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-white/15" aria-hidden><span className="block h-full w-full origin-left rounded-full bg-[#3fb0d0] transition-transform duration-300 ease-out" style={{ transform: `scaleX(${pct / 100})` }} /></div>
           <p className="relative mt-2 text-xs text-white/70">{me.rank ? `#${me.rank} on campus this term` : 'Share something to get ranked'}</p>
         </Link>
         <div className="flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-hover">
           <Avatar user={me} size={28} />
           <span className="min-w-0 flex-1 leading-tight"><span className="block truncate text-sm font-medium" title={me.name}>{me.name}</span><span className="block truncate text-xs text-muted" title={me.major ? `${me.major}, year ${me.year}` : `Year ${me.year}`}>{me.major ? `${me.major}, year ${me.year}` : `Year ${me.year}`}</span></span>
-          <button type="button" aria-label="Sign out" title="Sign out" onClick={(e) => { e.stopPropagation(); logout() }} className="-mr-1 grid size-7 shrink-0 place-items-center rounded-sm text-faint hover:bg-surface hover:text-ink"><LogOut size={14} /></button>
+          <button type="button" aria-label="Sign out" title="Sign out" onClick={(e) => { e.stopPropagation(); logout() }} className="icon-btn -mr-1"><LogOut size={16} aria-hidden /></button>
         </div>
       </div>
     </div>
@@ -79,10 +88,32 @@ function Sidebar({ onNav }: { onNav?: () => void }) {
 
 export default function Shell({ children }: { children: ReactNode }) {
   const { me } = useAuth()
-  const [menu, setMenu] = useState(false); const [search, setSearch] = useState(false); const [add, setAdd] = useState(false)
+  const [menu, setMenu] = useState(false); const [search, setSearch] = useState(false)
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
   const { pathname } = useLocation()
-  useEffect(() => { setMenu(false); setAdd(false) }, [pathname])
+  const menuBtn = useRef<HTMLButtonElement>(null); const drawer = useRef<HTMLDivElement>(null); const lastPath = useRef(pathname)
+  useEffect(() => { setMenu(false) }, [pathname])
+  // After a client-side navigation, move focus to the new page so screen readers and keyboards start there.
+  useEffect(() => {
+    if (lastPath.current === pathname) return // first render (and StrictMode's second run)
+    lastPath.current = pathname
+    document.getElementById('main')?.focus({ preventScroll: true })
+  }, [pathname])
+  // Mobile menu: focus inside, Tab stays inside, Escape closes, focus goes back to the menu button.
+  useEffect(() => {
+    if (!menu) return
+    drawer.current?.querySelector<HTMLElement>('button, a')?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); setMenu(false); return }
+      if (e.key !== 'Tab' || !drawer.current) return
+      const f = [...drawer.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')]
+      const first = f[0], last = f[f.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => { window.removeEventListener('keydown', onKey); if (document.activeElement === document.body) menuBtn.current?.focus() }
+  }, [menu])
   useEffect(() => { document.body.style.overflow = menu ? 'hidden' : '' }, [menu])
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearch((v) => !v) } }
@@ -101,35 +132,65 @@ export default function Shell({ children }: { children: ReactNode }) {
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-line bg-side lg:block"><Sidebar /></aside>
       <div className="lg:pl-60">
         <header className="sticky top-0 z-20 border-b border-line bg-bg">
-          <div className="mx-auto flex h-12 max-w-[1120px] items-center gap-3 px-4 sm:px-8">
-            <button className="-ml-1 grid size-8 place-items-center rounded-sm hover:bg-hover lg:hidden" aria-label="Open menu" onClick={() => setMenu(true)}><Menu size={18} /></button>
-            <span className="flex items-center gap-2 text-sm"><span className="text-faint">SMUhub</span><span className="text-faint">/</span><span className="font-medium">{section}</span></span>
-            <div className="ml-auto flex items-center gap-2">
-              <button onClick={() => setSearch(true)} className="hidden h-8 w-60 items-center gap-2 rounded-sm border border-line bg-surface px-3 text-sm text-faint transition-colors hover:border-line-strong hover:text-muted md:flex"><Search size={14} />Search SMUhub<span className="kbd ml-auto">⌘K</span></button>
-              <button onClick={() => setSearch(true)} aria-label="Search" className="grid size-8 place-items-center rounded-sm text-muted hover:bg-hover md:hidden"><Search size={16} /></button>
-              <button onClick={toggle} aria-label={dark ? 'Use light theme' : 'Use dark theme'} title={dark ? 'Light theme' : 'Dark theme'} className="grid size-8 place-items-center rounded-sm text-muted transition hover:bg-hover hover:text-ink">{dark ? <Sun size={16} /> : <Moon size={16} />}</button>
+          <div className="mx-auto flex h-12 max-w-[1120px] items-center gap-2 px-4 sm:gap-3 sm:px-8">
+            <button ref={menuBtn} type="button" className="icon-btn -ml-1 text-ink lg:hidden" aria-label="Open menu" aria-expanded={menu} onClick={() => setMenu(true)}><Menu size={18} aria-hidden /></button>
+            <span className="flex min-w-0 items-center gap-2 text-sm"><span className="hidden text-faint sm:inline">SMUhub</span><span className="hidden text-faint sm:inline" aria-hidden>/</span><span className="min-w-0 truncate font-medium">{section}</span></span>
+            <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+              <button type="button" onClick={() => setSearch(true)} className="hidden h-8 w-60 items-center gap-2 rounded-sm border border-line bg-surface px-3 text-sm text-faint transition-colors hover:border-line-strong hover:text-muted md:flex"><Search size={14} aria-hidden />Search SMUhub<span className="kbd ml-auto" aria-hidden>⌘K</span></button>
+              <button type="button" onClick={() => setSearch(true)} aria-label="Search" className="icon-btn md:hidden"><Search size={16} aria-hidden /></button>
+              <button type="button" onClick={toggle} aria-label={dark ? 'Use light theme' : 'Use dark theme'} title={dark ? 'Light theme' : 'Dark theme'} className="icon-btn">{dark ? <Sun size={16} aria-hidden /> : <Moon size={16} aria-hidden />}</button>
               <NotificationBell />
-              <div className="relative">
-                <button onClick={() => setAdd(!add)} className="btn btn-primary btn-sm" aria-expanded={add} aria-haspopup="menu"><Plus size={14} />New</button>
-                {add && (<>
-                  <div className="fixed inset-0 z-10" onClick={() => setAdd(false)} />
-                  <div role="menu" className="popover absolute right-0 top-10 z-20 w-60 p-1" style={{ animation: 'rise .16s ease-out' }}>
-                    {[['/resources/new', BookOpen, 'Upload a resource', 'U'], ['/qa/new', HelpCircle, 'Ask a question', 'Q'], ['/voice/new', Megaphone, 'Post to Campus Voice', 'V'], ['/events?new=announcement', Newspaper, 'Post an announcement', 'N'], ['/events?new=event', CalendarDays, 'Add an event', 'E'], ['/rentals', PackageOpen, 'Lend something', 'R']].map(([to, I, t, k]) => { const Icon = I as typeof Search; return (
-                      <Link role="menuitem" key={to as string} to={to as string} className="flex items-center gap-3 rounded-sm px-3 py-2 text-sm hover:bg-hover"><Icon size={15} className="text-muted" />{t as string}<span className="kbd ml-auto">{k as string}</span></Link>) })}
-                  </div></>)}
-              </div>
+              <NewMenu />
             </div>
           </div>
         </header>
-        <main id="main" key={pathname} className="mx-auto w-full max-w-[1120px] px-4 pb-24 pt-8 sm:px-8 sm:pt-10" style={{ animation: 'fade .25s ease-out' }}>{children}</main>
+        <main id="main" key={pathname} tabIndex={-1} className="mx-auto w-full max-w-[1120px] px-4 pb-24 pt-8 outline-none sm:px-8 sm:pt-10">{children}</main>
       </div>
       {menu && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal aria-label="Menu">
           <div className="absolute inset-0 bg-[var(--overlay)]" style={{ animation: 'fade .15s' }} onClick={() => setMenu(false)} />
-          <div className="absolute inset-y-0 left-0 w-[272px] border-r border-line bg-side shadow-popover" style={{ animation: 'rise .2s ease-out' }}><button aria-label="Close menu" className="absolute right-3 top-4 grid size-7 place-items-center rounded-md hover:bg-hover" onClick={() => setMenu(false)}><X size={16} /></button><Sidebar onNav={() => setMenu(false)} /></div>
+          <div ref={drawer} className="drawer absolute inset-y-0 left-0 w-[272px] border-r border-line bg-side shadow-popover"><button type="button" aria-label="Close menu" className="icon-btn absolute right-3 top-3" onClick={() => setMenu(false)}><X size={16} aria-hidden /></button><Sidebar onNav={() => setMenu(false)} /></div>
         </div>
       )}
       <Palette open={search} onClose={() => setSearch(false)} />
+    </div>
+  )
+}
+
+function NewMenu() {
+  const [open, setOpen] = useState(false)
+  const btn = useRef<HTMLButtonElement>(null); const list = useRef<HTMLDivElement>(null)
+  const nav = useNavigate(); const { pathname } = useLocation()
+  useEffect(() => { setOpen(false) }, [pathname])
+  useEffect(() => {
+    if (!open) return
+    list.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const items = [...(list.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])]
+      const i = items.indexOf(document.activeElement as HTMLElement)
+      if (e.key === 'Escape') { e.preventDefault(); setOpen(false); btn.current?.focus() }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length]?.focus() }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length]?.focus() }
+      else if (e.key === 'Tab') setOpen(false)
+      else {
+        const hit = NEW_ITEMS.find((x) => x.key === e.key.toUpperCase())
+        if (hit) { e.preventDefault(); setOpen(false); nav(hit.to) }
+      }
+    }
+    window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey)
+  }, [open, nav])
+  return (
+    <div className="relative">
+      <button ref={btn} type="button" onClick={() => setOpen(!open)} className="btn btn-primary btn-sm" aria-expanded={open} aria-haspopup="menu"><Plus size={14} aria-hidden />New</button>
+      {open && (<>
+        <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} aria-hidden />
+        <div ref={list} role="menu" aria-label="Create" className="popover pop absolute right-0 top-10 z-20 w-64 p-1">
+          {NEW_ITEMS.map(({ to, icon: Icon, label, key }) => (
+            <Link role="menuitem" key={to} to={to} className="flex items-center gap-3 rounded-sm px-3 py-2 text-sm outline-none hover:bg-hover focus-visible:bg-hover">
+              <Icon size={16} className="text-muted" aria-hidden />{label}<span className="kbd ml-auto" aria-hidden>{key}</span>
+            </Link>))}
+        </div></>)}
     </div>
   )
 }

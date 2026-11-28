@@ -48,7 +48,7 @@ function Item({ a, onDelete }: { a: Announcement; onDelete?: () => void }) {
           <span className="text-xs text-muted">{timeAgo(a.createdAt)}</span>
           {a.expiresAt && <span className="text-xs text-faint">· until {formatDay(a.expiresAt)}</span>}
         </div>
-        <h3 className="mt-2 text-base font-semibold leading-snug">{a.title}</h3>
+        <h3 className="mt-2 text-base font-medium leading-snug">{a.title}</h3>
         <p className="mt-1 whitespace-pre-line text-sm text-muted">{a.body}</p>
         <Link to={`/u/${a.author.id}`} className="mt-3 inline-flex items-center gap-2 text-xs text-muted hover:text-ink"><Avatar user={a.author} size={20} />{a.author.name}</Link>
       </div>
@@ -68,7 +68,7 @@ export function AnnouncementFeed({ onPost }: { onPost: () => void }) {
   return (
     <section id="news" className="mb-8">
       <div className="hue-rose mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-base font-semibold"><span className="tile size-7"><Newspaper size={16} /></span>Announcements{list.data && <span className="num rounded-sm border border-line bg-surface px-2 text-xs font-medium text-muted">{items.length}</span>}</h2>
+        <h2 className="flex items-center gap-2 text-base font-medium"><span className="tile size-7"><Newspaper size={16} /></span>Announcements{list.data && <span className="num rounded-sm border border-line bg-surface px-2 text-xs font-medium text-muted">{items.length}</span>}</h2>
         <select aria-label="Filter announcements by course" className="field !h-8 !w-auto text-xs" value={course} onChange={(e) => { setCourse(e.target.value); setAll(false) }}><option value="">All courses</option>{COURSES.map(([code]) => <option key={code} value={code}>{code}</option>)}</select>
       </div>
       {list.isLoading ? <Skeleton rows={2} /> : list.error ? <ErrorBox error={list.error} /> : !items.length

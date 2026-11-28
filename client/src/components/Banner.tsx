@@ -18,10 +18,10 @@ export default function Banner({ tone = 'blue', icon, label, title, sub, stats, 
       <Flow className="text-[color:var(--hue)] opacity-60" />
       <div className="relative flex flex-wrap items-end justify-between gap-6">
         <div className="flex min-w-0 max-w-2xl gap-4">
-          <span className="bg-hue grid size-11 shrink-0 place-items-center rounded-[10px] [&_svg]:size-5">{icon}</span>
+          <span className="tile size-11 rounded-[10px] [&_svg]:size-5" aria-hidden>{icon}</span>
           <div className="min-w-0">
             <p className="text-hue text-xs font-medium">{label}</p>
-            <h1 className="mt-0.5 text-2xl font-semibold">{title}</h1>
+            <h1 className="mt-0.5 text-2xl font-medium">{title}</h1>
             {sub && <p className="mt-2 text-sm text-muted">{sub}</p>}
             {action && <div className="mt-4 flex flex-wrap gap-2">{action}</div>}
           </div>
@@ -31,7 +31,7 @@ export default function Banner({ tone = 'blue', icon, label, title, sub, stats, 
             {stats.map(([l, v]) => (
               <div key={l} className="flex min-w-24 flex-col-reverse rounded-[10px] border bg-surface px-4 py-2.5 shadow-[var(--shadow-card)]" style={{ borderColor: 'var(--hue-line)' }}>
                 <dt className="text-xs text-muted">{l}</dt>
-                <dd className="num text-hue text-xl font-semibold">{v}</dd>
+                <dd className="num text-xl font-medium text-heading">{v}</dd>
               </div>
             ))}
           </dl>
@@ -42,5 +42,6 @@ export default function Banner({ tone = 'blue', icon, label, title, sub, stats, 
   )
 }
 
-export const bannerBtn = 'btn btn-hue h-9'
+/** Banner actions use the one accent, like every primary button. The section hue stays in the tile and tint. */
+export const bannerBtn = 'btn btn-primary h-9'
 export const bannerGhost = 'btn btn-secondary h-9'

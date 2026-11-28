@@ -25,7 +25,7 @@ export default function Leaderboard() {
   return (
     <div>
       <Banner tone="gold" icon={<Trophy size={13} />} label="Leaderboard" title="Top contributors" sub="Points come from classmates rating your files and upvoting your answers. You cannot earn them alone."
-        stats={[['Your rank', mine ? `#${mine.rank}` : '-'], [period === 'week' ? 'Your week' : 'Your total', <CountUp key={period} value={mine?.xp ?? (period === 'week' ? me.data?.weeklyXp : me.data?.xp) ?? 0} />]]}
+        stats={[['Your rank', mine ? `#${mine.rank}` : '-'], [period === 'week' ? 'Your week' : 'Your total', <CountUp value={mine?.xp ?? (period === 'week' ? me.data?.weeklyXp : me.data?.xp) ?? 0} />]]}
         action={<div role="tablist" className="inline-flex rounded-sm border border-line bg-subtle p-1">{(['week', 'all'] as const).map((p) => <button key={p} onClick={() => setPeriod(p)} role="tab" aria-selected={period === p} className={cn('h-7 rounded-sm px-3 text-sm font-medium transition-colors', period === p ? 'bg-surface text-ink ring-1 ring-line' : 'text-muted hover:text-ink')}>{p === 'week' ? 'This week' : 'All time'}</button>)}</div>} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -40,7 +40,7 @@ export default function Leaderboard() {
                     <span className="mt-2 w-full truncate text-sm font-semibold">{r.user.name}</span>
                     <span className="text-xs text-muted">{r.user.major}</span>
                     <div className={cn(m.bar, m.h, 'mt-3 grid w-full place-items-center rounded-t-md border border-b-0')}>
-                      <span><span className="num block text-lg font-semibold leading-none">{r.xp}</span><span className="text-xs font-medium text-muted">{m.label}</span></span>
+                      <span><span className="num block text-lg font-medium leading-none">{r.xp}</span><span className="text-xs font-medium text-muted">{m.label}</span></span>
                     </div>
                   </Link>) })}
               </div>
@@ -49,7 +49,7 @@ export default function Leaderboard() {
                   <li key={r.user.id} className={cn('flex items-center gap-3 px-4 py-3', r.isMe && 'bg-accent-soft')}>
                     <span className="num grid size-7 place-items-center rounded-full bg-hover text-xs font-semibold text-muted">{r.rank}</span><Avatar user={r.user} size={34} />
                     <Link to={`/u/${r.user.id}`} className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{r.user.name}{r.isMe && ' (you)'}</span><span className="text-xs text-muted">{r.user.major} · {r.uploads} {r.uploads === 1 ? 'upload' : 'uploads'}</span></Link>
-                    <span className="hidden w-28 sm:block"><span className="block h-1.5 overflow-hidden rounded-full bg-hover"><span className="bar block h-full rounded-full bg-accent-fill" style={{ width: `${Math.max(6, (r.xp / (data[0]?.xp || 1)) * 100)}%` }} /></span></span>
+                    <span className="hidden w-28 sm:block"><span className="block h-1.5 overflow-hidden rounded-full bg-hover"><span className="bar-x block h-full rounded-full bg-accent-fill" style={{ width: `${Math.max(6, (r.xp / (data[0]?.xp || 1)) * 100)}%` }} /></span></span>
                     <span className="num w-12 text-right text-sm font-semibold">{r.xp}</span>
                   </li>
                 ))}
@@ -59,7 +59,7 @@ export default function Leaderboard() {
         </div>
         <aside className="grid h-fit gap-4 lg:sticky lg:top-16">
           <div className="card p-5">
-            <p className="text-base font-semibold">How points work</p>
+            <p className="text-base font-medium">How points work</p>
             <ul className="mt-4 grid gap-3">{rules.map(([p, t, tone]) => <li key={t} className="flex items-center gap-3 text-sm"><span className={cn('num grid h-7 w-11 shrink-0 place-items-center rounded-md text-xs font-semibold', tone)}>{p}</span><span className="text-muted">{t}</span></li>)}</ul>
           </div>
           <div className="card p-5 text-xs leading-relaxed text-muted">

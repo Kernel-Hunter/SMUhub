@@ -31,7 +31,7 @@ export default function Login() {
   return (
     <AuthLayout>
         <form onSubmit={submit} noValidate>
-          <h1 className="text-2xl font-semibold">Welcome back</h1>
+          <h1 className="text-2xl font-medium">Welcome back</h1>
           <p className="mt-2 text-sm text-muted">Sign in with your SMU email.</p>
           <fieldset disabled={busy} className="mt-8 grid min-w-0 grid-cols-1 gap-4">
             <label><span className="label">SMU email</span><input className="field !h-10" type="email" inputMode="email" autoComplete="email" autoFocus value={email} onChange={(e) => { setEmail(e.target.value); setErr('') }} placeholder={`firstname.lastname@${ALLOWED_DOMAINS[0] ?? 'smu.tn'}`} aria-invalid={!!err} required /></label>

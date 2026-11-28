@@ -39,7 +39,7 @@ export default function Upload() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <form onSubmit={submit} className="card grid gap-5 p-6">
           <div onDragOver={(e) => { e.preventDefault(); setDrag(true) }} onDragLeave={() => setDrag(false)} onDrop={drop} onClick={() => !file && input.current?.click()}
-            className={cn('flex cursor-pointer flex-col items-center rounded-lg border-2 border-dashed px-6 py-10 text-center transition', drag ? 'border-accent bg-accent-soft' : 'border-line-strong bg-hover hover:border-accent/50')}>
+            className={cn('flex cursor-pointer flex-col items-center rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors', drag ? 'border-accent bg-accent-soft' : 'border-line-strong bg-hover hover:border-accent/50')}>
             {file ? (
               <div className="flex items-center gap-3 text-left"><FileBadge ext={file.name.split('.').pop()?.toLowerCase() ?? 'pdf'} /><span><span className="flex items-center gap-2 text-sm font-medium"><FileCheck2 size={14} className="text-success" />{file.name}</span><span className="text-xs text-muted">{formatSize(file.size)}</span></span>
                 <button type="button" aria-label="Remove file" className="btn btn-ghost btn-sm ml-2 !px-2" onClick={(e) => { e.stopPropagation(); setFile(null) }}><X size={14} /></button></div>

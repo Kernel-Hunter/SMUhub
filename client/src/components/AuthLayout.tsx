@@ -37,7 +37,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <p className="text-xs text-faint">© SMUhub · Made by students, for students</p>
       </section>
       <section className="hidden flex-col justify-center gap-10 border-l border-line bg-[color-mix(in_srgb,var(--accent-soft)_50%,var(--bg))] px-12 lg:flex">
-        <div className="mx-auto max-w-md text-center"><h2 className="text-lg font-semibold">Everything your courses never gave you.</h2><p className="mt-3 text-sm text-muted">Notes, past exams and honest answers from the students who just took the course.</p></div>
+        <div className="mx-auto max-w-md text-center"><h2 className="text-lg font-medium">Everything your courses never gave you.</h2><p className="mt-3 text-sm text-muted">Notes, past exams and honest answers from the students who just took the course.</p></div>
         <Preview />
       </section>
     </div>

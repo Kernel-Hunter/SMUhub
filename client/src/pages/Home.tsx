@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, ArrowUpRight, FileText, Handshake, HelpCircle, Megaphone, Newspaper, Pin, Trophy, Upload, type LucideIcon } from 'lucide-react'
+import { ArrowUpRight, FileText, Handshake, HelpCircle, Megaphone, Newspaper, Pin, Trophy, Upload, type LucideIcon } from 'lucide-react'
 import { api } from '@/api/client'
 import { useAuth } from '@/auth/AuthContext'
 import { ResourceCard, ThreadCard } from '@/components/Cards'
 import { Avatar, CountUp, Skeleton } from '@/components/ui'
 import Calendar from '@/components/Calendar'
 import Flow from '@/components/Flow'
-import { cn, deptOf, formatTime, timeAgo } from '@/lib/utils'
+import { cn, deptOf, deptTag, formatTime, timeAgo } from '@/lib/utils'
 
 const DAY = 86400000
 
@@ -15,12 +15,12 @@ const DAY = 86400000
 function Head({ title, to, count, icon: Icon, hue = 'blue' }: { title: string; to: string; count?: number; icon?: LucideIcon; hue?: string }) {
   return (
     <div className={cn(`hue-${hue}`, 'mb-3 flex items-center justify-between')}>
-      <h2 className="flex items-center gap-2 text-base font-semibold">
+      <h2 className="flex items-center gap-2 text-base font-medium">
         {Icon && <span className="tile size-7"><Icon size={16} /></span>}
         {title}
         {count !== undefined && <span className="num rounded-sm border border-line bg-surface px-2 text-xs font-medium text-muted">{count}</span>}
       </h2>
-      <Link to={to} className="flex items-center gap-1 text-xs font-medium text-accent hover:underline">View all<ArrowRight size={12} /></Link>
+      <Link to={to} className="text-xs font-medium text-accent hover:underline">View all</Link>
     </div>
   )
 }
@@ -69,7 +69,7 @@ export default function Home() {
           <dl className="flex gap-3">
             {([['Your XP', <CountUp value={me.xp} />], ['Rank', me.rank ? `#${me.rank}` : '-'], ['Uploads', me.uploads]] as [string, React.ReactNode][]).map(([l, v]) => (
               <div key={l} className="flex min-w-24 flex-col-reverse rounded-[10px] border border-white/12 bg-white/[.06] px-4 py-3">
-                <dt className="text-xs text-white/60">{l}</dt><dd className="num text-2xl font-semibold">{v}</dd>
+                <dt className="text-xs text-white/60">{l}</dt><dd className="num text-2xl font-medium">{v}</dd>
               </div>))}
           </dl>
         </div>
@@ -82,13 +82,13 @@ export default function Home() {
           ['/voice/new', 'Speak up', 'Name or no name, your call', Megaphone, 'orange'],
           ['/rentals', 'Borrow something', 'Calculators, lab gear, books', Handshake, 'green'],
         ] as [string, string, string, LucideIcon, string][]).map(([to, t, sub, Icon, hue]) => (
-          <Link key={to} to={to} className={cn(`hue-${hue}`, 'card card-hover group flex items-start gap-3 p-4 hover:!border-[var(--hue-line)]')}>
-            <span className="tile size-9 transition-colors group-hover:bg-[var(--hue)] group-hover:text-white"><Icon size={17} /></span>
+          <Link key={to} to={to} className={cn(`hue-${hue}`, 'card card-hover group flex items-start gap-3 p-4')}>
+            <span className="tile size-9" aria-hidden><Icon size={16} /></span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium text-ink">{t}</span>
               <span className="mt-1 block text-xs text-muted">{sub}</span>
             </span>
-            <ArrowUpRight size={16} className="shrink-0 text-faint transition-colors group-hover:text-ink" aria-hidden />
+            <ArrowUpRight size={16} className="hidden shrink-0 text-faint transition-colors group-hover:text-ink sm:block" aria-hidden />
           </Link>
         ))}
       </section>
@@ -99,7 +99,7 @@ export default function Home() {
           {(courses.isLoading ? [] : mine).map((c) => (
             <Link key={c.code} to={`/courses/${c.code}`} className="card card-hover group overflow-hidden p-4" style={{ boxShadow: `inset 0 3px 0 ${deptOf(c.dept).dot}, var(--shadow-card)` }}>
               <span className="flex items-center gap-2">
-                <span className="mono rounded-[5px] px-1.5 py-0.5 text-xs font-semibold" style={{ color: deptOf(c.dept).dot, background: `color-mix(in srgb, ${deptOf(c.dept).dot} 12%, var(--surface))` }}>{c.code}</span>
+                <span className="mono rounded-[5px] px-1.5 py-0.5 text-xs font-semibold" style={deptTag(deptOf(c.dept).dot)}>{c.code}</span>
                 <ArrowUpRight size={14} className="ml-auto text-faint transition-colors group-hover:text-ink" aria-hidden />
               </span>
               <span className="mt-2 block truncate text-sm font-medium text-ink">{c.name}</span>
@@ -112,16 +112,18 @@ export default function Home() {
         <div className="grid min-w-0 grid-cols-1 content-start gap-8">
           <section className="card p-5">
             <div className="flex flex-wrap items-end justify-between gap-3">
-              <div><p className="text-sm text-muted">Campus activity, last 7 days</p><p className="mt-1 text-2xl font-semibold text-heading"><CountUp value={total} /> <span className="text-sm font-normal text-muted">uploads and posts</span></p></div>
+              <div><p className="text-sm text-muted">Campus activity, last 7 days</p><p className="mt-1 text-2xl font-medium text-heading"><CountUp value={total} /> <span className="text-sm font-normal text-muted">uploads and posts</span></p></div>
               <div className="flex gap-4 text-xs text-muted"><span className="flex items-center gap-2"><span className="size-2 rounded-full bg-accent-fill" />Uploads</span><span className="flex items-center gap-2"><span className="size-2 rounded-full bg-line-strong" />Posts</span></div>
             </div>
             <div className="mt-6 grid h-36 grid-cols-7 items-end gap-3">
               {week.map((w, i) => (
                 <div key={i} className="group flex h-full flex-col items-center justify-end gap-2">
                   <div className="relative flex w-full max-w-10 flex-1 flex-col justify-end overflow-hidden rounded-sm bg-subtle">
-                    <span className="bar block w-full bg-line-strong" style={{ height: `${(w.posts / peak) * 100}%`, animationDelay: `${i * 50}ms` }} />
-                    <span className="bar block w-full bg-accent-fill" style={{ height: `${(w.up / peak) * 100}%`, animationDelay: `${i * 50}ms` }} />
-                    <span className="num pointer-events-none absolute inset-x-0 top-1 text-center text-xs font-semibold text-ink opacity-0 transition group-hover:opacity-100">{w.up + w.posts}</span>
+                    <span className="bar flex w-full flex-col justify-end" style={{ height: `${((w.up + w.posts) / peak) * 100}%`, animationDelay: `${i * 50}ms` }} aria-hidden>
+                      <span className="block w-full bg-line-strong" style={{ flexGrow: w.posts }} />
+                      <span className="block w-full bg-accent-fill" style={{ flexGrow: w.up }} />
+                    </span>
+                    <span className="num pointer-events-none absolute inset-x-0 top-1 text-center text-xs font-semibold text-ink opacity-0 transition-opacity group-hover:opacity-100">{w.up + w.posts}</span>
                   </div>
                   <span className={cn('text-xs', i === 6 ? 'font-semibold text-ink' : 'text-faint')}>{i === 6 ? 'Today' : w.label}</span>
                 </div>
@@ -139,7 +141,7 @@ export default function Home() {
               : <ol>{news.data.slice(0, 3).map((a) => (
                 <li key={a.id}><Link to="/events" className="block rounded-sm px-3 py-2 transition-colors hover:bg-hover">
                   <span className="flex items-center gap-1.5 text-sm font-medium">{a.pinned && <Pin size={12} className="hue-rose shrink-0 text-hue" aria-label="Pinned" />}<span className="truncate">{a.title}</span></span>
-                  <span className="mt-0.5 block truncate text-xs text-muted">{a.courseCode ? `${a.courseCode} · ` : ''}{a.author.name} · {timeAgo(a.createdAt)}</span>
+                  <span className="mt-0.5 flex min-w-0 gap-x-3 text-xs text-muted">{a.courseCode && <span className="mono shrink-0">{a.courseCode}</span>}<span className="min-w-0 truncate">{a.author.name}</span><span className="shrink-0 text-faint">{timeAgo(a.createdAt)}</span></span>
                 </Link></li>))}</ol>}
             </div>
           </section>

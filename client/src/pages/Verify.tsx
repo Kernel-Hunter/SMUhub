@@ -52,7 +52,7 @@ function VerifyForm({ email, resendOnArrival }: { email: string; resendOnArrival
   return (
     <AuthLayout>
       <form onSubmit={(e: FormEvent) => { e.preventDefault(); void verify(code) }} noValidate>
-        <h1 className="text-2xl font-semibold">Check your inbox</h1>
+        <h1 className="text-2xl font-medium">Check your inbox</h1>
         <p className="mt-2 text-sm text-muted">We sent a 6-digit code to <span className="font-medium text-ink">{email}</span>. It's valid for 15 minutes.</p>
         <fieldset disabled={busy} className="mt-8 grid min-w-0 grid-cols-1 gap-4">
           <label htmlFor="verify-code" className="label !mb-0">Code</label>

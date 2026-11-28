@@ -10,7 +10,12 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>SMUhub</title>
     <script>
-      try { var t = localStorage.getItem('smuhub.theme'); if (t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark'); } catch (e) {}
+      try {
+        var t = localStorage.getItem('smuhub.theme'), d = document.documentElement, m = document.querySelector('meta[name=theme-color]');
+        if (t === 'dark' || ((!t || t === 'system') && matchMedia('(prefers-color-scheme: dark)').matches)) d.classList.add('dark');
+        var sync = function () { m.content = d.classList.contains('dark') ? '#10161d' : '#f6f8fa'; };
+        sync(); new MutationObserver(sync).observe(d, { attributes: true, attributeFilter: ['class'] });
+      } catch (e) {}
     </script>
   </head>
   <body>

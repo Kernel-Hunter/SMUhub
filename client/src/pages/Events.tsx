@@ -49,21 +49,21 @@ export default function Events() {
     <div>
       <Banner tone="rose" icon={<CalendarDays size={13} />} label="Calendar & news" title="What's coming up" sub="Announcements, exams, project deadlines and club meetups in one place. Join an event to keep it on your home page."
         stats={[['This month', all.filter((e) => thisMonth(e.startsAt)).length], ['Deadlines', all.filter((e) => e.kind === 'deadline').length], ["You're going", all.filter((e) => e.iGo).length]]}
-        action={open ? <button className={bannerBtn} onClick={() => setOpen(false)}><X size={15} />Close</button> : <>
+        action={open ? <button className={bannerGhost} onClick={() => setOpen(false)}><X size={15} />Close</button> : <>
           <button className={bannerBtn} onClick={() => publish('announcement')}><Newspaper size={15} />Post an announcement</button>
           <button className={bannerGhost} onClick={() => publish('event')}><Plus size={15} />Add an event</button></>} />
 
       {open && (
         <div className="card rise mb-7 p-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-base font-semibold">What do you want to publish?</p>
+          <p className="text-base font-medium">What do you want to publish?</p>
           <Segmented value={mode} onChange={(m) => { setMode(m); setErr('') }} options={[{ value: 'announcement', label: 'Announcement' }, { value: 'event', label: 'Event' }]} />
         </div>
         <p className="-mt-3 mb-5 text-xs text-muted">{mode === 'announcement' ? 'A short notice: a room change, a closure, club news. It shows above the calendar and on Home.' : 'Something with a date and time: an exam, a deadline, a meetup. It goes on the calendar and people can join.'}</p>
         {mode === 'announcement' ? <AnnouncementForm onDone={() => setOpen(false)} /> : (
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2"><Field label="Title"><input className="field" required maxLength={100} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field></div>
-          <div><span className="label">Type</span><div className="flex gap-2">{(Object.keys(KIND) as Kind[]).map((k) => <button type="button" key={k} onClick={() => setF({ ...f, kind: k })} className={cn('chip h-9 flex-1 cursor-pointer justify-center text-xs transition', f.kind === k ? KIND[k].soft + ' ring-1 ring-current' : 'hover:text-ink')}>{KIND[k].label}</button>)}</div></div>
+          <div><span className="label">Type</span><div className="flex gap-2">{(Object.keys(KIND) as Kind[]).map((k) => <button type="button" key={k} onClick={() => setF({ ...f, kind: k })} className={cn('chip h-9 flex-1 cursor-pointer justify-center text-xs transition-colors', f.kind === k ? KIND[k].soft + ' ring-1 ring-current' : 'hover:text-ink')}>{KIND[k].label}</button>)}</div></div>
           <Field label="When"><input className="field" type="datetime-local" required value={f.when} onChange={(e) => setF({ ...f, when: e.target.value })} /></Field>
           <div className="sm:col-span-2"><Field label="Where"><input className="field" maxLength={80} value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="Room, building or link" /></Field></div>
           <div className="sm:col-span-2"><Field label="Details"><textarea className="field min-h-20" maxLength={500} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field></div>
@@ -76,7 +76,7 @@ export default function Events() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className="min-w-0">
           <AnnouncementFeed onPost={() => publish('announcement')} />
-          <h2 className="mb-3 text-base font-semibold">Upcoming</h2>
+          <h2 className="mb-3 text-base font-medium">Upcoming</h2>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <Segmented value={kind} onChange={setKind} options={[{ value: 'all', label: 'All' }, { value: 'event', label: 'Events' }, { value: 'deadline', label: 'Deadlines' }, { value: 'club', label: 'Clubs' }]} />
             {day && <button onClick={() => setDay(undefined)} className="chip cursor-pointer gap-1 hover:text-ink"><X size={12} />{now.toLocaleDateString(undefined, { month: 'long' })} {day}</button>}
@@ -89,12 +89,12 @@ export default function Events() {
                   <li key={e.id} className="card card-hover flex gap-4 p-4">
                     <div className={cn(k.tone, 'grid w-16 shrink-0 content-center rounded-md border bg-surface py-3 text-center')}>
                       <p className="text-xs font-medium text-faint">{d.toLocaleDateString(undefined, { month: 'short' })}</p>
-                      <p className="num text-lg font-semibold text-heading">{d.getDate()}</p>
+                      <p className="num text-lg font-medium text-heading">{d.getDate()}</p>
                       <p className="text-xs text-muted">{d.toLocaleDateString(undefined, { weekday: 'short' })}</p>
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2"><span className={cn('chip', k.soft)}>{k.label}</span>{e.courseCode && <span className="chip num">{e.courseCode}</span>}<span className="text-xs font-semibold text-muted">{daysUntil(e.startsAt)}</span></div>
-                      <h3 className="mt-2 text-base font-semibold leading-snug">{e.title}</h3>
+                      <h3 className="mt-2 text-base font-medium leading-snug">{e.title}</h3>
                       {e.description && <p className="mt-1 line-clamp-2 text-sm text-muted">{e.description}</p>}
                       <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted"><span>{formatDay(e.startsAt)} · {formatTime(e.startsAt)}</span>{e.location && <span className="flex items-center gap-1"><MapPin size={12} />{e.location}</span>}<span className="flex items-center gap-1"><Users size={12} />{e.going} going</span></p>
                     </div>
@@ -107,7 +107,7 @@ export default function Events() {
 
         <aside className="grid h-fit gap-4 lg:sticky lg:top-16">
           <div className="card p-5">
-            <div className="mb-4 flex items-center justify-between"><p className="text-base font-semibold">{now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p><span className="text-xs text-muted">Tap a day</span></div>
+            <div className="mb-4 flex items-center justify-between"><p className="text-base font-medium">{now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p><span className="text-xs text-muted">Tap a day</span></div>
             <Calendar days={days} size="lg" selected={day} onSelect={(d) => setDay(day === d ? undefined : d)} />
             <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 border-t border-line pt-4 text-xs text-muted">{(Object.keys(KIND) as Kind[]).map((k) => <span key={k} className="flex items-center gap-2"><span className={cn('size-2 rounded-full', KIND[k].dot)} />{KIND[k].label}</span>)}</div>
           </div>

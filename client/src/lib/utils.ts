@@ -39,3 +39,5 @@ export const DEPT: Record<string, { dot: string }> = {
   Law: { dot: '#8f8257' },
 }
 export const deptOf = (d: string) => DEPT[d] ?? DEPT['Computer Science']
+/** Course-code tag colours: the department dot mixed toward the text colour, so the code passes 4.5:1 in both themes. */
+export const deptTag = (dot: string) => ({ color: `color-mix(in srgb, ${dot} 55%, var(--text))`, background: `color-mix(in srgb, ${dot} 12%, var(--surface))` })

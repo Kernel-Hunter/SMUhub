@@ -68,14 +68,14 @@ export default function NotificationBell() {
   return (
     <div className="relative">
       <button ref={bell} type="button" onClick={toggle} aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'} title="Notifications"
-        aria-expanded={open} aria-haspopup="dialog" className="relative grid size-8 place-items-center rounded-sm text-muted transition hover:bg-hover hover:text-ink">
-        <Bell size={16} />
+        aria-expanded={open} aria-haspopup="dialog" className="icon-btn relative">
+        <Bell size={16} aria-hidden />
         {unread > 0 && <span aria-hidden className="num absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-accent-fill px-1 text-xs font-semibold leading-none text-on-accent ring-2 ring-bg">{unread > 99 ? '99+' : unread}</span>}
       </button>
       {open && (<>
         <div className="fixed inset-0 z-10" onClick={() => close(false)} aria-hidden />
         <div ref={panel} role="dialog" aria-labelledby={titleId} tabIndex={-1} onBlur={onBlur}
-          className="popover fixed inset-x-4 top-14 z-20 flex max-h-[min(32rem,calc(100dvh-5rem))] flex-col overflow-hidden focus:outline-none sm:absolute sm:inset-x-auto sm:right-0 sm:top-10 sm:w-96" style={{ animation: 'rise .16s ease-out' }}>
+          className="popover fixed inset-x-4 top-14 z-20 flex max-h-[min(32rem,calc(100dvh-5rem))] flex-col overflow-hidden focus:outline-none pop sm:absolute sm:inset-x-auto sm:right-0 sm:top-10 sm:w-96">
           <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
             <h2 id={titleId} className="text-sm font-semibold">Notifications</h2>
             {unread > 0 && <button type="button" onClick={() => read.mutate(undefined)} className="rounded-sm text-xs font-medium text-accent hover:underline">Mark all as read</button>}
@@ -96,7 +96,7 @@ export default function NotificationBell() {
                       </span>
                     </Link>
                     <button type="button" aria-label={`Dismiss: ${n.title}`} title="Dismiss" onClick={() => { remove.mutate(n.id); panel.current?.focus() }}
-                      className="absolute right-2 top-2 grid size-7 place-items-center rounded-sm text-faint transition hover:bg-surface hover:text-ink focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"><X size={14} /></button>
+                      className="absolute right-2 top-2 grid size-7 place-items-center rounded-sm text-faint transition-[color,background-color,opacity] hover:bg-surface hover:text-ink focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 [@media(hover:none)]:opacity-100"><X size={14} aria-hidden /></button>
                   </li>
                 ))}
               </ul>

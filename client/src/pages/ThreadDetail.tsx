@@ -31,14 +31,14 @@ export default function ThreadDetail({ kind }: { kind: ThreadKind }) {
               <VoteButton votes={t.votes} voted={t.iVoted || t.mine} disabled={t.mine} onVote={() => vote.mutate()} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap gap-2">{t.courseCode && <Link to={`/courses/${t.courseCode}`} className="chip num hover:text-ink" title="Open the course forum">{t.courseCode}</Link>}{t.category && <span className={cn('chip', VOICE_TONE[t.category])}>{VOICE_LABEL[t.category]}</span>}{t.solved && <span className="chip bg-success-soft text-success"><CheckCircle2 size={12} />Solved</span>}</div>
-                <h1 className="mt-3 text-2xl font-semibold">{t.title}</h1>
+                <h1 className="mt-3 text-2xl font-medium">{t.title}</h1>
                 <p className="mt-3 whitespace-pre-line text-sm leading-relaxed">{t.body}</p>
               </div>
             </div>
           </article>
 
           <section>
-            <h2 className="mb-3 flex items-center gap-2 px-1 text-base font-semibold"><MessageSquare size={15} className="text-muted" />{replies.length} {qa ? (replies.length === 1 ? 'answer' : 'answers') : (replies.length === 1 ? 'reply' : 'replies')}</h2>
+            <h2 className="mb-3 flex items-center gap-2 px-1 text-base font-medium"><MessageSquare size={15} className="text-muted" />{replies.length} {qa ? (replies.length === 1 ? 'answer' : 'answers') : (replies.length === 1 ? 'reply' : 'replies')}</h2>
             {replies.length > 0 && (
               <div className="rows">
                 {replies.map((r) => (
@@ -72,8 +72,8 @@ export default function ThreadDetail({ kind }: { kind: ThreadKind }) {
               <Link to={`/u/${t.author.id}`} className="mt-3 flex items-center gap-3"><Avatar user={t.author} size={38} /><span className="leading-tight"><span className="block text-sm font-semibold">{t.author.name}</span><span className="text-xs text-muted">{t.author.major}, year {t.author.year}</span></span></Link>
             ) : <p className="mt-3 flex items-center gap-3"><span className="grid size-10 place-items-center rounded-full bg-hover text-muted"><EyeOff size={16} /></span><span className="text-sm font-semibold">Anonymous student{t.mine && ' (you)'}</span></p>}
             <div className="mt-5 grid grid-cols-2 gap-2 text-center">
-              <div className="rounded-md bg-hover py-3"><p className="num flex items-center justify-center gap-1 text-base font-semibold text-heading"><ThumbsUp size={13} />{t.votes}</p><p className="text-xs text-muted">votes</p></div>
-              <div className="rounded-md bg-hover py-3"><p className="num text-base font-semibold text-heading">{replies.length}</p><p className="text-xs text-muted">{qa ? 'answers' : 'replies'}</p></div>
+              <div className="rounded-md bg-hover py-3"><p className="num flex items-center justify-center gap-1 text-base font-medium text-heading"><ThumbsUp size={13} />{t.votes}</p><p className="text-xs text-muted">votes</p></div>
+              <div className="rounded-md bg-hover py-3"><p className="num text-base font-medium text-heading">{replies.length}</p><p className="text-xs text-muted">{qa ? 'answers' : 'replies'}</p></div>
             </div>
             <p className="mt-4 text-xs text-muted">Posted {timeAgo(t.createdAt)}</p>
           </div>

@@ -32,10 +32,10 @@ function ItemCard({ it }: { it: RentalItem }) {
       </div>
       <div className="flex flex-1 flex-col p-5">
         <p className="text-xs font-medium text-muted">{RENTAL_LABEL[it.category]} · {it.condition}</p>
-        <h3 className="mt-1 text-base font-semibold leading-snug">{it.title}</h3>
+        <h3 className="mt-1 text-base font-medium leading-snug">{it.title}</h3>
         <p className="mt-1 line-clamp-2 flex-1 text-sm text-muted">{it.description}</p>
         <div className="mt-4 flex items-end justify-between gap-3">
-          <p><span className="num text-2xl font-semibold leading-none tracking-tight">{it.pricePerDay}</span><span className="ml-1 text-xs text-muted">TND / day</span></p>
+          <p><span className="num text-2xl font-medium leading-none tracking-tight">{it.pricePerDay}</span><span className="ml-1 text-xs text-muted">TND / day</span></p>
           <span className="chip num">{it.deposit} TND deposit</span>
         </div>
         <p className="mt-4 flex items-center gap-2 border-t border-line pt-3 text-xs text-muted"><Avatar user={it.owner} size={22} /><span className="font-medium text-ink">{it.owner.name}</span>{it.mine && <span className="chip ml-auto">You</span>}</p>
@@ -46,7 +46,7 @@ function ItemCard({ it }: { it: RentalItem }) {
           : it.available && (!r || r.status === 'declined' || r.status === 'returned') && (ask ? (
             <form className="mt-3 grid gap-2" onSubmit={(e: FormEvent) => { e.preventDefault(); req.mutate() }}>
               <div className="grid grid-cols-2 gap-2"><input className="field" type="date" value={from} min={iso(Date.now())} onChange={(e) => setFrom(e.target.value)} aria-label="From" /><input className="field" type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} aria-label="To" /></div>
-              <input className="field" placeholder="Short note (optional)" maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
+              <input className="field" placeholder="Short note (optional)" aria-label="Note for the owner (optional)" maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
               <div className="flex gap-2"><button className="btn btn-primary flex-1" disabled={req.isPending}>{req.isPending ? <Spinner /> : 'Send request'}</button><button type="button" className="btn btn-ghost" onClick={() => setAsk(false)}>Cancel</button></div>
             </form>) : <button className="btn btn-primary mt-3" onClick={() => setAsk(true)}>Request to rent</button>)}
       </div>
@@ -74,7 +74,7 @@ export default function Rentals() {
       {open && (
         <form className="card rise mb-7 grid gap-4 p-6 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); setErr(''); create.mutate() }}>
           <div className="sm:col-span-2"><Field label="Item"><input className="field" required maxLength={80} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="Casio fx-991EX" /></Field></div>
-          <div className="sm:col-span-2"><span className="label">Category</span><div className="flex flex-wrap gap-2">{(Object.keys(CAT) as RentalCategory[]).map((k) => { const I = CAT[k].icon; return <button type="button" key={k} onClick={() => setF({ ...f, category: k })} className={cn('chip h-9 cursor-pointer gap-2 px-3 text-xs transition', f.category === k ? CAT[k].soft + ' ring-1 ring-current' : 'hover:text-ink')}><I size={14} />{RENTAL_LABEL[k]}</button> })}</div></div>
+          <div className="sm:col-span-2"><span className="label">Category</span><div className="flex flex-wrap gap-2">{(Object.keys(CAT) as RentalCategory[]).map((k) => { const I = CAT[k].icon; return <button type="button" key={k} onClick={() => setF({ ...f, category: k })} className={cn('chip h-9 cursor-pointer gap-2 px-3 text-xs transition-colors', f.category === k ? CAT[k].soft + ' ring-1 ring-current' : 'hover:text-ink')}><I size={14} />{RENTAL_LABEL[k]}</button> })}</div></div>
           <Field label="Condition"><select className="field" value={f.condition} onChange={(e) => setF({ ...f, condition: e.target.value as typeof f.condition })}><option value="new">New</option><option value="good">Good</option><option value="worn">Worn</option></select></Field>
           <div className="grid grid-cols-2 gap-3"><Field label="TND per day"><input className="field" type="number" min={0} max={200} value={f.pricePerDay} onChange={(e) => setF({ ...f, pricePerDay: +e.target.value })} /></Field><Field label="Deposit"><input className="field" type="number" min={0} max={2000} value={f.deposit} onChange={(e) => setF({ ...f, deposit: +e.target.value })} /></Field></div>
           <div className="sm:col-span-2"><Field label="Description"><textarea className="field min-h-20" maxLength={400} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field></div>

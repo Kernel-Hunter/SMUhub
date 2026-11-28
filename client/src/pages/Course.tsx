@@ -20,7 +20,7 @@ function EventRow({ e }: { e: CampusEvent }) {
     <Link to="/events" className="flex items-center gap-4 bg-surface px-4 py-3 transition-colors hover:bg-bg">
       <span className={cn('grid size-10 shrink-0 place-content-center rounded-sm text-center', e.kind === 'deadline' ? 'bg-danger-soft text-danger' : e.kind === 'event' ? 'bg-accent-soft text-accent' : 'bg-subtle text-muted')}>
         <span className="num text-sm font-semibold leading-none">{new Date(e.startsAt).getDate()}</span>
-        <span className="text-[11px]">{new Date(e.startsAt).toLocaleDateString(undefined, { month: 'short' })}</span>
+        <span className="text-xs">{new Date(e.startsAt).toLocaleDateString(undefined, { month: 'short' })}</span>
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium">{e.title}</span>
@@ -70,7 +70,7 @@ export default function Course() {
             <Segmented value={tab} onChange={(v) => set('tab', v === 'discussion' ? '' : v)} options={[{ value: 'discussion', label: `Discussion ${c.questions}` }, { value: 'files', label: `Files ${c.resources}` }, { value: 'events', label: `Calendar ${c.events}` }]} />
             {tab === 'discussion' && (
               <div className="flex flex-wrap items-center gap-2">
-                <button onClick={() => set('open', unsolved ? '' : '1')} aria-pressed={unsolved} className={cn('chip h-8 cursor-pointer px-3 text-xs transition', unsolved ? 'bg-accent-soft text-accent ring-1 ring-accent' : 'hover:text-ink')}>Unanswered only</button>
+                <button onClick={() => set('open', unsolved ? '' : '1')} aria-pressed={unsolved} className={cn('chip h-8 cursor-pointer px-3 text-xs transition-colors', unsolved ? 'bg-accent-soft text-accent ring-1 ring-accent' : 'hover:text-ink')}>Unanswered only</button>
                 <Segmented value={sort} onChange={(v) => set('sort', v === 'new' ? '' : v)} options={[{ value: 'new', label: 'Newest' }, { value: 'top', label: 'Top voted' }]} />
               </div>
             )}

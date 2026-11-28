@@ -8,7 +8,7 @@ import { useAuth } from '@/auth/AuthContext'
 import Banner from '@/components/Banner'
 import { FollowButton, MAX_COURSES } from '@/components/CourseFollow'
 import { Empty, ErrorBox, Skeleton } from '@/components/ui'
-import { deptOf } from '@/lib/utils'
+import { deptOf, deptTag } from '@/lib/utils'
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
@@ -18,12 +18,12 @@ export function CourseCard({ c }: { c: Course }) {
   return (
     <div className="card card-hover group relative overflow-hidden p-4" style={{ boxShadow: `inset 0 3px 0 ${dot}, var(--shadow-card)` }}>
       <span className="flex items-center gap-2">
-        <span className="mono rounded-[5px] px-1.5 py-0.5 text-xs font-semibold" style={{ color: dot, background: `color-mix(in srgb, ${dot} 12%, var(--surface))` }}>{c.code}</span>
+        <span className="mono rounded-[5px] px-1.5 py-0.5 text-xs font-semibold" style={deptTag(dot)}>{c.code}</span>
         <span className="min-w-0 truncate text-xs text-faint">{c.dept}</span>
         <FollowButton code={c.code} compact className="relative z-10 ml-auto shrink-0" />
       </span>
       <Link to={`/courses/${c.code}`} className="mt-2 block truncate text-sm font-medium text-ink after:absolute after:inset-0 after:content-['']">{c.name}</Link>
-      <span className="mt-1 block text-xs text-muted">{plural(c.questions, 'post', 'posts')} · {c.open} open · {plural(c.resources, 'file', 'files')}</span>
+      <span className="mt-1 block text-xs text-muted">{plural(c.questions, 'post', 'posts')}, {c.open} open, {plural(c.resources, 'file', 'files')}</span>
     </div>
   )
 }
@@ -50,7 +50,7 @@ export default function Courses() {
       {courses.isLoading ? <Skeleton rows={4} /> : courses.error ? <ErrorBox error={courses.error} /> : (
         <div className="grid grid-cols-1 gap-8">
           <section className="hue-plum">
-            <h2 className="mb-3 flex items-center gap-2 text-base font-semibold"><span className="tile size-7"><GraduationCap size={16} /></span>Your courses<span className="num rounded-sm border border-line bg-surface px-2 text-xs font-medium text-muted">{me.courses.length}</span>
+            <h2 className="mb-3 flex items-center gap-2 text-base font-medium"><span className="tile size-7"><GraduationCap size={16} /></span>Your courses<span className="num rounded-sm border border-line bg-surface px-2 text-xs font-medium text-muted">{me.courses.length}</span>
               {me.courses.length >= MAX_COURSES && <span className="text-xs font-normal text-muted">You can keep up to {MAX_COURSES}.</span>}</h2>
             {mine.length ? <div className="stagger grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{mine.map((c) => <CourseCard key={c.code} c={c} />)}</div>
               : <Empty title={term ? 'None of your courses match' : 'No courses yet'} hint={term ? 'Try another code or name.' : 'Use the plus button on a course to add it here. Your courses also show on your home page.'} />}
